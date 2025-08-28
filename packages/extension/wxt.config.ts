@@ -1,3 +1,4 @@
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "wxt";
 import path from "node:path";
 
@@ -48,4 +49,9 @@ export default defineConfig({
       }
     },
   },
+
+  //@ts-ignore
+  vite: () => ({
+    plugins: [tailwindcss()],
+  }),
 });
