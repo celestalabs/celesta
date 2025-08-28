@@ -1,0 +1,19 @@
+{
+  "private": true,
+  "name": "celesta",
+  "version": "0.0.0",
+  "description": "Monorepo for Celesta codebase",
+  "homepage": "https://github.com/celestalabs/celesta#readme",
+  "bugs": {
+    "url": "https://github.com/celestalabs/celesta/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/celestalabs/celesta.git"
+  },
+  "scripts": {},
+  "workspaces": [
+    "packages/extension",
+    "packages/tools"
+  ]
+}
