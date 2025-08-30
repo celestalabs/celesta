@@ -6,6 +6,7 @@ export default defineConfig({
   // Extension metadata
   manifest: {
     name: "Celesta ✨",
+    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxCUTWXy3euKRYZjEgEo/ncbkSYfYD+AmpW4l563mZJ1bSqZg6lmtMSN9Oa+ODxScxqVcLqAIsIm2YeLGTRigivw4Ru10+yUIArKhf53Y7Kzepxjyf5MKxZbqmt82GqCeOq3vSoNNHeG5lQyiVLWyF3j0eO9XOXwB6s5v11m/AS0yErBkusXkDP3DaeerRiKAN4vsPy04tFLWP7mPYexU4pmUEnoS2jTBEBcNiIyFhRSR72o/jxxvIaymtv1t72QLqYBhIMe7KVej1Jtx3YBFA3vjHUOTF0TEopPsV5Ja+I4a0dmlJ/U45ET28zcUWD+53+Hd9MzKYiXy2yV2KboSvwIDAQAB",
     description: "What does this thing even do?",
     permissions: [
       "storage",
@@ -14,6 +15,7 @@ export default defineConfig({
       "contextMenus",
       "sidePanel",
       "debugger",
+      "identity",
     ],
     host_permissions: ["<all_urls>"],
     icons: {
