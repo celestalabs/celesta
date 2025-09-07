@@ -1,13 +1,16 @@
 import express from "express";
 import cors from "cors";
 import axios from "axios";
-import { googleDrive, googleDriveAuth } from "@activepieces/piece-google-drive";
 import {
   getClientIdByPieceName,
   getClientSecretByPieceName,
 } from "./secrets.ts";
 import { isPieceName } from "./pieceName.ts";
-import { pieceAuthByName } from "./pieceData.ts";
+import { pieceAuthByName, pieceByName } from "./pieceData.ts";
+import {
+  createAction,
+  OAuth2PropertyValue,
+} from "@activepieces/pieces-framework";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -25,11 +28,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Simple home page
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("OAuth Server for Celesta Extension");
 });
 
-app.get("/api/getOAuthUrl", (req, res) => {
+// Redirects to the OAuth flow URL
+app.get("/api/oauth/redirect", (req, res) => {
   const { pieceName, redirectUrl, state } = req.query;
 
   console.log("Received", { pieceName, redirectUrl, state });
@@ -140,58 +144,33 @@ app.post("/api/oauth/token", async (req, res) => {
   }
 });
 
-// Token refresh endpoint
-app.post("/api/oauth/refresh", async (req, res) => {
-  try {
-    const { refreshToken, provider } = req.body;
+function isOAuth2PropertyValue(
+  something: unknown
+): something is OAuth2PropertyValue {
+  return (
+    typeof something === "object" &&
+    something !== null &&
+    "access_token" in something &&
+    typeof something.access_token === "string"
+  );
+}
 
-    if (!refreshToken) {
-      return res.status(400).json({ error: "Missing refresh token" });
-    }
+app.post("/api/tool/execute-oauth", async (req, res) => {
+  const { pieceName, action, props, auth } = req.body;
 
-    // Get OAuth configuration based on provider
-    const config = getOAuthConfig(provider);
-    if (!config) {
-      return res.status(400).json({ error: "Invalid or unsupported provider" });
-    }
-
-    if (!config.clientId || !config.clientSecret || !config.authUrl) {
-      return res.status(400).json({ error: "Incomplete OAuth configuration" });
-    }
-
-    // Exchange refresh token for new access token
-    const tokenResponse = await axios({
-      method: "post",
-      url: config.authUrl,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      data: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
-      }).toString(),
-    });
-
-    // Return new tokens to client
-    return res.json({
-      accessToken: tokenResponse.data.access_token,
-      refreshToken: tokenResponse.data.refresh_token || refreshToken, // Some providers don't include a new refresh token
-      expiresIn: tokenResponse.data.expires_in,
-      tokenType: tokenResponse.data.token_type,
-    });
-  } catch (error) {
-    const typedError = error as { response?: { data: any }; message?: string };
-    console.error(
-      "Token refresh error:",
-      typedError.response?.data || typedError.message
-    );
-    return res.status(500).json({
-      error: "Failed to refresh tokens",
-      details: typedError.response?.data || typedError.message,
-    });
+  if (
+    !isPieceName(pieceName) ||
+    typeof action !== "string" ||
+    typeof props !== "object" ||
+    !isOAuth2PropertyValue(auth)
+  ) {
+    return res.status(400).json({ error: "Malformed request body" });
   }
+
+  pieceByName[pieceName].getAction(action)?.run({
+    propsValue: props,
+    auth,
+  } as any);
 });
 
 function getOAuthConfig(provider: string): {

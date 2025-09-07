@@ -1,80 +1,96 @@
 import { PieceName } from "@celesta/tools/pieces/pieceName.ts";
 import { createRoot } from "react-dom/client";
 
-async function handleStartOAuthFlow() {
-  const BASE_URL = "http://localhost:8080";
+function App() {
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  const oAuthUrl = new URL(`${BASE_URL}/api/getOAuthUrl`);
-  oAuthUrl.searchParams.append("pieceName", PieceName.GOOGLE_DRIVE);
-  const redirectUrl = browser.identity.getRedirectURL(PieceName.GOOGLE_DRIVE);
-  oAuthUrl.searchParams.append("redirectUrl", redirectUrl);
+  const handleStartOAuthFlow = useCallback(async () => {
+    const BASE_URL = "http://localhost:8080";
 
-  const state = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  oAuthUrl.searchParams.append("state", state);
+    const oAuthUrl = new URL(`${BASE_URL}/api/oauth/redirect`);
+    oAuthUrl.searchParams.append("pieceName", PieceName.GOOGLE_DRIVE);
+    const redirectUrl = browser.identity.getRedirectURL(PieceName.GOOGLE_DRIVE);
+    oAuthUrl.searchParams.append("redirectUrl", redirectUrl);
 
-  const responseUrl = await browser.identity.launchWebAuthFlow({
-    url: oAuthUrl.toString(),
-    interactive: true,
-  });
+    const state = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    oAuthUrl.searchParams.append("state", state);
 
-  if (responseUrl) {
-    const url = new URL(responseUrl);
-    const code = url.searchParams.get("code");
-    const responseState = url.searchParams.get("state");
+    const responseUrl = await browser.identity.launchWebAuthFlow({
+      url: oAuthUrl.toString(),
+      interactive: true,
+    });
 
-    // Validate state to prevent CSRF attacks
-    if (responseState !== state) {
-      throw new Error("State mismatch - possible CSRF attack");
-    }
+    if (responseUrl) {
+      const url = new URL(responseUrl);
+      const code = url.searchParams.get("code");
+      const responseState = url.searchParams.get("state");
 
-    if (!code) {
-      throw new Error("Authentication failed - no code returned");
-    }
-
-    try {
-      const response = await fetch(`${BASE_URL}/api/oauth/token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code,
-          redirectUri: redirectUrl,
-          pieceName: PieceName.GOOGLE_DRIVE,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Token exchange failed: ${response.status} - ${JSON.stringify(errorData)}`
-        );
+      // Validate state to prevent CSRF attacks
+      if (responseState !== state) {
+        throw new Error("State mismatch - possible CSRF attack");
       }
 
-      // 4. Return the tokens obtained from the server
-      console.log({ successfulAuthentication: await response.json() });
-    } catch (error) {
-      console.error(error);
-      console.error("Token exchange error:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : typeof error === "object" && error !== null && "message" in error
-            ? String((error as { message: unknown }).message)
-            : "Unknown error";
+      if (!code) {
+        throw new Error("Authentication failed - no code returned");
+      }
 
-      throw new Error(`Failed to exchange authorization code: ${errorMessage}`);
+      try {
+        const response = await fetch(`${BASE_URL}/api/oauth/token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            code,
+            redirectUri: redirectUrl,
+            pieceName: PieceName.GOOGLE_DRIVE,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            `Token exchange failed: ${response.status} - ${JSON.stringify(errorData)}`
+          );
+        }
+
+        // 4. Return the tokens obtained from the server
+        const res = await response.json();
+        console.log({ successfulAuthentication: res });
+        setAccessToken(res.accessToken);
+      } catch (error) {
+        console.error(error);
+        console.error("Token exchange error:", error);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : typeof error === "object" && error !== null && "message" in error
+              ? String((error as { message: unknown }).message)
+              : "Unknown error";
+
+        throw new Error(
+          `Failed to exchange authorization code: ${errorMessage}`
+        );
+      }
+    } else {
+      console.error("OAuth flow failed");
     }
-  } else {
-    console.error("OAuth flow failed");
-  }
-}
+  }, []);
 
-function App() {
   return (
-    <button onClick={handleStartOAuthFlow}>Start Google Drive Auth</button>
+    <div>
+      {accessToken !== null ? (
+        <div>
+          <div>Access granted!</div>
+          <hr />
+          <button>Perform action</button>
+        </div>
+      ) : (
+        <button onClick={handleStartOAuthFlow}>Start Google Drive Auth</button>
+      )}
+    </div>
   );
 }
 
