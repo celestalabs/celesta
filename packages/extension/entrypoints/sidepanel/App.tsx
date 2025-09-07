@@ -79,13 +79,55 @@ function App() {
     }
   }, []);
 
+  const handlePerformAction = useCallback(async () => {
+    if (!accessToken) {
+      console.error("No access token available");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/tool/execute-oauth`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pieceName: PieceName.GOOGLE_DRIVE,
+            action: "list-files",
+            props: {
+              pageSize: 10,
+              folderId: "root",
+            },
+            auth: {
+              access_token: accessToken,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Action execution failed: ${response.status} - ${JSON.stringify(errorData)}`
+        );
+      }
+
+      const res = await response.json();
+      console.log({ actionResult: res });
+    } catch (error) {
+      console.error("Action execution error:", error);
+    }
+  }, [accessToken]);
+
   return (
     <div>
       {accessToken !== null ? (
         <div>
           <div>Access granted!</div>
           <hr />
-          <button>Perform action</button>
+          <button onClick={handlePerformAction}>Perform action</button>
         </div>
       ) : (
         <button onClick={handleStartOAuthFlow}>Start Google Drive Auth</button>

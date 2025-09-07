@@ -7,10 +7,7 @@ import {
 } from "./secrets.ts";
 import { isPieceName } from "./pieceName.ts";
 import { pieceAuthByName, pieceByName } from "./pieceData.ts";
-import {
-  createAction,
-  OAuth2PropertyValue,
-} from "@activepieces/pieces-framework";
+import { OAuth2PropertyValue } from "@activepieces/pieces-framework";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -167,10 +164,18 @@ app.post("/api/tool/execute-oauth", async (req, res) => {
     return res.status(400).json({ error: "Malformed request body" });
   }
 
-  pieceByName[pieceName].getAction(action)?.run({
+  const actionCtx = pieceByName[pieceName].getAction(action);
+
+  if (!actionCtx) {
+    return res.status(400).json({ error: "No such action" });
+  }
+
+  const result = await actionCtx.run({
     propsValue: props,
     auth,
   } as any);
+
+  res.json(result);
 });
 
 function getOAuthConfig(provider: string): {
