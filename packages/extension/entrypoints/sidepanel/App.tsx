@@ -1,13 +1,16 @@
+import { createIntegrationApiClient } from "@celesta/integrations-api/client.ts";
 import { PieceName } from "@celesta/integrations-api/pieces/pieceName.ts";
 import { createRoot } from "react-dom/client";
+
+const INTEGRATION_API_URL = "http://localhost:8080";
+
+const integrationApiClient = createIntegrationApiClient(INTEGRATION_API_URL);
 
 function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
   const handleStartOAuthFlow = useCallback(async () => {
-    const BASE_URL = "http://localhost:8080";
-
-    const oAuthUrl = new URL(`${BASE_URL}/api/oauth/redirect`);
+    const oAuthUrl = new URL(`${INTEGRATION_API_URL}/api/oauth/redirect`);
     oAuthUrl.searchParams.append("pieceName", PieceName.GOOGLE_DRIVE);
     const redirectUrl = browser.identity.getRedirectURL(PieceName.GOOGLE_DRIVE);
     oAuthUrl.searchParams.append("redirectUrl", redirectUrl);
@@ -37,29 +40,21 @@ function App() {
       }
 
       try {
-        const response = await fetch(`${BASE_URL}/api/oauth/token`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+        const response = await integrationApiClient.getToken({
+          body: {
             code,
             redirectUri: redirectUrl,
             pieceName: PieceName.GOOGLE_DRIVE,
-          }),
+          },
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            `Token exchange failed: ${response.status} - ${JSON.stringify(errorData)}`
-          );
+        if (!response.success) {
+          throw new Error(`Token exchange failed: ${response.error}`);
         }
 
         // 4. Return the tokens obtained from the server
-        const res = await response.json();
-        console.log({ successfulAuthentication: res });
-        setAccessToken(res.accessToken);
+        console.log(response);
+        setAccessToken(response.accessToken);
       } catch (error) {
         console.error(error);
         console.error("Token exchange error:", error);
