@@ -1,4 +1,4 @@
-import { PieceName } from "@celesta/tools/pieces/pieceName.ts";
+import { PieceName } from "@celesta/integrations-api/pieces/pieceName.ts";
 import { createRoot } from "react-dom/client";
 
 function App() {
