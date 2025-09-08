@@ -11,16 +11,20 @@ const GENERIC_FETCHER =
   }: {
     params?: object;
     body?: object;
-    headers?: HeadersInit;
+    headers?: Record<string, string>;
   }) => {
     const urlObj = new URL(url);
-    if (params) {
+    if (params != null) {
       Object.entries(params).forEach(([key, value]) => {
         urlObj.searchParams.append(key, String(value));
       });
     }
 
-    const fetchData = { method, headers } as RequestInit;
+    const fetchData = {
+      method,
+      headers: { ...headers, "Content-Type": "application/json" },
+    } as RequestInit;
+    
     if (body != null) {
       fetchData.body = JSON.stringify(body);
     }
@@ -37,10 +41,10 @@ export const createIntegrationApiClient = (baseUrl: string) =>
     ) as GenerateOAuthRedirectUrlHandler,
     generateOAuthAccessToken: GENERIC_FETCHER(
       "POST",
-      `${baseUrl}/api/oauth/token`
+      `${baseUrl}/api/generateOAuthAccessToken`
     ) as GenerateOAuthAccessTokenHandler,
     executeIntegration: GENERIC_FETCHER(
       "POST",
-      `${baseUrl}/api/tool/execute-oauth`
+      `${baseUrl}/api/executeIntegration`
     ) as ExecuteIntegrationHandler,
   }) as const;

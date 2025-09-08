@@ -30,6 +30,14 @@ export class WrappedRouter {
   ) {
     this.router[method](path, async (req, res) => {
       try {
+        console.log("Request received:", {
+          method,
+          path,
+          body: req.body,
+          headers: req.headers,
+          params: req.query,
+        });
+
         const result = await handler({
           body: req.body as Body,
           headers: req.headers as Headers,
