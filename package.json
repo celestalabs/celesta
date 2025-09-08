@@ -17,7 +17,7 @@
   },
   "workspaces": [
     "packages/extension",
-    "packages/tools"
+    "packages/integrations-api"
   ],
   "devDependencies": {}
 }

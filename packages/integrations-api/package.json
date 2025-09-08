@@ -1,12 +1,12 @@
 {
-  "name": "@celesta/tools",
+  "name": "@celesta/integrations-api",
   "private": true,
   "version": "0.0.0",
   "description": "Common tool implementation-related code for Celesta",
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx index.ts --run oauth-server"
+    "start": "tsx index.ts"
   },
   "dependencies": {
     "@activepieces/piece-google-drive": "^0.5.49",

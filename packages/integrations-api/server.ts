@@ -4,9 +4,9 @@ import axios from "axios";
 import {
   getClientIdByPieceName,
   getClientSecretByPieceName,
-} from "./secrets.ts";
-import { isPieceName } from "./pieceName.ts";
-import { pieceAuthByName, pieceByName } from "./pieceData.ts";
+} from "./pieces/secrets.ts";
+import { isPieceName } from "./pieces/pieceName.ts";
+import { pieceAuthByName, pieceByName } from "./pieces/pieceData.ts";
 import { OAuth2PropertyValue } from "@activepieces/pieces-framework";
 
 const app = express();
