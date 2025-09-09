@@ -52,8 +52,8 @@ export const GenerateOAuthRedirectUrlHandler: GenerateOAuthRedirectUrlHandler =
     parameterizedUrl.searchParams.append("redirect_uri", redirectUrl);
     parameterizedUrl.searchParams.append("response_type", "code");
     parameterizedUrl.searchParams.append("state", state);
-    if (scope) {
-      scope.forEach((s) => parameterizedUrl.searchParams.append("scope", s));
+    if (scope != null && scope.length > 0) {
+      parameterizedUrl.searchParams.append("scope", scope.join(" "));
     }
 
     return {
