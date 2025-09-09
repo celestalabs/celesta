@@ -30,10 +30,10 @@ export const ListIntegrationsHandler: ListIntegrationsHandler = async ({
         (result): result is IntegrationMetadata & { success: true } =>
           result.success
       )
-      .map((wow) => ({
-        friendlyName: wow.friendlyName,
-        description: wow.description,
-        actions: wow.actions,
-      })),
+      .map((wow) => {
+        const clone = { ...wow } as IntegrationMetadata & { success?: true };
+        delete clone.success;
+        return clone as IntegrationMetadata;
+      }),
   };
 };

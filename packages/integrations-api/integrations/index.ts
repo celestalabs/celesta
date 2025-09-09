@@ -29,6 +29,7 @@ export function isIntegrationName(
 export type IntegrationMetadata = {
   friendlyName: string;
   description: string;
+  logoUrl: string | null;
   actions: { friendlyName: string; description: string }[];
 };
 
@@ -39,6 +40,7 @@ const nonPieceIntegrationMetadata: Record<
   [NonPieceIntegrationName.BROWSER_USE]: {
     friendlyName: "Browser Use Agent",
     description: "Interact directly with the user's browser.",
+    logoUrl: null,
     actions: [
       {
         friendlyName: "Goal-oriented browsing",
@@ -62,6 +64,7 @@ export function readIntegrationMetadata(
     const friendlyName = piece.displayName;
     const description = piece.description;
     const actionData: IntegrationMetadata["actions"] = [];
+    const logoUrl = piece.logoUrl;
 
     for (let action of Object.values(piece.actions())) {
       actionData.push({
@@ -70,7 +73,13 @@ export function readIntegrationMetadata(
       });
     }
 
-    return { success: true, friendlyName, description, actions: actionData };
+    return {
+      success: true,
+      friendlyName,
+      description,
+      logoUrl,
+      actions: actionData,
+    };
   }
 
   // non piece integration
