@@ -4,6 +4,7 @@ import { ExecuteIntegrationHandler } from "./routes/executeIntegration.ts";
 import { GenerateOAuthRedirectUrlHandler } from "./routes/generateOAuthRedirectUrl.ts";
 import { GenerateOAuthAccessTokenHandler } from "./routes/generateOAuthAccessToken.ts";
 import { WrappedRouter } from "./utils/wrappedRouter.ts";
+import { ListIntegrationsHandler } from "./routes/listIntegrations.ts";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(
     .route("post", "/executeIntegration", ExecuteIntegrationHandler)
     .route("post", "/generateOAuthAccessToken", GenerateOAuthAccessTokenHandler)
     .route("get", "/generateOAuthRedirectUrl", GenerateOAuthRedirectUrlHandler)
+    .route("get", "/listIntegrations", ListIntegrationsHandler)
     .unwrap()
 );
 

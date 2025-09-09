@@ -1,4 +1,3 @@
-import type { Router } from "express";
 import { isPieceName } from "../pieces/pieceName.ts";
 import { getOAuthConfig } from "../utils/oAuth.ts";
 import type { TypedFetcher } from "../utils/wrappedRouter.ts";
