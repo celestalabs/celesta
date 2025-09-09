@@ -1,28 +1,20 @@
 import { PieceName } from "./pieceName.ts";
 
-const serverOnly = <T, A extends any[]>(fn: (...args: A) => T) => {
-  return (...args: A) => {
-    try {
-      window;
-      throw new Error("This function can only be called in a server context");
-    } catch {
-      return fn(...args);
-    }
-  };
-};
+// Helper functions to get client ID and secret
+export function getClientIdByPieceName(name: PieceName): string | undefined {
+  return clientIdByPieceName[name];
+}
 
-export const getClientIdByPieceName = (pieceName: PieceName) => {
-  switch (pieceName) {
-    case PieceName.GOOGLE_DRIVE: {
-      return process.env.TOOL_GOOGLE_CLIENT_ID;
-    }
-  }
-};
+export function getClientSecretByPieceName(name: PieceName): string | undefined {
+  return clientSecretByPieceName[name];
+}
 
-export const getClientSecretByPieceName = serverOnly((pieceName: PieceName) => {
-  switch (pieceName) {
-    case PieceName.GOOGLE_DRIVE: {
-      return process.env.TOOL_GOOGLE_CLIENT_SECRET;
-    }
-  }
-});
+export const clientIdByPieceName = {
+  [PieceName.GOOGLE_DRIVE]: process.env.TOOL_GOOGLE_CLIENT_ID,
+  [PieceName.GOOGLE_CONTACTS]: process.env.TOOL_GOOGLE_CONTACTS_CLIENT_ID,
+} as const satisfies Partial<Record<PieceName, string | undefined>>;
+
+export const clientSecretByPieceName = {
+  [PieceName.GOOGLE_DRIVE]: process.env.TOOL_GOOGLE_CLIENT_SECRET,
+  [PieceName.GOOGLE_CONTACTS]: process.env.TOOL_GOOGLE_CONTACTS_CLIENT_SECRET,
+} as const satisfies Partial<Record<PieceName, string | undefined>>;

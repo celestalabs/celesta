@@ -19,5 +19,7 @@
     "packages/extension",
     "packages/integrations-api"
   ],
-  "devDependencies": {}
+  "dependencies": {
+    "@activepieces/pieces-framework": "^0.20.1"
+  }
 }

@@ -1,5 +1,6 @@
 export enum PieceName {
   GOOGLE_DRIVE = "google_drive",
+  GOOGLE_CONTACTS = "google_contacts",
 }
 
 // type guard for piecename
