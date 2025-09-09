@@ -37,6 +37,8 @@ export const GenerateOAuthRedirectUrlHandler: GenerateOAuthRedirectUrlHandler =
       scope: undefined,
     };
 
+    console.log("oauth stuff for", pieceName, { clientId, authUrl, scope });
+
     if (clientId == null || authUrl == null) {
       return {
         success: false,

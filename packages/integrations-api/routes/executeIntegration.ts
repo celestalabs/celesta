@@ -2,6 +2,8 @@ import { isPieceName } from "../pieces/pieceName.ts";
 import { pieceByName } from "../pieces/pieceData.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/wrappedRouter.ts";
+import { isIntegrationName } from "../integrations/index.ts";
+import { executePieceAction } from "../pieces/executePieceAction.ts";
 
 export type ExecuteIntegrationHandler = TypedFetcher<
   /* Response */ {
@@ -10,8 +12,8 @@ export type ExecuteIntegrationHandler = TypedFetcher<
     result: unknown;
   },
   /* Body */ {
-    pieceName: string;
-    action: string;
+    integrationName: string;
+    actionName: string;
     props: object;
     // For simplicity, we only support OAuth2 for now.
     auth: { access_token: string };
@@ -21,11 +23,11 @@ export type ExecuteIntegrationHandler = TypedFetcher<
 export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
   body,
 }) => {
-  const { pieceName, action, props, auth } = body;
+  const { integrationName, actionName, props, auth } = body;
 
   if (
-    !isPieceName(pieceName) ||
-    typeof action !== "string" ||
+    !isIntegrationName(integrationName) ||
+    typeof actionName !== "string" ||
     typeof props !== "object" ||
     !isOAuth2PropertyValue(auth)
   ) {
@@ -36,24 +38,23 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
     };
   }
 
-  const actionCtx = pieceByName[pieceName].getAction(action);
+  if (isPieceName(integrationName)) {
+    const response = await executePieceAction(
+      integrationName,
+      actionName,
+      props,
+      auth
+    );
 
-  if (!actionCtx) {
-    return {
-      success: false,
-      code: 400,
-      error: "No such action",
-    };
+    return response.success
+      ? { success: true, code: 200, result: response.data }
+      : { ...response, code: 500 };
   }
 
-  const result = await actionCtx.run({
-    propsValue: props,
-    auth,
-  } as any);
-
+  // Non piece integration
   return {
-    success: true,
-    code: 200,
-    result,
+    success: false,
+    code: 400,
+    error: "Integration not yet supported: " + integrationName,
   };
 };

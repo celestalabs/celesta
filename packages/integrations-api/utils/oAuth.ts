@@ -2,8 +2,8 @@ import { pieceAuthByName } from "../pieces/pieceData.ts";
 import { OAuth2PropertyValue } from "@activepieces/pieces-framework";
 import { isPieceName } from "../pieces/pieceName.ts";
 import {
-  getClientIdByPieceName,
-  getClientSecretByPieceName,
+  clientIdByPieceName,
+  clientSecretByPieceName,
 } from "../pieces/secrets.ts";
 
 export function isOAuth2PropertyValue(
@@ -24,6 +24,7 @@ export function getOAuthConfig(provider: string): {
   tokenUrl: string | undefined;
   scope: string[] | undefined;
 } | null {
+  console.log("Getting OAuth config for provider:", provider);
   const normalizedProvider = provider.toLowerCase();
 
   if (!isPieceName(normalizedProvider)) {
@@ -31,10 +32,16 @@ export function getOAuthConfig(provider: string): {
   }
 
   const pieceAuth = pieceAuthByName[normalizedProvider];
-  const clientId = getClientIdByPieceName(normalizedProvider);
-  const clientSecret = getClientSecretByPieceName(normalizedProvider);
+  const clientId = clientIdByPieceName[normalizedProvider]();
+  const clientSecret = clientSecretByPieceName[normalizedProvider]();
 
-  if (!pieceAuth || !clientId || !clientSecret) {
+  if (!pieceAuth) {
+    console.error("Authentication failed: PieceAuth not found for", normalizedProvider);
+    return null;
+  }
+  
+  if (!clientId || !clientSecret) {
+    console.error("Authentication failed: Missing client credentials for", normalizedProvider);
     return null;
   }
 

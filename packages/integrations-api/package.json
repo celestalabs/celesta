@@ -9,6 +9,7 @@
     "start": "tsx index.ts"
   },
   "dependencies": {
+    "@activepieces/piece-gmail": "^0.9.4",
     "@activepieces/piece-google-contacts": "^0.3.14",
     "@activepieces/piece-google-drive": "^0.5.49",
     "@types/cors": "^2.8.19",
