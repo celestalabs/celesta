@@ -2,6 +2,7 @@ import { createIntegrationApiClient } from "@celesta/integrations-api/client";
 import { PieceName } from "@celesta/integrations-api/pieces/pieceName.ts";
 import { useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Button } from "~/shared/components/ui/button";
 
 const INTEGRATION_API_URL = "http://localhost:8080";
 
@@ -136,15 +137,12 @@ function App() {
   }, [accessToken, integrationName, actionName, customProps]);
 
   return (
-    <div className="p-4">
+    <div>
       {accessToken === null ? (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Integration Name:
-            </label>
+        <div>
+          <div>
+            <label>Integration Name:</label>
             <select
-              className="w-full p-2 border rounded"
               value={integrationName}
               onChange={(e) => setIntegrationName(e.target.value as PieceName)}
             >
@@ -155,70 +153,47 @@ function App() {
               ))}
             </select>
           </div>
-          <button
-            className="w-full p-2 bg-blue-500 text-white rounded"
-            onClick={handleStartOAuthFlow}
-          >
-            Start Authentication
-          </button>
+          <Button onClick={handleStartOAuthFlow}>Start Authentication</Button>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="text-green-600 font-medium">
-            Authentication Successful!
-          </div>
+        <div>
+          <div>Authentication Successful!</div>
           <hr />
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Action Name:</label>
+          <div>
+            <label>Action Name:</label>
             <input
               type="text"
-              className="w-full p-2 border rounded"
               value={actionName}
               onChange={(e) => setActionName(e.target.value)}
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Custom Props (JSON):
-            </label>
+          <div>
+            <label>Custom Props (JSON):</label>
             <textarea
-              className="w-full p-2 border rounded h-24 font-mono text-sm"
               value={customProps}
               onChange={(e) => setCustomProps(e.target.value)}
             />
           </div>
 
-          <button
-            className="w-full p-2 bg-green-500 text-white rounded"
-            onClick={handlePerformAction}
-            disabled={isExecuting}
-          >
+          <Button onClick={handlePerformAction} disabled={isExecuting}>
             {isExecuting ? "Executing..." : "Execute Action"}
-          </button>
+          </Button>
 
           {executionResult && (
-            <div className="mt-4 border rounded p-3">
-              <div
-                className={`font-medium ${executionResult.success ? "text-green-600" : "text-red-600"}`}
-              >
-                {executionResult.success ? "Success" : "Failed"}
-              </div>
+            <div>
+              <div>{executionResult.success ? "Success" : "Failed"}</div>
 
               {executionResult.success ? (
-                <div className="mt-2">
-                  <div className="text-sm font-medium mb-1">Response Data:</div>
-                  <pre className="bg-gray-100 p-2 rounded overflow-auto text-xs max-h-64">
-                    {JSON.stringify(executionResult.data, null, 2)}
-                  </pre>
+                <div>
+                  <div>Response Data:</div>
+                  <pre>{JSON.stringify(executionResult.data, null, 2)}</pre>
                 </div>
               ) : (
-                <div className="mt-2">
-                  <div className="text-sm font-medium mb-1">Error:</div>
-                  <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded text-sm">
-                    {executionResult.error}
-                  </div>
+                <div>
+                  <div>Error:</div>
+                  <div>{executionResult.error}</div>
                 </div>
               )}
             </div>

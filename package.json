@@ -13,13 +13,15 @@
     "url": "git+https://github.com/celestalabs/celesta.git"
   },
   "scripts": {
-    "lint": "eslint ."
+    "dev:extension": "cd packages/extension && npm run dev",
+    "dev:integrations-api": "cd packages/integrations-api && npm run dev",
+    "dev": "concurrently \"npm run dev:extension\" \"npm run dev:integrations-api\""
   },
   "workspaces": [
     "packages/extension",
     "packages/integrations-api"
   ],
-  "dependencies": {
-    "@activepieces/pieces-framework": "^0.20.1"
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
