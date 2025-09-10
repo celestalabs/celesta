@@ -6,10 +6,12 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx index.ts"
+    "start": "tsx index.ts",
+    "dev": "tsx watch index.ts"
   },
   "dependencies": {
     "@activepieces/piece-gmail": "^0.9.4",
+    "@activepieces/piece-google-calendar": "^0.6.5",
     "@activepieces/piece-google-contacts": "^0.3.14",
     "@activepieces/piece-google-drive": "^0.5.49",
     "@types/cors": "^2.8.19",
@@ -18,7 +20,8 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "minimist": "^1.2.8"
+    "minimist": "^1.2.8",
+    "zod": "^4.1.5"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.4",

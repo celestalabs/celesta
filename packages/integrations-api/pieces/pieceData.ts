@@ -7,6 +7,7 @@ import {
   IAction,
   type ActionRunner,
   OAuth2Property,
+  InputPropertyMap,
 } from "@activepieces/pieces-framework";
 import { PieceName } from "./pieceName.ts";
 
@@ -14,7 +15,7 @@ export type ActionCompat = {
   description: string;
   displayName: string;
   name: string;
-  props: object;
+  props: InputPropertyMap;
   run: ActionRunner<any, any>;
 };
 

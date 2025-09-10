@@ -1,3 +1,4 @@
+import z from "zod";
 import {
   NonPieceIntegrationName,
   readIntegrationMetadata,
@@ -6,18 +7,24 @@ import {
 import { PieceName } from "../pieces/pieceName.ts";
 import type { TypedFetcher } from "../utils/wrappedRouter.ts";
 
+type ResponseMetadata = Omit<IntegrationMetadata, "actions"> & {
+  actions: {
+    name: string;
+    description: string;
+    props: object;
+  }[];
+};
+
 export type ListIntegrationsHandler = TypedFetcher<
   {
     success: true;
     code: number;
-    integrations: IntegrationMetadata[];
+    integrations: ResponseMetadata[];
   },
-  {}
+  undefined
 >;
 
-export const ListIntegrationsHandler: ListIntegrationsHandler = async ({
-  body,
-}) => {
+export const ListIntegrationsHandler: ListIntegrationsHandler = async () => {
   return {
     success: true,
     code: 200,
@@ -33,7 +40,11 @@ export const ListIntegrationsHandler: ListIntegrationsHandler = async ({
       .map((wow) => {
         const clone = { ...wow } as IntegrationMetadata & { success?: true };
         delete clone.success;
-        return clone as IntegrationMetadata;
+        clone.actions.forEach((action) => {
+          (action as ResponseMetadata["actions"][number]).props =
+            z.toJSONSchema(action.props);
+        });
+        return clone as ResponseMetadata;
       }),
   };
 };
