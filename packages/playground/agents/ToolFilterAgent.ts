@@ -1,8 +1,8 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { BaseAgent, BaseAgentConfig } from "../lib/BaseAgent.js";
-import { Task } from "./types.js";
-import { toolMetadata, toolRegistry, ToolId } from "./tools.js";
+import { Task } from "../types/types.js";
+import { toolMetadata, toolRegistry, ToolId } from "../components/tools.js";
 
 const ToolSelectionSchema = z.object({
   selectedTools: z

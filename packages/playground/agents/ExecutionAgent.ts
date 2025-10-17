@@ -1,7 +1,7 @@
 import { streamText, stepCountIs } from "ai";
 import { BaseAgent, BaseAgentConfig } from "../lib/BaseAgent.js";
-import { Task, TaskResult } from "./types.js";
-import { toolRegistry } from "./tools.js";
+import { Task, TaskResult } from "../types/types.js";
+import { toolRegistry } from "../components/tools.js";
 
 /**
  * ExecutionAgent executes tasks using the selected tools.

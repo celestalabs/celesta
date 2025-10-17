@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { BaseAgent, BaseAgentConfig } from "../lib/BaseAgent.js";
-import { Task } from "./types.js";
+import { Task } from "../types/types.js";
 
 const NextTaskSchema = z.object({
   shouldContinue: z

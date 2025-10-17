@@ -1,5 +1,5 @@
 import * as readline from "readline";
-import { MessagePipe } from "../lib/MessagePipe";
+import { MessagePipe, Message, MessageType } from "../lib/MessagePipe";
 
 /**
  * Console-based implementation of MessagePipe.

@@ -1,5 +1,5 @@
 import { MessagePipe } from "../lib/MessagePipe.js";
-import { Task, TaskResult, ExecutionStatus } from "./types.js";
+import { Task, TaskResult, ExecutionStatus } from "../types/types.js";
 
 interface ExecutionContextConfig {
   prompt: string;

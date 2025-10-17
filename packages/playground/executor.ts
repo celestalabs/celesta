@@ -6,11 +6,11 @@
  */
 
 import "dotenv/config";
-import { CoordinationAgent } from "./components/CoordinationAgent";
+import { CoordinationAgent } from "./agents/CoordinationAgent";
 import { ExecutionContext } from "./components/ExecutionContext";
 import { MessagePipe } from "./lib/MessagePipe";
-import { ToolFilterAgent } from "./components/ToolFilterAgent";
-import { ExecutionAgent } from "./components/ExecutionAgent";
+import { ToolFilterAgent } from "./agents/ToolFilterAgent";
+import { ExecutionAgent } from "./agents/ExecutionAgent";
 
 
 /**
