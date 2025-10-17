@@ -1,13 +1,8 @@
 import { generateObject } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
-import { ExecutionContext } from "./ExecutionContext.js";
-import { Task, ToolSelection } from "./types.js";
+import { BaseAgent, BaseAgentConfig } from "../lib/BaseAgent.js";
+import { Task } from "./types.js";
 import { toolMetadata, toolRegistry, ToolId } from "./tools.js";
-
-interface ToolFilterAgentConfig {
-  executionContext: ExecutionContext;
-}
 
 const ToolSelectionSchema = z.object({
   selectedTools: z
@@ -27,42 +22,29 @@ const ToolSelectionSchema = z.object({
     .describe("Overall reasoning for the tool selection strategy"),
 });
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
-
 /**
  * ToolFilterAgent selects appropriate tools for each task.
  * It narrows down the available tools to only those relevant for execution.
  */
-export class ToolFilterAgent {
-  private executionContext: ExecutionContext;
-  private model = google("gemini-2.5-flash");
+export class ToolFilterAgent extends BaseAgent {
+  protected agentName = "ToolFilterAgent";
 
-  constructor(config: ToolFilterAgentConfig) {
-    this.executionContext = config.executionContext;
+  constructor(config: BaseAgentConfig) {
+    super(config);
   }
 
   /**
    * Select relevant tools for the given task
    */
   async run({ task }: { task: Task }): Promise<typeof toolRegistry> {
-    const messagePipe = this.executionContext.getMessagePipe();
-    messagePipe.send(
-      "status",
-      "Analyzing available tools for task...",
-      "ToolFilterAgent"
-    );
+    this.sendStatus("Analyzing available tools for task...");
 
     const availableToolDescriptions = Object.entries(toolMetadata)
-      .map(
-        ([id, meta]) =>
-          `- ${id}: ${meta.description}`
-      )
+      .map(([id, meta]) => `- ${id}: ${meta.description}`)
       .join("\n");
 
     // Get previous task data to inform tool selection
-    const previousTaskData = this.executionContext.getAllTaskData();
+    const previousTaskData = this.getPreviousTaskData();
     const previousTasksContext =
       previousTaskData.length > 0
         ? `\n\nPrevious Tasks Completed:\n${previousTaskData
@@ -95,42 +77,26 @@ Select ONLY the tools that are directly relevant to accomplishing this task. Pro
 If no tools are needed, select an empty array.`,
       });
 
-      messagePipe.send(
-        "info",
-        `Tool selection reasoning: ${object.reasoning}`,
-        "ToolFilterAgent"
-      );
+      this.sendInfo(`Tool selection reasoning: ${object.reasoning}`);
 
       // Filter the tool registry to only include selected tools
       const selectedTools: Record<string, any> = {};
-      
+
       for (const selection of object.selectedTools) {
         const toolId = selection.toolId as ToolId;
         if (toolRegistry[toolId]) {
           selectedTools[toolId] = toolRegistry[toolId];
-          messagePipe.send(
-            "info",
-            `Selected tool: ${toolId} - ${selection.reason}`,
-            "ToolFilterAgent"
-          );
+          this.sendInfo(`Selected tool: ${toolId} - ${selection.reason}`);
         }
       }
 
       const toolCount = Object.keys(selectedTools).length;
-      messagePipe.send(
-        "status",
-        `Selected ${toolCount} tool(s) for task execution`,
-        "ToolFilterAgent"
-      );
+      this.sendStatus(`Selected ${toolCount} tool(s) for task execution`);
 
       return selectedTools as typeof toolRegistry;
     } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : "Unknown error";
-      messagePipe.send(
-        "error",
-        `Failed to select tools: ${errorMsg}`,
-        "ToolFilterAgent"
+      this.sendError(
+        `Failed to select tools: ${error instanceof Error ? error.message : "Unknown error"}`
       );
       // Return empty tools on error
       return {} as typeof toolRegistry;

@@ -1,19 +1,11 @@
 import * as readline from "readline";
-
-export type MessageType = "status" | "question" | "info" | "error";
-
-export interface Message {
-  type: MessageType;
-  content: string;
-  timestamp: Date;
-  sender: string; // e.g., "CoordinationAgent", "ExecutionAgent", etc.
-}
+import { MessagePipe } from "../lib/MessagePipe";
 
 /**
- * MessagePipe facilitates communication between agents and humans.
- * For now, it logs to console and prompts for user input when needed.
+ * Console-based implementation of MessagePipe.
+ * Logs to console and prompts for user input using readline.
  */
-export class MessagePipe {
+export class ConsoleMessagePipe implements MessagePipe {
   private messages: Message[] = [];
   private rl: readline.Interface;
 
@@ -46,7 +38,7 @@ export class MessagePipe {
    */
   async ask(question: string, sender: string): Promise<string> {
     this.send("question", question, sender);
-    
+
     return new Promise((resolve) => {
       this.rl.question(`\n> Your answer: `, (answer) => {
         resolve(answer.trim());

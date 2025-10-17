@@ -1,27 +1,17 @@
 import { streamText, stepCountIs } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { ExecutionContext } from "./ExecutionContext.js";
+import { BaseAgent, BaseAgentConfig } from "../lib/BaseAgent.js";
 import { Task, TaskResult } from "./types.js";
 import { toolRegistry } from "./tools.js";
-
-interface ExecutionAgentConfig {
-  executionContext: ExecutionContext;
-}
-
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
 
 /**
  * ExecutionAgent executes tasks using the selected tools.
  * It automatically updates the execution context with results.
  */
-export class ExecutionAgent {
-  private executionContext: ExecutionContext;
-  private model = google("gemini-2.5-flash");
+export class ExecutionAgent extends BaseAgent {
+  protected agentName = "ExecutionAgent";
 
-  constructor(config: ExecutionAgentConfig) {
-    this.executionContext = config.executionContext;
+  constructor(config: BaseAgentConfig) {
+    super(config);
   }
 
   /**
@@ -34,22 +24,17 @@ export class ExecutionAgent {
     task: Task;
     tools: typeof toolRegistry;
   }): Promise<TaskResult> {
-    const messagePipe = this.executionContext.getMessagePipe();
-    messagePipe.send(
-      "status",
-      `Executing task: ${task.description}`,
-      "ExecutionAgent"
-    );
+    this.sendStatus(`Executing task: ${task.description}`);
 
     // Update task status
     this.executionContext.updateTaskStatus(task.id, "in-progress");
 
     try {
       const toolsList = Object.keys(tools).join(", ");
-      messagePipe.send("info", `Using tools: ${toolsList}`, "ExecutionAgent");
+      this.sendInfo(`Using tools: ${toolsList}`);
 
       // Get previous task data for context-aware execution
-      const previousTaskData = this.executionContext.getAllTaskData();
+      const previousTaskData = this.getPreviousTaskData();
       let contextSection = "";
 
       if (previousTaskData.length > 0) {
@@ -73,10 +58,8 @@ export class ExecutionAgent {
         stopWhen: stepCountIs(10), // Limit to 7 steps to avoid long runs
         onStepFinish: ({ text, toolCalls }) => {
           if (toolCalls && toolCalls.length > 0) {
-            messagePipe.send(
-              "info",
-              `Step completed with ${toolCalls.length} tool call(s)`,
-              "ExecutionAgent"
+            this.sendInfo(
+              `Step completed with ${toolCalls.length} tool call(s)`
             );
           }
         },
@@ -116,11 +99,7 @@ MANDATORY: You MUST generate a detailed text response explaining your findings. 
 
       // Log execution details
       if (toolCalls && toolCalls.length > 0) {
-        messagePipe.send(
-          "info",
-          `Made ${toolCalls.length} total tool call(s)`,
-          "ExecutionAgent"
-        );
+        this.sendInfo(`Made ${toolCalls.length} total tool call(s)`);
       }
 
       // Extract raw tool data for better accessibility
@@ -138,10 +117,8 @@ MANDATORY: You MUST generate a detailed text response explaining your findings. 
         toolResults &&
         toolResults.length > 0
       ) {
-        messagePipe.send(
-          "info",
-          "Model didn't generate text output, creating summary from tool results",
-          "ExecutionAgent"
+        this.sendInfo(
+          "Model didn't generate text output, creating summary from tool results"
         );
 
         outputText = `Task completed. Retrieved data using ${toolResults.length} tool(s):\n`;
@@ -173,17 +150,13 @@ MANDATORY: You MUST generate a detailed text response explaining your findings. 
       // Update execution context
       this.executionContext.updateWithResult(task, taskResult);
 
-      messagePipe.send(
-        "status",
-        `Task completed: ${task.description}`,
-        "ExecutionAgent"
-      );
+      this.sendStatus(`Task completed: ${task.description}`);
 
       return taskResult;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
 
-      messagePipe.send("error", `Task failed: ${errorMsg}`, "ExecutionAgent");
+      this.sendError(`Task failed: ${errorMsg}`);
 
       const result: TaskResult = {
         taskId: task.id,

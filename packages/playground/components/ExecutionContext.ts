@@ -1,4 +1,4 @@
-import { MessagePipe } from "./MessagePipe.js";
+import { MessagePipe } from "../lib/MessagePipe.js";
 import { Task, TaskResult, ExecutionStatus } from "./types.js";
 
 interface ExecutionContextConfig {

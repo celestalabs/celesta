@@ -1,12 +1,7 @@
 import { generateObject } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
-import { ExecutionContext } from "./ExecutionContext.js";
+import { BaseAgent, BaseAgentConfig } from "../lib/BaseAgent.js";
 import { Task } from "./types.js";
-
-interface CoordinationAgentConfig {
-  executionContext: ExecutionContext;
-}
 
 const NextTaskSchema = z.object({
   shouldContinue: z
@@ -24,35 +19,25 @@ const NextTaskSchema = z.object({
     .describe("The next task to execute, if shouldContinue is true"),
 });
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
-
 /**
  * CoordinationAgent determines the next task to execute based on context.
  * It breaks down complex prompts into manageable subtasks and tracks progress.
  */
-export class CoordinationAgent {
-  private executionContext: ExecutionContext;
-  private model = google("gemini-2.5-flash");
+export class CoordinationAgent extends BaseAgent {
+  protected agentName = "CoordinationAgent";
 
-  constructor(config: CoordinationAgentConfig) {
-    this.executionContext = config.executionContext;
+  constructor(config: BaseAgentConfig) {
+    super(config);
   }
 
   /**
    * Determine the next task to execute based on current context
    */
   async nextTask(): Promise<Task> {
-    const messagePipe = this.executionContext.getMessagePipe();
-    messagePipe.send(
-      "status",
-      "Analyzing context to determine next task...",
-      "CoordinationAgent"
-    );
+    this.sendStatus("Analyzing context to determine next task...");
 
-    const detailedContextSummary = this.executionContext.getDetailedContextSummary();
-    const prompt = this.executionContext.getPrompt();
+    const detailedContextSummary = this.getDetailedContext();
+    const prompt = this.getPrompt();
 
     try {
       const { object } = await generateObject({
@@ -82,18 +67,10 @@ Be specific and actionable in task descriptions.
 If all necessary tasks have been completed (both data collection AND final synthesis), set shouldContinue to false.`,
       });
 
-      messagePipe.send(
-        "info",
-        `Reasoning: ${object.reasoning}`,
-        "CoordinationAgent"
-      );
+      this.sendInfo(`Reasoning: ${object.reasoning}`);
 
       if (!object.shouldContinue) {
-        messagePipe.send(
-          "status",
-          "No more tasks needed. Marking execution as complete.",
-          "CoordinationAgent"
-        );
+        this.sendStatus("No more tasks needed. Marking execution as complete.");
         this.executionContext.markAsCompleted();
         
         // Return a dummy task that won't be executed
@@ -120,23 +97,14 @@ If all necessary tasks have been completed (both data collection AND final synth
       };
 
       this.executionContext.addTask(task);
-      messagePipe.send(
-        "status",
-        `Next task created: ${task.description}`,
-        "CoordinationAgent"
-      );
+      this.sendStatus(`Next task created: ${task.description}`);
 
       return task;
     } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : "Unknown error";
-      messagePipe.send(
-        "error",
-        `Failed to determine next task: ${errorMsg}`,
-        "CoordinationAgent"
+      this.executionContext.markAsFailed(
+        error instanceof Error ? error.message : "Unknown error"
       );
-      this.executionContext.markAsFailed(errorMsg);
-      throw error;
+      this.handleError(error, "determine next task");
     }
   }
 }
