@@ -1,9 +1,9 @@
-import { MessagePipe } from "../lib/MessagePipe.js";
+import { IMessagePipe } from "../io/IMessagePipe.js";
 import { Task, TaskResult, ExecutionStatus } from "../types/types.js";
 
 interface ExecutionContextConfig {
   prompt: string;
-  messagePipe: MessagePipe;
+  messagePipe: IMessagePipe;
 }
 
 /**
@@ -13,7 +13,7 @@ interface ExecutionContextConfig {
  */
 export class ExecutionContext {
   private prompt: string;
-  private messagePipe: MessagePipe;
+  private messagePipe: IMessagePipe;
   private tasks: Map<string, Task>;
   private results: Map<string, TaskResult>;
   private status: ExecutionStatus;
@@ -34,7 +34,7 @@ export class ExecutionContext {
     return this.prompt;
   }
 
-  getMessagePipe(): MessagePipe {
+  getMessagePipe(): IMessagePipe {
     return this.messagePipe;
   }
 

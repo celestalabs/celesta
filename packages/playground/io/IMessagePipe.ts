@@ -11,7 +11,7 @@ export interface Message {
  * Generic MessagePipe interface for agent-to-human communication.
  * Implementations can use console, WebSocket, HTTP, or any other transport.
  */
-export interface MessagePipe {
+export interface IMessagePipe {
   /**
    * Send a message through the pipe
    */

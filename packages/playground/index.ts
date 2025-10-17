@@ -1,5 +1,5 @@
 import * as readline from "readline";
-import { ConsoleMessagePipe } from "./components/ConsoleMessagePipe";
+import { ConsoleMessagePipe } from "./io/ConsoleMessagePipe";
 import { executeComplexTask } from "./executor";
 
 /**

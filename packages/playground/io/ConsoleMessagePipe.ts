@@ -1,11 +1,11 @@
 import * as readline from "readline";
-import { MessagePipe, Message, MessageType } from "../lib/MessagePipe";
+import { IMessagePipe, Message, MessageType } from "./IMessagePipe";
 
 /**
  * Console-based implementation of MessagePipe.
  * Logs to console and prompts for user input using readline.
  */
-export class ConsoleMessagePipe implements MessagePipe {
+export class ConsoleMessagePipe implements IMessagePipe {
   private messages: Message[] = [];
   private rl: readline.Interface;
 

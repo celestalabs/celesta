@@ -1,5 +1,5 @@
 import { streamText, stepCountIs } from "ai";
-import { BaseAgent, BaseAgentConfig } from "../lib/BaseAgent.js";
+import { BaseAgent, BaseAgentConfig } from "./BaseAgent.js";
 import { Task, TaskResult } from "../types/types.js";
 import { toolRegistry } from "../components/tools.js";
 

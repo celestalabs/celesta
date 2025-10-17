@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { ExecutionContext } from "../components/ExecutionContext.js";
-import { MessagePipe } from "./MessagePipe.js";
+import { IMessagePipe } from "../io/IMessagePipe.js";
 
 /**
  * Base configuration for all agents
@@ -18,7 +18,7 @@ export interface BaseAgentConfig {
 export abstract class BaseAgent {
   protected executionContext: ExecutionContext;
   protected model: ReturnType<ReturnType<typeof createGoogleGenerativeAI>>;
-  protected messagePipe: MessagePipe;
+  protected messagePipe: IMessagePipe;
   protected abstract agentName: string;
 
   constructor(config: BaseAgentConfig) {
