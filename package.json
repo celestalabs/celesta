@@ -19,7 +19,8 @@
   },
   "workspaces": [
     "packages/extension",
-    "packages/integrations-api"
+    "packages/integrations-api",
+    "packages/playground"
   ],
   "devDependencies": {
     "concurrently": "^9.2.1"
