@@ -54,6 +54,13 @@ export abstract class BaseAgent {
   }
 
   /**
+   * Send a final response message through the message pipe
+   */
+  protected sendFinal(message: string): void {
+    this.messagePipe.send("final", message, this.agentName);
+  }
+
+  /**
    * Ask a question to the user through the message pipe
    */
   protected async ask(question: string): Promise<string> {

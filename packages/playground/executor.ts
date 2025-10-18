@@ -5,12 +5,12 @@
  * using AI agents and tools.
  */
 
-import "dotenv/config";
 import { CoordinationAgent } from "./agents/CoordinationAgent";
 import { ExecutionContext } from "./components/ExecutionContext";
 import { IMessagePipe } from "./io/IMessagePipe";
 import { ToolFilterAgent } from "./agents/ToolFilterAgent";
 import { ExecutionAgent } from "./agents/ExecutionAgent";
+import { SynthesisAgent } from "./agents/SynthesisAgent";
 
 /**
  * Main orchestration function that manages the workflow execution loop
@@ -23,6 +23,7 @@ export async function executeComplexTask(
   const coordinationAgent = new CoordinationAgent({ executionContext });
   const toolFilterAgent = new ToolFilterAgent({ executionContext });
   const executionAgent = new ExecutionAgent({ executionContext });
+  const synthesisAgent = new SynthesisAgent({ executionContext });
 
   messagePipe.send("status", "Starting workflow execution...", "System");
 
@@ -50,9 +51,9 @@ export async function executeComplexTask(
       console.log("✅ All tasks completed successfully!");
       console.log("=".repeat(60) + "\n");
 
-      // Generate and display cohesive response
-      const finalResponse = executionContext.generateCohesiveResponse();
-      console.log("📊 Final Summary:\n");
+      // Generate and send cohesive final response using SynthesisAgent
+      const finalResponse = await synthesisAgent.synthesize();
+      console.log("📊 Final Response:\n");
       console.log(finalResponse);
     } else {
       console.log("\n" + "=".repeat(60));

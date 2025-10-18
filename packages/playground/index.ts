@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import * as readline from "readline";
 import { ConsoleMessagePipe } from "./io/ConsoleMessagePipe";
 import { executeComplexTask } from "./executor";

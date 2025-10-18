@@ -1,4 +1,4 @@
-export type MessageType = "status" | "question" | "info" | "error";
+export type MessageType = "status" | "question" | "info" | "error" | "final";
 
 export interface Message {
   type: MessageType;
