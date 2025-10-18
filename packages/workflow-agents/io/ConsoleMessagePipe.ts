@@ -47,6 +47,17 @@ export class ConsoleMessagePipe implements IMessagePipe {
   }
 
   /**
+   * Mock implementation for credential requests.
+   * In console mode, we don't support OAuth flows.
+   */
+  async requestCredentials(integrationName: string): Promise<string> {
+    console.warn(
+      `⚠️  [ConsoleMessagePipe] Credential request for ${integrationName} - returning mock token`
+    );
+    return `mock_token_${integrationName}`;
+  }
+
+  /**
    * Get all messages sent through the pipe
    */
   getMessages(): Message[] {

@@ -75,10 +75,22 @@ Message types: `status`, `question`, `info`, `error`, `final`
 
 2. **Configure environment**:
    ```bash
-   # Create .env file in packages/playground/
+   # Create .env file in packages/workflow-agents/
    GEMINI_API_KEY=your_api_key_here
    ```
    Get your API key from: https://aistudio.google.com/app/apikey
+
+3. **Start the integrations API server**:
+   
+   The workflow agents system now uses real integrations from `@celesta/integrations-api`. 
+   Make sure the integrations API server is running:
+   
+   ```bash
+   cd packages/integrations-api
+   npm start
+   ```
+   
+   The server should be running on `http://localhost:8080`.
 
 ## Usage
 

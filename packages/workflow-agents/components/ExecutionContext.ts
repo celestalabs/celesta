@@ -1,9 +1,19 @@
+import { ToolSet } from "ai";
 import { IMessagePipe } from "../io/IMessagePipe.js";
 import { Task, TaskResult, ExecutionStatus } from "../types/types.js";
+import type { ToolMetadata } from "./dynamicTools.js";
+import type { IntegrationMetadata } from "@celesta/integrations-api/integrations/integrationMetadata.js";
+import type { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
 
 interface ExecutionContextConfig {
   prompt: string;
   messagePipe: IMessagePipe;
+  tools: ToolSet;
+  toolMetadata: ToolMetadata[];
+  integrationMetadata: Record<
+    IntegrationName,
+    Omit<IntegrationMetadata, "actions">
+  >;
 }
 
 /**
@@ -19,6 +29,12 @@ export class ExecutionContext {
   private status: ExecutionStatus;
   private startTime: Date;
   private endTime?: Date;
+  private tools: ToolSet;
+  private toolMetadata: ToolMetadata[];
+  private integrationMetadata: Record<
+    IntegrationName,
+    Omit<IntegrationMetadata, "actions">
+  >;
 
   constructor(config: ExecutionContextConfig) {
     this.prompt = config.prompt;
@@ -27,6 +43,9 @@ export class ExecutionContext {
     this.results = new Map();
     this.status = "running";
     this.startTime = new Date();
+    this.tools = config.tools;
+    this.toolMetadata = config.toolMetadata;
+    this.integrationMetadata = config.integrationMetadata;
   }
 
   // Getters
@@ -36,6 +55,21 @@ export class ExecutionContext {
 
   getMessagePipe(): IMessagePipe {
     return this.messagePipe;
+  }
+
+  getTools(): ToolSet {
+    return this.tools;
+  }
+
+  getToolMetadata(): ToolMetadata[] {
+    return this.toolMetadata;
+  }
+
+  getIntegrationMetadata(): Record<
+    IntegrationName,
+    Omit<IntegrationMetadata, "actions">
+  > {
+    return this.integrationMetadata;
   }
 
   getCompletionStatus(): ExecutionStatus {
@@ -126,10 +160,7 @@ export class ExecutionContext {
     this.tasks.set(task.id, task);
   }
 
-  updateTaskStatus(
-    taskId: string,
-    status: Task["status"]
-  ): void {
+  updateTaskStatus(taskId: string, status: Task["status"]): void {
     const task = this.tasks.get(taskId);
     if (task) {
       task.status = status;
@@ -185,7 +216,7 @@ export class ExecutionContext {
     const failedResults = results.filter((r) => !r.success);
 
     let response = `Execution Summary:\n\n`;
-    
+
     if (successfulResults.length > 0) {
       response += `Completed Tasks (${successfulResults.length}):\n`;
       successfulResults.forEach((result, index) => {

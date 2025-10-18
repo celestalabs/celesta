@@ -1,8 +1,6 @@
-import { streamText, stepCountIs } from "ai";
+import { streamText, stepCountIs, ToolSet } from "ai";
 import { BaseAgent, BaseAgentConfig } from "./BaseAgent.js";
 import { Task, TaskResult } from "../types/types.js";
-import { toolRegistry } from "../components/tools.js";
-
 /**
  * ExecutionAgent executes tasks using the selected tools.
  * It automatically updates the execution context with results.
@@ -22,7 +20,7 @@ export class ExecutionAgent extends BaseAgent {
     tools,
   }: {
     task: Task;
-    tools: typeof toolRegistry;
+    tools: ToolSet;
   }): Promise<TaskResult> {
     this.sendStatus(`Executing task: ${task.description}`);
 

@@ -1,19 +1,14 @@
-import { generateObject } from "ai";
+import { generateObject, ToolSet } from "ai";
 import { z } from "zod";
 import { BaseAgent, BaseAgentConfig } from "./BaseAgent.js";
 import { Task } from "../types/types.js";
-import { toolMetadata, toolRegistry, ToolId } from "../components/tools.js";
 
 const ToolSelectionSchema = z.object({
   selectedTools: z
     .array(
       z.object({
-        toolId: z
-          .string()
-          .describe("The ID of the selected tool"),
-        reason: z
-          .string()
-          .describe("Why this tool is relevant for the task"),
+        toolId: z.string().describe("The ID of the selected tool"),
+        reason: z.string().describe("Why this tool is relevant for the task"),
       })
     )
     .describe("List of selected tools with reasoning"),
@@ -36,11 +31,17 @@ export class ToolFilterAgent extends BaseAgent {
   /**
    * Select relevant tools for the given task
    */
-  async run({ task }: { task: Task }): Promise<typeof toolRegistry> {
+  async run({ task }: { task: Task }): Promise<ToolSet> {
     this.sendStatus("Analyzing available tools for task...");
 
-    const availableToolDescriptions = Object.entries(toolMetadata)
-      .map(([id, meta]) => `- ${id}: ${meta.description}`)
+    const allTools = this.executionContext.getTools();
+    const toolMetadata = this.executionContext.getToolMetadata();
+
+    const availableToolDescriptions = toolMetadata
+      .map((meta) => {
+        const toolName = `${meta.integrationName}__${meta.actionName}`;
+        return `- ${toolName}: ${meta.description}`;
+      })
       .join("\n");
 
     // Get previous task data to inform tool selection
@@ -80,26 +81,28 @@ If no tools are needed, select an empty array.`,
       this.sendInfo(`Tool selection reasoning: ${object.reasoning}`);
 
       // Filter the tool registry to only include selected tools
-      const selectedTools: Record<string, any> = {};
+      const selectedTools: ToolSet = {};
 
       for (const selection of object.selectedTools) {
-        const toolId = selection.toolId as ToolId;
-        if (toolRegistry[toolId]) {
-          selectedTools[toolId] = toolRegistry[toolId];
+        const toolId = selection.toolId;
+        if (allTools[toolId]) {
+          selectedTools[toolId] = allTools[toolId];
           this.sendInfo(`Selected tool: ${toolId} - ${selection.reason}`);
+        } else {
+          this.sendInfo(`Warning: Tool ${toolId} not found in registry`);
         }
       }
 
       const toolCount = Object.keys(selectedTools).length;
       this.sendStatus(`Selected ${toolCount} tool(s) for task execution`);
 
-      return selectedTools as typeof toolRegistry;
+      return selectedTools;
     } catch (error) {
       this.sendError(
         `Failed to select tools: ${error instanceof Error ? error.message : "Unknown error"}`
       );
       // Return empty tools on error
-      return {} as typeof toolRegistry;
+      return {};
     }
   }
 }

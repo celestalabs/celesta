@@ -5,21 +5,47 @@
  * using AI agents and tools.
  */
 
-import { CoordinationAgent } from "./agents/CoordinationAgent.js";
-import { ExecutionContext } from "./components/ExecutionContext.js";
-import { IMessagePipe } from "./io/IMessagePipe.js";
-import { ToolFilterAgent } from "./agents/ToolFilterAgent.js";
-import { ExecutionAgent } from "./agents/ExecutionAgent.js";
-import { SynthesisAgent } from "./agents/SynthesisAgent.js";
+import { CoordinationAgent } from "../agents/CoordinationAgent.js";
+import { ExecutionContext } from "./ExecutionContext.js";
+import { IMessagePipe } from "../io/IMessagePipe.js";
+import { ToolFilterAgent } from "../agents/ToolFilterAgent.js";
+import { ExecutionAgent } from "../agents/ExecutionAgent.js";
+import { SynthesisAgent } from "../agents/SynthesisAgent.js";
+import { loadToolsFromAPI } from "./dynamicTools.js";
 
 /**
  * Main orchestration function that manages the workflow execution loop
  */
 export async function executeComplexTask(
   prompt: string,
-  messagePipe: IMessagePipe
+  messagePipe: IMessagePipe,
+  apiBaseUrl: string = "http://localhost:8080"
 ) {
-  const executionContext = new ExecutionContext({ prompt, messagePipe });
+  messagePipe.send("status", "Loading tools from integrations API...", "System");
+
+  // Load tools dynamically from the integrations API
+  let toolsData;
+  try {
+    toolsData = await loadToolsFromAPI(apiBaseUrl, messagePipe);
+    messagePipe.send(
+      "info",
+      `Loaded ${Object.keys(toolsData.tools).length} tools from ${toolsData.metadata.length} actions`,
+      "System"
+    );
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    messagePipe.send("error", `Failed to load tools: ${errorMsg}`, "System");
+    throw error;
+  }
+
+  const executionContext = new ExecutionContext({
+    prompt,
+    messagePipe,
+    tools: toolsData.tools,
+    toolMetadata: toolsData.metadata,
+    integrationMetadata: toolsData.integrationMetadata,
+  });
+
   const coordinationAgent = new CoordinationAgent({ executionContext });
   const toolFilterAgent = new ToolFilterAgent({ executionContext });
   const executionAgent = new ExecutionAgent({ executionContext });

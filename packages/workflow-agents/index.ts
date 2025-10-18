@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import { WebSocketServer, WebSocket } from "ws";
 import { WSMessagePipe } from "./io/WSMessagePipe.js";
-import { executeComplexTask } from "./executor.js";
+import { executeComplexTask } from "./components/executor.js";
 
 const PORT = 8081;
 

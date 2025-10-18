@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { BaseAgent, BaseAgentConfig } from "./BaseAgent.js";
 import { Task } from "../types/types.js";
+import { formatToolMetadataForPrompt } from "../components/dynamicTools.js";
 
 const NextTaskSchema = z.object({
   shouldContinue: z
@@ -38,6 +39,8 @@ export class CoordinationAgent extends BaseAgent {
 
     const detailedContextSummary = this.getDetailedContext();
     const prompt = this.getPrompt();
+    const toolMetadata = this.executionContext.getToolMetadata();
+    const availableToolsText = formatToolMetadataForPrompt(toolMetadata);
 
     try {
       const { object } = await generateObject({
@@ -47,6 +50,8 @@ export class CoordinationAgent extends BaseAgent {
 
 Current Context:
 ${detailedContextSummary}
+
+${availableToolsText}
 
 Your job is to:
 1. Analyze the original prompt and what has been done so far
@@ -59,7 +64,7 @@ IMPORTANT RULES:
 - DO NOT create tasks to retrieve information that has already been collected
 - If data collection is complete, create a SYNTHESIS/COMPILATION task that works with existing data
 - Synthesis tasks should NOT re-fetch data, they should summarize and compile what's already available
-- Each data retrieval task should be something that can be executed using available tools (Gmail, Calendar, Web Search, YouTube, Notion, Wolfram Alpha)
+- Each data retrieval task should be something that can be executed using the available tools listed above
 - Synthesis tasks should work purely with previously collected data
 
 Be specific and actionable in task descriptions.

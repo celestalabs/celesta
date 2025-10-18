@@ -1,4 +1,4 @@
-export type MessageType = "status" | "question" | "info" | "error" | "final";
+export type MessageType = "status" | "question" | "info" | "error" | "final" | "request_credentials" | "provide_credentials";
 
 export interface Message {
   type: MessageType;
@@ -21,6 +21,13 @@ export interface IMessagePipe {
    * Ask a question and wait for user response
    */
   ask(question: string, sender: string): Promise<string>;
+
+  /**
+   * Request OAuth credentials for a specific integration.
+   * The implementation should handle the OAuth flow and return the access token.
+   * Credentials are cached per session to avoid repeated OAuth flows.
+   */
+  requestCredentials(integrationName: string): Promise<string>;
 
   /**
    * Get all messages sent through the pipe

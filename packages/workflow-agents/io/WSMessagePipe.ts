@@ -3,15 +3,23 @@ import { IMessagePipe, MessageType, Message } from "./IMessagePipe.js";
 
 interface WSMessage {
   id: string;
-  type: MessageType | "answer";
+  type: MessageType | "answer" | "provide_credentials";
   content: string;
   sender: string;
   timestamp: Date;
   isQuestion?: boolean;
+  integrationName?: string;
+  accessToken?: string;
 }
 
 interface PendingQuestion {
   resolve: (answer: string) => void;
+  reject: (error: Error) => void;
+  timeoutId: NodeJS.Timeout;
+}
+
+interface PendingCredentialRequest {
+  resolve: (accessToken: string) => void;
   reject: (error: Error) => void;
   timeoutId: NodeJS.Timeout;
 }
@@ -24,6 +32,9 @@ export class WSMessagePipe implements IMessagePipe {
   private messages: Message[] = [];
   private ws: WebSocket;
   private pendingQuestions: Map<string, PendingQuestion> = new Map();
+  private pendingCredentialRequests: Map<string, PendingCredentialRequest> =
+    new Map();
+  private credentialCache: Map<string, string> = new Map();
   private messageHandler: ((data: RawData) => void) | null = null;
   private askTimeout: number = 300000; // 5 minutes default timeout
 
@@ -40,11 +51,15 @@ export class WSMessagePipe implements IMessagePipe {
     // Handle connection close
     this.ws.on("close", () => {
       this.rejectAllPendingQuestions(new Error("WebSocket connection closed"));
+      this.rejectAllPendingCredentialRequests(
+        new Error("WebSocket connection closed")
+      );
     });
 
     // Handle connection errors
     this.ws.on("error", (error) => {
       this.rejectAllPendingQuestions(error);
+      this.rejectAllPendingCredentialRequests(error);
     });
   }
 
@@ -72,11 +87,9 @@ export class WSMessagePipe implements IMessagePipe {
       };
 
       this.ws.send(JSON.stringify(wsMessage));
-    } else {
-      console.warn(
-        `[WSMessagePipe] Cannot send message, WebSocket is not open (state: ${this.ws.readyState})`
-      );
     }
+    // If connection is closed, message is still stored in history
+    // for retrieval when client reconnects (autonomous workflow mode)
   }
 
   /**
@@ -129,6 +142,68 @@ export class WSMessagePipe implements IMessagePipe {
   }
 
   /**
+   * Request OAuth credentials for a specific integration.
+   * Credentials are cached per session to avoid repeated OAuth flows.
+   */
+  async requestCredentials(integrationName: string): Promise<string> {
+    // Check cache first
+    if (this.credentialCache.has(integrationName)) {
+      console.log(
+        `[WSMessagePipe] Using cached credentials for ${integrationName}`
+      );
+      return this.credentialCache.get(integrationName)!;
+    }
+
+    // Check connection state
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error("WebSocket connection is not open");
+    }
+
+    // Create unique ID for this credential request
+    const messageId = this.generateMessageId();
+
+    // Send credential request message
+    const wsMessage: WSMessage = {
+      id: messageId,
+      type: "request_credentials",
+      content: `Requesting credentials for ${integrationName}`,
+      sender: "System",
+      timestamp: new Date(),
+      integrationName,
+    };
+
+    this.ws.send(JSON.stringify(wsMessage));
+
+    console.log(
+      `[WSMessagePipe] Sent credential request for ${integrationName}`
+    );
+
+    // Return a promise that resolves when credentials arrive
+    return new Promise<string>((resolve, reject) => {
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        this.pendingCredentialRequests.delete(messageId);
+        reject(
+          new Error(
+            `Credential request timed out after ${this.askTimeout / 1000} seconds for integration: ${integrationName}`
+          )
+        );
+      }, this.askTimeout);
+
+      // Store the promise resolvers
+      this.pendingCredentialRequests.set(messageId, {
+        resolve: (accessToken: string) => {
+          // Cache the credential
+          this.credentialCache.set(integrationName, accessToken);
+          resolve(accessToken);
+        },
+        reject,
+        timeoutId,
+      });
+    });
+  }
+
+  /**
    * Get all messages sent through the pipe
    */
   getMessages(): Message[] {
@@ -161,6 +236,9 @@ export class WSMessagePipe implements IMessagePipe {
       this.rejectAllPendingQuestions(
         new Error("WebSocket reconnected - previous connection closed")
       );
+      this.rejectAllPendingCredentialRequests(
+        new Error("WebSocket reconnected - previous connection closed")
+      );
     }
 
     // Set up new WebSocket
@@ -171,11 +249,15 @@ export class WSMessagePipe implements IMessagePipe {
     // Handle connection close
     this.ws.on("close", () => {
       this.rejectAllPendingQuestions(new Error("WebSocket connection closed"));
+      this.rejectAllPendingCredentialRequests(
+        new Error("WebSocket connection closed")
+      );
     });
 
     // Handle connection errors
     this.ws.on("error", (error) => {
       this.rejectAllPendingQuestions(error);
+      this.rejectAllPendingCredentialRequests(error);
     });
   }
 
@@ -189,8 +271,9 @@ export class WSMessagePipe implements IMessagePipe {
       this.messageHandler = null;
     }
 
-    // Reject all pending questions
+    // Reject all pending questions and credential requests
     this.rejectAllPendingQuestions(new Error("MessagePipe closed"));
+    this.rejectAllPendingCredentialRequests(new Error("MessagePipe closed"));
 
     // Close WebSocket if still open
     if (
@@ -228,6 +311,42 @@ export class WSMessagePipe implements IMessagePipe {
           );
         }
       }
+      // Check if this is a credential response
+      else if (message.type === "provide_credentials" && message.id) {
+        const pending = this.pendingCredentialRequests.get(message.id);
+
+        if (pending && message.accessToken) {
+          // Clear the timeout
+          clearTimeout(pending.timeoutId);
+
+          // Remove from pending
+          this.pendingCredentialRequests.delete(message.id);
+
+          // Resolve the promise (which will also cache the credential)
+          pending.resolve(message.accessToken);
+
+          console.log(
+            `[WSMessagePipe] Received credentials for ${message.integrationName}`
+          );
+        } else if (pending && !message.accessToken) {
+          // Clear the timeout
+          clearTimeout(pending.timeoutId);
+
+          // Remove from pending
+          this.pendingCredentialRequests.delete(message.id);
+
+          // Reject the promise
+          pending.reject(
+            new Error(
+              `No access token provided for integration: ${message.integrationName}`
+            )
+          );
+        } else {
+          console.warn(
+            `[WSMessagePipe] Received credentials for unknown request ID: ${message.id}`
+          );
+        }
+      }
     } catch (error) {
       console.error("[WSMessagePipe] Failed to parse incoming message:", error);
     }
@@ -242,6 +361,17 @@ export class WSMessagePipe implements IMessagePipe {
       pending.reject(error);
     }
     this.pendingQuestions.clear();
+  }
+
+  /**
+   * Reject all pending credential requests with the given error
+   */
+  private rejectAllPendingCredentialRequests(error: Error): void {
+    for (const [messageId, pending] of this.pendingCredentialRequests.entries()) {
+      clearTimeout(pending.timeoutId);
+      pending.reject(error);
+    }
+    this.pendingCredentialRequests.clear();
   }
 
   /**
