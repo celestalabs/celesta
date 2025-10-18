@@ -1,8 +1,6 @@
 import { createIntegrationApiClient } from "@celesta/integrations-api/client.js";
-import {
-  isPieceName,
-  PieceName,
-} from "@celesta/integrations-api/pieces/pieceName.js";
+import { isIntegrationName } from "@celesta/integrations-api/integrations/integrationName";
+import { PieceName } from "@celesta/integrations-api/pieces/pieceName.js";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -49,7 +47,7 @@ const App = React.memo(function AppFn() {
 
   // OAuth flow handler (from OAuth_oldApp.tsx)
   const handleOAuthFlow = useCallback(async (integrationName: string) => {
-    if (!isPieceName(integrationName)) {
+    if (!isIntegrationName(integrationName)) {
       console.error("Invalid integration name:", integrationName);
       return null;
     }

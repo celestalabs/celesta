@@ -1,8 +1,9 @@
 import { isPieceName } from "../pieces/pieceName.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/wrappedRouter.ts";
-import { isIntegrationName } from "../integrations/integrationName.ts";
+import { isIntegrationName, isNonPieceIntegrationName } from "../integrations/integrationName.ts";
 import { executePieceAction } from "../pieces/executePieceAction.ts";
+import { executeCustomIntegration } from "../integrations/executeCustomIntegration.ts";
 
 export type ExecuteIntegrationHandler = TypedFetcher<
   /* Response */ {
@@ -50,7 +51,20 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
       : { ...response, code: 500 };
   }
 
-  // Non piece integration
+  if (isNonPieceIntegrationName(integrationName)) {
+    const response = await executeCustomIntegration(
+      integrationName,
+      actionName,
+      props,
+      auth
+    );
+
+    return response.success
+      ? { success: true, code: 200, result: response.data }
+      : { ...response, code: 500 };
+  }
+
+  // Should never reach here due to isIntegrationName check above
   return {
     success: false,
     code: 400,

@@ -30,7 +30,12 @@ export class SynthesisAgent extends BaseAgent {
         })
         .join("\n\n");
 
+      const now = new Date();
+      const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
       const systemPrompt = `You are an autonomous synthesis agent that generates cohesive, natural responses.
+
+Current Date: ${dateString}
 
 Your job is to take the results from multiple completed tasks and synthesize them into a single, unified response that directly answers the user's original question or request.
 

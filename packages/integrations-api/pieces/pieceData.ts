@@ -1,7 +1,5 @@
 import { googleDrive as piece__googleDrive } from "@activepieces/piece-google-drive";
 import { googleContacts as piece__googleContacts } from "@activepieces/piece-google-contacts";
-import { gmail as piece__gmail } from "@activepieces/piece-gmail";
-import { googleCalendar as piece__googleCalendar } from "@activepieces/piece-google-calendar";
 
 import {
   type PieceAuthProperty,
@@ -32,15 +30,10 @@ export type PieceCompat = {
 export const pieceByName = {
   [PieceName.GOOGLE_DRIVE]: piece__googleDrive as PieceCompat,
   [PieceName.GOOGLE_CONTACTS]: piece__googleContacts as PieceCompat,
-  [PieceName.GMAIL]: piece__gmail as PieceCompat,
-  [PieceName.GOOGLE_CALENDAR]: piece__googleCalendar as PieceCompat,
 } as const satisfies Record<PieceName, PieceCompat>;
 
 export const pieceAuthByName = {
   [PieceName.GOOGLE_DRIVE]: piece__googleDrive.auth as OAuth2Property<any>,
   [PieceName.GOOGLE_CONTACTS]:
     piece__googleContacts.auth as OAuth2Property<any>,
-  [PieceName.GMAIL]: piece__gmail.auth as OAuth2Property<any>,
-  [PieceName.GOOGLE_CALENDAR]:
-    piece__googleCalendar.auth as OAuth2Property<any>,
 } as const satisfies Record<PieceName, OAuth2Property<any>>;

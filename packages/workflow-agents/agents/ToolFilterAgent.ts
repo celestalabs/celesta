@@ -57,10 +57,15 @@ export class ToolFilterAgent extends BaseAgent {
         : "";
 
     try {
+      const now = new Date();
+      const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
       const { object } = await generateObject({
         model: this.model,
         schema: ToolSelectionSchema,
         prompt: `You are an autonomous tool selection agent. Your job is to select the most relevant tools from the available registry for a specific task.
+
+Current Date: ${dateString}
 
 Task Description: ${task.description}
 Task Goal: ${task.goal}

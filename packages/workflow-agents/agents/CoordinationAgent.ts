@@ -43,10 +43,15 @@ export class CoordinationAgent extends BaseAgent {
     const availableToolsText = formatToolMetadataForPrompt(toolMetadata);
 
     try {
+      const now = new Date();
+      const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
       const { object } = await generateObject({
         model: this.model,
         schema: NextTaskSchema,
         prompt: `You are an autonomous coordination agent that breaks down complex tasks and makes intelligent decisions.
+
+Current Date: ${dateString}
 
 Current Context:
 ${detailedContextSummary}

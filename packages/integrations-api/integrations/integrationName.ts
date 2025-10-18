@@ -2,6 +2,8 @@ import { isPieceName, type PieceName } from "../pieces/pieceName.ts";
 
 export enum NonPieceIntegrationName {
   BROWSER_USE = "browser_use",
+  GMAIL = "gmail",
+  GOOGLE_CALENDAR = "google_calendar",
 }
 
 export type IntegrationName = NonPieceIntegrationName | PieceName;

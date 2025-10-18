@@ -3,6 +3,8 @@ import { pieceByName } from "../pieces/pieceData.ts";
 import { isPieceName } from "../pieces/pieceName.ts";
 import type { SuccessResponse } from "../utils/responseType.ts";
 import { isIntegrationName, NonPieceIntegrationName } from "./integrationName.ts";
+import { gmailIntegration } from "./gmail/gmailIntegration.ts";
+import { calendarIntegration } from "./google-calendar/calendarIntegration.ts";
 
 export type IntegrationMetadata = {
   name: string;
@@ -39,6 +41,8 @@ const nonPieceIntegrationMetadata: Record<
       },
     ],
   },
+  [NonPieceIntegrationName.GMAIL]: gmailIntegration,
+  [NonPieceIntegrationName.GOOGLE_CALENDAR]: calendarIntegration,
 };
 
 export function readIntegrationMetadata(

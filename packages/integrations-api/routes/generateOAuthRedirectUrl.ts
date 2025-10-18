@@ -1,6 +1,6 @@
-import { isPieceName } from "../pieces/pieceName.ts";
 import { getOAuthConfig } from "../utils/oAuth.ts";
 import type { TypedFetcher } from "../utils/wrappedRouter.ts";
+import { isIntegrationName } from "../integrations/integrationName.ts";
 
 export type GenerateOAuthRedirectUrlHandler = TypedFetcher<
   /* Response */ { success: true; code: number; url: string },
@@ -18,7 +18,7 @@ export const GenerateOAuthRedirectUrlHandler: GenerateOAuthRedirectUrlHandler =
     const { pieceName, redirectUrl, state } = params!;
 
     if (
-      !isPieceName(pieceName) ||
+      !isIntegrationName(pieceName) ||
       typeof redirectUrl !== "string" ||
       typeof state !== "string"
     ) {

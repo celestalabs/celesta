@@ -50,6 +50,9 @@ export class ExecutionAgent extends BaseAgent {
       }
 
       // Use streamText for multi-step agentic behavior
+      const now = new Date();
+      const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
       const streamResult = streamText({
         model: this.model,
         tools,
@@ -62,6 +65,8 @@ export class ExecutionAgent extends BaseAgent {
           }
         },
         prompt: `You are an autonomous execution agent tasked with completing the following:
+
+Current Date: ${dateString}
 
 Task: ${task.description}
 Goal: ${task.goal}${contextSection}

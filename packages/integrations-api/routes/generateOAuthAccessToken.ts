@@ -1,7 +1,7 @@
 import { getOAuthConfig } from "../utils/oAuth.ts";
-import { isPieceName, PieceName } from "../pieces/pieceName.ts";
 import axios from "axios";
 import type { TypedFetcher } from "../utils/wrappedRouter.ts";
+import { isIntegrationName } from "../integrations/integrationName.ts";
 
 export type GenerateOAuthAccessTokenHandler = TypedFetcher<
   /* Response */ {
@@ -14,7 +14,7 @@ export type GenerateOAuthAccessTokenHandler = TypedFetcher<
   /* Body */ {
     code: string;
     redirectUri: string;
-    pieceName: PieceName;
+    pieceName: string;
   }
 >;
 
@@ -22,7 +22,7 @@ export const GenerateOAuthAccessTokenHandler: GenerateOAuthAccessTokenHandler =
   async ({ body }) => {
     const { code, redirectUri, pieceName } = body;
 
-    if (!code || !redirectUri || !isPieceName(pieceName)) {
+    if (!code || !redirectUri || !isIntegrationName(pieceName)) {
       return {
         success: false,
         code: 400,
