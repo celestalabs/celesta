@@ -5,12 +5,12 @@
  * using AI agents and tools.
  */
 
-import { CoordinationAgent } from "./agents/CoordinationAgent";
-import { ExecutionContext } from "./components/ExecutionContext";
-import { IMessagePipe } from "./io/IMessagePipe";
-import { ToolFilterAgent } from "./agents/ToolFilterAgent";
-import { ExecutionAgent } from "./agents/ExecutionAgent";
-import { SynthesisAgent } from "./agents/SynthesisAgent";
+import { CoordinationAgent } from "./agents/CoordinationAgent.js";
+import { ExecutionContext } from "./components/ExecutionContext.js";
+import { IMessagePipe } from "./io/IMessagePipe.js";
+import { ToolFilterAgent } from "./agents/ToolFilterAgent.js";
+import { ExecutionAgent } from "./agents/ExecutionAgent.js";
+import { SynthesisAgent } from "./agents/SynthesisAgent.js";
 
 /**
  * Main orchestration function that manages the workflow execution loop

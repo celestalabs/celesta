@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { BaseAgent, BaseAgentConfig } from "./BaseAgent";
+import { BaseAgent, BaseAgentConfig } from "./BaseAgent.js";
 
 /**
  * SynthesisAgent generates a cohesive final response based on all completed tasks.

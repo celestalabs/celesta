@@ -1,5 +1,5 @@
 import * as readline from "readline";
-import { IMessagePipe, Message, MessageType } from "./IMessagePipe";
+import { IMessagePipe, Message, MessageType } from "./IMessagePipe.js";
 
 /**
  * Console-based implementation of MessagePipe.

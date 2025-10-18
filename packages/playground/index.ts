@@ -1,52 +1,155 @@
 import "dotenv/config";
 
-import * as readline from "readline";
-import { ConsoleMessagePipe } from "./io/ConsoleMessagePipe";
-import { executeComplexTask } from "./executor";
+import { WebSocketServer, WebSocket } from "ws";
+import { WSMessagePipe } from "./io/WSMessagePipe.js";
+import { executeComplexTask } from "./executor.js";
 
-/**
- * Get initial prompt from user
- */
-async function getInitialPrompt(): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+const PORT = 8081;
 
-  return new Promise((resolve) => {
-    console.log("\n" + "=".repeat(60));
-    console.log("🌟 Celesta Workflow Automation Framework");
-    console.log("=".repeat(60) + "\n");
-
-    rl.question("Enter your complex task or question:\n> ", (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
+// Verify API key is loaded
+if (!process.env.GEMINI_API_KEY) {
+  console.error("[Server] ERROR: GEMINI_API_KEY environment variable is not set!");
+  console.error("[Server] Please check your .env file in packages/playground/");
+  process.exit(1);
 }
 
+console.log("[Server] API key loaded successfully");
+
+// Store active sessions by client ID
+const activeSessions = new Map<string, WSMessagePipe>();
+
 /**
- * Main entry point
+ * WebSocket server for Celesta workflow automation framework.
+ * Handles client connections and workflow execution requests.
  */
-async function main() {
-  const prompt = await getInitialPrompt();
+const wss = new WebSocketServer({ port: PORT });
 
-  if (!prompt) {
-    console.log("No prompt provided. Exiting.");
-    return;
-  }
+wss.on("connection", (ws: WebSocket) => {
+  console.log("[Server] New client connected");
 
-  const messagePipe = new ConsoleMessagePipe();
+  // Generate a unique client ID
+  const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  try {
-    await executeComplexTask(prompt, messagePipe);
-  } finally {
+  // Create a message pipe for this client
+  const messagePipe = new WSMessagePipe(ws);
+  activeSessions.set(clientId, messagePipe);
+
+  // Send welcome message
+  messagePipe.send(
+    "info",
+    `Connected to Celesta server (ID: ${clientId})`,
+    "Server"
+  );
+
+  // Handle incoming messages
+  ws.on("message", async (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+
+      // Handle workflow execution request
+      if (message.type === "execute_workflow" && message.prompt) {
+        console.log(
+          `[Server] Executing workflow for client ${clientId}: "${message.prompt}"`
+        );
+
+        // Send acknowledgment
+        messagePipe.send("info", "Starting workflow execution...", "Server");
+
+        // Execute the workflow
+        try {
+          await executeComplexTask(message.prompt, messagePipe);
+          messagePipe.send(
+            "info",
+            "Workflow execution completed successfully",
+            "Server"
+          );
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          messagePipe.send(
+            "error",
+            `Workflow execution failed: ${errorMessage}`,
+            "Server"
+          );
+          console.error(
+            `[Server] Workflow execution error for client ${clientId}:`,
+            error
+          );
+        }
+      }
+      // Handle reconnection request
+      else if (message.type === "reconnect" && message.oldClientId) {
+        const oldSession = activeSessions.get(message.oldClientId);
+        if (oldSession) {
+          console.log(
+            `[Server] Reconnecting client ${message.oldClientId} -> ${clientId}`
+          );
+          oldSession.reconnect(ws, false); // Keep pending questions alive
+          activeSessions.delete(message.oldClientId);
+          activeSessions.set(clientId, oldSession);
+          oldSession.send(
+            "info",
+            `Reconnected successfully (new ID: ${clientId})`,
+            "Server"
+          );
+        } else {
+          messagePipe.send(
+            "error",
+            `Old session not found: ${message.oldClientId}`,
+            "Server"
+          );
+        }
+      }
+      // Unknown message type
+      else {
+        messagePipe.send(
+          "error",
+          `Unknown message type or missing required fields`,
+          "Server"
+        );
+      }
+    } catch (error) {
+      console.error(
+        `[Server] Error processing message from client ${clientId}:`,
+        error
+      );
+      messagePipe.send("error", "Failed to process message", "Server");
+    }
+  });
+
+  // Handle client disconnect
+  ws.on("close", () => {
+    console.log(`[Server] Client ${clientId} disconnected`);
+    activeSessions.delete(clientId);
+    messagePipe.close();
+  });
+
+  // Handle errors
+  ws.on("error", (error) => {
+    console.error(`[Server] WebSocket error for client ${clientId}:`, error);
+    activeSessions.delete(clientId);
+  });
+});
+
+console.log(
+  `[Server] Celesta WebSocket server running on ws://localhost:${PORT}`
+);
+console.log(`[Server] Waiting for client connections...`);
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  console.log("\n[Server] Shutting down...");
+
+  // Close all active sessions
+  for (const [clientId, messagePipe] of activeSessions.entries()) {
+    messagePipe.send("info", "Server shutting down", "Server");
     messagePipe.close();
   }
-}
+  activeSessions.clear();
 
-// Run the application
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
+  // Close the WebSocket server
+  wss.close(() => {
+    console.log("[Server] Server closed");
+    process.exit(0);
+  });
 });

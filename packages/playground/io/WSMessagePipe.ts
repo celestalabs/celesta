@@ -1,5 +1,5 @@
 import { WebSocket, RawData } from "ws";
-import { IMessagePipe, MessageType, Message } from "./IMessagePipe";
+import { IMessagePipe, MessageType, Message } from "./IMessagePipe.js";
 
 interface WSMessage {
   id: string;
