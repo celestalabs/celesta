@@ -19,9 +19,14 @@
   },
   "workspaces": [
     "packages/extension",
-    "packages/integrations-api"
+    "packages/integrations-api",
+    "packages/playground"
   ],
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "ws": "^8.18.3"
   }
 }
