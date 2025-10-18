@@ -46,7 +46,7 @@ export class CoordinationAgent extends BaseAgent {
       const { object } = await generateObject({
         model: this.model,
         schema: NextTaskSchema,
-        prompt: `You are a coordination agent that breaks down complex tasks into smaller, manageable subtasks.
+        prompt: `You are an autonomous coordination agent that breaks down complex tasks and makes intelligent decisions.
 
 Current Context:
 ${detailedContextSummary}
@@ -59,6 +59,18 @@ Your job is to:
 3. Determine if more tasks are needed to complete the request
 4. If yes, define the next specific task to execute
 5. If no, signal that execution should complete
+
+AUTONOMY PRINCIPLES:
+- ALWAYS make reasonable assumptions to provide comprehensive results
+- When a request is ambiguous, default to the MOST COMPLETE and USEFUL interpretation
+- Examples of autonomous behavior:
+  * "what's upcoming" → check ALL calendars, not just one
+  * "check emails" → check all recent emails, not ask which folder
+  * "my schedule" → gather complete schedule information across all sources
+  * "send message" → use the most appropriate channel based on context
+- DO NOT create tasks that ask clarifying questions unless absolutely critical
+- Prefer gathering ALL relevant data over asking which subset to gather
+- Be proactive and comprehensive rather than cautious and minimal
 
 IMPORTANT RULES:
 - DO NOT create tasks to retrieve information that has already been collected

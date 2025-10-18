@@ -1,193 +1,399 @@
-import { ToolUIPart, UIDataTypes, UIMessagePart, UITools } from "ai";
-import { Mic, Send, Square } from "lucide-react";
-import React, { FormEventHandler } from "react";
-import { useEffect, useRef } from "react";
+import { createIntegrationApiClient } from "@celesta/integrations-api/client.js";
+import {
+  isPieceName,
+  PieceName,
+} from "@celesta/integrations-api/pieces/pieceName.js";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
-import { Avatar, AvatarFallback } from "~/shared/components/ui/avatar";
-import { Button } from "~/shared/components/ui/button";
-import { Input } from "~/shared/components/ui/input";
-import { useLocalChat } from "~/shared/hooks/useLocalChat";
 
-const isToolPart = (
-  part: UIMessagePart<UIDataTypes, UITools>
-): part is ToolUIPart => part.type.startsWith("tool-");
+const WS_URL = "ws://localhost:8081";
+const INTEGRATION_API_URL = "http://localhost:8080";
+
+const integrationApiClient = createIntegrationApiClient(INTEGRATION_API_URL);
+
+interface WSMessage {
+  id?: string;
+  type: string;
+  content: string;
+  sender: string;
+  timestamp: string;
+  integrationName?: string;
+  accessToken?: string;
+  isQuestion?: boolean;
+}
+
+interface DisplayMessage {
+  id: string;
+  type: string;
+  content: string;
+  sender: string;
+  timestamp: Date;
+}
 
 const App = React.memo(function AppFn() {
-  const { messages, sendMessage } = useLocalChat();
-  const [input, setInput] = useState("");
-  const [isRecording, setIsRecording] = React.useState(false);
+  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [promptInput, setPromptInput] = useState("");
+  const [pendingQuestion, setPendingQuestion] = useState<{
+    id: string;
+    content: string;
+  } | null>(null);
+  const [answerInput, setAnswerInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom on new messages / mic on
+  // Auto scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    if (!isRecording) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [isRecording]);
+  // OAuth flow handler (from OAuth_oldApp.tsx)
+  const handleOAuthFlow = useCallback(async (integrationName: string) => {
+    if (!isPieceName(integrationName)) {
+      console.error("Invalid integration name:", integrationName);
+      return null;
+    }
 
-  // stub method
-  const handleVoiceRecording = () => {
-    setIsRecording(!isRecording);
-    // Voice recording implementation would go here
-    console.log(
-      isRecording ? "Stopping recording..." : "Starting recording..."
-    );
-  };
+    try {
+      const redirectUrl = browser.identity.getRedirectURL(integrationName);
 
-  const handleSubmit = useCallback<FormEventHandler>(
-    (e) => {
-      e.preventDefault();
-      sendMessage({
-        text: input,
+      const state = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      const responseUrlRes =
+        await integrationApiClient.generateOAuthRedirectUrl({
+          params: {
+            pieceName: integrationName as PieceName,
+            redirectUrl,
+            state,
+          },
+        });
+
+      if (!responseUrlRes.success) {
+        console.error("Failed to get OAuth URL:", responseUrlRes.error);
+        return null;
+      }
+
+      const responseUrl = await browser.identity.launchWebAuthFlow({
+        url: responseUrlRes.url,
+        interactive: true,
       });
-      setInput("");
+
+      if (responseUrl == null) {
+        console.error("OAuth flow was canceled or failed");
+        return null;
+      }
+
+      const url = new URL(responseUrl);
+      const code = url.searchParams.get("code");
+      const responseState = url.searchParams.get("state");
+
+      if (responseState !== state) {
+        throw new Error("State mismatch - possible CSRF attack");
+      }
+
+      if (!code) {
+        throw new Error("Authentication failed - no code returned");
+      }
+
+      const response = await integrationApiClient.generateOAuthAccessToken({
+        body: {
+          code,
+          redirectUri: redirectUrl,
+          pieceName: integrationName as PieceName,
+        },
+      });
+
+      if (!response.success) {
+        throw new Error(`Token exchange failed: ${response.error}`);
+      }
+
+      return response.accessToken;
+    } catch (error) {
+      console.error("OAuth flow error:", error);
+      return null;
+    }
+  }, []);
+
+  // Handle incoming WebSocket messages
+  const handleIncomingMessage = useCallback(
+    async (data: string) => {
+      try {
+        const message: WSMessage = JSON.parse(data);
+
+        // Add to display messages (for all types)
+        const displayMsg: DisplayMessage = {
+          id: message.id || `msg_${Date.now()}`,
+          type: message.type,
+          content: message.content,
+          sender: message.sender,
+          timestamp: new Date(message.timestamp || Date.now()),
+        };
+        setMessages((prev) => [...prev, displayMsg]);
+
+        // Handle specific message types
+        if (message.type === "question" && message.id) {
+          setPendingQuestion({ id: message.id, content: message.content });
+        } else if (
+          message.type === "request_credentials" &&
+          message.integrationName
+        ) {
+          // Trigger OAuth flow
+          const accessToken = await handleOAuthFlow(message.integrationName);
+
+          if (accessToken && ws) {
+            // Send credentials back
+            const response = {
+              id: message.id,
+              type: "provide_credentials",
+              integrationName: message.integrationName,
+              accessToken,
+              timestamp: new Date().toISOString(),
+            };
+            ws.send(JSON.stringify(response));
+          }
+        }
+      } catch (error) {
+        console.error("Error handling message:", error);
+      }
     },
-    [input, sendMessage]
+    [ws, handleOAuthFlow]
   );
 
+  // Connect to WebSocket on mount
+  useEffect(() => {
+    const websocket = new WebSocket(WS_URL);
+
+    websocket.onopen = () => {
+      console.log("WebSocket connected");
+      setConnected(true);
+      setWs(websocket);
+    };
+
+    websocket.onmessage = (event) => {
+      handleIncomingMessage(event.data);
+    };
+
+    websocket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    websocket.onclose = () => {
+      console.log("WebSocket disconnected");
+      setConnected(false);
+    };
+
+    return () => {
+      websocket.close();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update handleIncomingMessage dependency when ws changes
+  useEffect(() => {
+    if (!ws) return;
+
+    ws.onmessage = (event) => {
+      handleIncomingMessage(event.data);
+    };
+  }, [ws, handleIncomingMessage]);
+
+  // Send workflow prompt
+  const handleExecuteWorkflow = useCallback(() => {
+    if (!ws || !promptInput.trim()) return;
+
+    const message = {
+      type: "execute_workflow",
+      prompt: promptInput,
+    };
+
+    ws.send(JSON.stringify(message));
+    setPromptInput("");
+  }, [ws, promptInput]);
+
+  // Send answer to question
+  const handleSubmitAnswer = useCallback(() => {
+    if (!ws || !pendingQuestion || !answerInput.trim()) return;
+
+    const message = {
+      id: pendingQuestion.id,
+      type: "answer",
+      content: answerInput,
+    };
+
+    ws.send(JSON.stringify(message));
+    setAnswerInput("");
+    setPendingQuestion(null);
+  }, [ws, pendingQuestion, answerInput]);
+
+  // Show loading while connecting
+  if (!connected) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+        }}
+      >
+        <div>Connecting to workflow server...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col min-h-screen h-full max-w-4xl mx-auto">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      {/* Connection Status Bar */}
+      <div
+        style={{
+          padding: "10px",
+          background: connected ? "#4ade80" : "#f87171",
+          color: "white",
+          fontWeight: "bold",
+          textAlign: "center",
+        }}
+      >
+        {connected ? "🟢 Connected to Workflow Server" : "🔴 Disconnected"}
+      </div>
+
+      {/* Message Panel */}
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto",
+          padding: "10px",
+          background: "#f9fafb",
+        }}
+      >
+        {messages.map((msg) => (
           <div
-            key={message.id}
-            className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            key={msg.id}
+            style={{
+              marginBottom: "10px",
+              padding: "8px",
+              background:
+                msg.type === "error"
+                  ? "#fee2e2"
+                  : msg.type === "status"
+                    ? "#e0e7ff"
+                    : msg.type === "final"
+                      ? "#d1fae5"
+                      : "white",
+              borderLeft: `4px solid ${
+                msg.type === "error"
+                  ? "#ef4444"
+                  : msg.type === "status"
+                    ? "#6366f1"
+                    : msg.type === "final"
+                      ? "#10b981"
+                      : "#9ca3af"
+              }`,
+              borderRadius: "4px",
+            }}
           >
-            {message.role !== "user" && (
-              <Avatar className="h-8 w-8 mt-1">
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                  C
-                </AvatarFallback>
-              </Avatar>
-            )}
-
             <div
-              className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                message.role === "user"
-                  ? "bg-primary text-primary-foreground ml-auto"
-                  : "bg-card text-card-foreground"
-              }`}
+              style={{
+                fontSize: "11px",
+                color: "#6b7280",
+                marginBottom: "4px",
+              }}
             >
-              <p className="text-sm leading-relaxed">
-                {message.parts.map((part, i) => {
-                  if (part.type === "text") {
-                    return <div key={`${message.id}-${i}`}>{part.text}</div>;
-                  }
-
-                  if (part.type === "step-start") return;
-
-                  if (isToolPart(part)) {
-                    const [_, toolName] = part.type.split("tool-");
-                    const [integrationName, actionName] = toolName.split("__");
-                    const niceName = `${integrationName} - ${actionName}`;
-
-                    return (
-                      <div key={`${message.id}-${i}`}>
-                        {part.output != null ? (
-                          <details>
-                            <summary>
-                              <i>{niceName}</i>
-                            </summary>
-                            <pre>{JSON.stringify(part.output, null, 2)}</pre>
-                          </details>
-                        ) : (
-                          <i>niceName</i>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div key={`${message.id}-${i}`}>{JSON.stringify(part)}</div>
-                  );
-                })}
-              </p>
-              <p
-                className={`text-xs mt-1 ${
-                  message.role === "user"
-                    ? "text-primary-foreground/70"
-                    : "text-muted-foreground"
-                }`}
-              ></p>
+              <strong>{msg.sender}</strong> • {msg.type} •{" "}
+              {msg.timestamp.toLocaleTimeString()}
             </div>
-
-            {message.role === "user" && (
-              <Avatar className="h-8 w-8 mt-1">
-                <AvatarFallback className="bg-secondary text-secondary-foreground text-sm">
-                  U
-                </AvatarFallback>
-              </Avatar>
-            )}
+            <div style={{ fontSize: "14px" }}>{msg.content}</div>
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Voice Recording Indicator */}
-      {isRecording && (
-        <div className="px-4 py-2 bg-accent/10 border-t border-border">
-          <div className="flex items-center gap-2 text-accent">
-            <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium">Recording...</span>
-            <div className="flex gap-1 ml-2">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1 bg-accent rounded-full animate-pulse"
-                  style={{
-                    height: Math.random() * 20 + 10,
-                    animationDelay: `${i * 0.1}s`,
-                  }}
-                ></div>
-              ))}
-            </div>
+      {/* Pending Question */}
+      {pendingQuestion && (
+        <div
+          style={{
+            padding: "10px",
+            background: "#fef3c7",
+            borderTop: "2px solid #fbbf24",
+          }}
+        >
+          <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+            ❓ Question from Agent:
+          </div>
+          <div style={{ marginBottom: "8px" }}>{pendingQuestion.content}</div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input
+              value={answerInput}
+              onChange={(e) => setAnswerInput(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleSubmitAnswer()}
+              placeholder="Type your answer..."
+              style={{
+                flex: 1,
+                padding: "8px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+              }}
+            />
+            <button
+              onClick={handleSubmitAnswer}
+              disabled={!answerInput.trim()}
+              style={{
+                padding: "8px 16px",
+                background: "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: answerInput.trim() ? "pointer" : "not-allowed",
+                opacity: answerInput.trim() ? 1 : 0.5,
+              }}
+            >
+              Submit Answer
+            </button>
           </div>
         </div>
       )}
 
       {/* Input Area */}
-      <div className="sticky bottom-0 p-4 bg-background border-t border-border">
-        <form className="flex gap-2 items-end" onSubmit={handleSubmit}>
-          <div className="flex-1 relative">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="pr-12 bg-input border-border focus:ring-ring"
-            />
-          </div>
-
-          <Button
-            onClick={handleVoiceRecording}
-            variant={isRecording ? "destructive" : "secondary"}
-            size="icon"
-            className={`h-10 w-10 ${
-              isRecording
-                ? "bg-destructive hover:bg-destructive/90"
-                : "bg-accent hover:bg-accent/90 text-accent-foreground"
-            }`}
-            type="button"
+      <div
+        style={{
+          padding: "10px",
+          borderTop: "1px solid #e5e7eb",
+          background: "white",
+        }}
+      >
+        <div style={{ display: "flex", gap: "8px" }}>
+          <input
+            value={promptInput}
+            onChange={(e) => setPromptInput(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleExecuteWorkflow()}
+            placeholder="Enter workflow prompt (e.g., 'Check my emails and summarize them')..."
+            style={{
+              flex: 1,
+              padding: "12px",
+              border: "2px solid #d1d5db",
+              borderRadius: "4px",
+              fontSize: "14px",
+            }}
+          />
+          <button
+            onClick={handleExecuteWorkflow}
+            disabled={!promptInput.trim()}
+            style={{
+              padding: "12px 24px",
+              background: "#10b981",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: promptInput.trim() ? "pointer" : "not-allowed",
+              fontWeight: "bold",
+              fontSize: "14px",
+              opacity: promptInput.trim() ? 1 : 0.5,
+            }}
           >
-            {isRecording ? (
-              <Square className="h-4 w-4" />
-            ) : (
-              <Mic className="h-4 w-4" />
-            )}
-          </Button>
-
-          <Button
-            type="submit"
-            disabled={!input.trim()}
-            className="h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground"
-            size="icon"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+            Execute Workflow
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -60,7 +60,7 @@ export class ToolFilterAgent extends BaseAgent {
       const { object } = await generateObject({
         model: this.model,
         schema: ToolSelectionSchema,
-        prompt: `You are a tool selection agent. Your job is to select the most relevant tools from the available registry for a specific task.
+        prompt: `You are an autonomous tool selection agent. Your job is to select the most relevant tools from the available registry for a specific task.
 
 Task Description: ${task.description}
 Task Goal: ${task.goal}
@@ -68,13 +68,24 @@ Task Goal: ${task.goal}
 Available Tools:
 ${availableToolDescriptions}${previousTasksContext}
 
+AUTONOMY PRINCIPLES:
+- Select tools that enable COMPREHENSIVE data gathering
+- When multiple sources might be relevant (e.g., multiple calendars, email folders), select tools to check ALL of them
+- Default to gathering MORE rather than LESS information
+- Make reasonable assumptions about what the user wants
+- Examples:
+  * "upcoming events" → select tools for ALL calendar sources
+  * "recent activity" → select tools for ALL relevant activity streams
+  * "my contacts" → select tools to get complete contact information
+- DO NOT select tools that would require asking clarifying questions
+
 IMPORTANT RULES:
 1. If this task is about SYNTHESIS or COMPILATION of data that was already collected in previous tasks, DO NOT select any tools (return empty array)
 2. If previous tasks already collected the necessary data, DO NOT select tools to fetch it again
 3. ONLY select tools if this task needs to retrieve NEW information that hasn't been collected yet
 4. For synthesis/summary tasks, the ExecutionAgent will use previously collected data without tools
 
-Select ONLY the tools that are directly relevant to accomplishing this task. Provide reasoning for each selection.
+Select ALL tools that are relevant to accomplishing this task comprehensively. Provide reasoning for each selection.
 If no tools are needed, select an empty array.`,
       });
 

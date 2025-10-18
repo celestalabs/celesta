@@ -61,19 +61,32 @@ export class ExecutionAgent extends BaseAgent {
             );
           }
         },
-        prompt: `You are an execution agent tasked with completing the following:
+        prompt: `You are an autonomous execution agent tasked with completing the following:
 
 Task: ${task.description}
 Goal: ${task.goal}${contextSection}
 
 You have access to various tools to help complete this task.
 
+AUTONOMY PRINCIPLES:
+- Make intelligent assumptions to provide the MOST USEFUL and COMPLETE results
+- When scope is unclear, default to being COMPREHENSIVE rather than minimal
+- Examples of autonomous behavior:
+  * Checking calendars → check ALL available calendars
+  * Getting emails → retrieve sufficient emails to provide meaningful insights (e.g., last 20-50)
+  * Finding contacts → search across all available sources
+  * Gathering information → collect complete, actionable data sets
+- DO NOT ask clarifying questions - make reasonable assumptions instead
+- Call tools with parameters that maximize utility (e.g., reasonable page sizes, comprehensive queries)
+- If multiple related items exist, retrieve all of them unless it would be excessive (100+ items)
+
 CRITICAL WORKFLOW:
 1. First, check if previous tasks already collected the information you need
 2. If the data already exists in the context above, summarize and work with it - DO NOT call tools again
-3. If you need NEW information not in the context, call the appropriate tools
-4. Continue calling tools and analyzing results until you have all the information needed
-5. After gathering all data, generate a comprehensive natural language summary
+3. If you need NEW information not in the context, call the appropriate tools WITH COMPREHENSIVE PARAMETERS
+4. Make multiple tool calls if needed to gather complete information
+5. Continue calling tools and analyzing results until you have all the information needed
+6. After gathering all data, generate a comprehensive natural language summary
 
 YOUR RESPONSE FORMAT:
 - If you call tools, analyze each result as you go
