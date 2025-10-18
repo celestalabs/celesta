@@ -1,32 +1,8 @@
 import z, { ZodObject, ZodOptional } from "zod";
 import { pieceByName } from "../pieces/pieceData.ts";
-import { isPieceName, type PieceName } from "../pieces/pieceName.ts";
+import { isPieceName } from "../pieces/pieceName.ts";
 import type { SuccessResponse } from "../utils/responseType.ts";
-import { type Action } from "@activepieces/pieces-framework";
-
-export enum NonPieceIntegrationName {
-  BROWSER_USE = "browser_use",
-}
-
-export function isNonPieceIntegrationName(
-  value: any
-): value is NonPieceIntegrationName {
-  return (
-    Object.entries(NonPieceIntegrationName).findIndex(
-      ([_, v]) => v === value
-    ) !== -1
-  );
-}
-
-export type IntegrationName = NonPieceIntegrationName | PieceName;
-
-export function isIntegrationName(
-  integrationName: any
-): integrationName is IntegrationName {
-  return (
-    isPieceName(integrationName) || isNonPieceIntegrationName(integrationName)
-  );
-}
+import { isIntegrationName, NonPieceIntegrationName } from "./integrationName.ts";
 
 export type IntegrationMetadata = {
   name: string;
@@ -172,3 +148,5 @@ export function readIntegrationMetadata(
   // non piece integration
   return { success: true, ...nonPieceIntegrationMetadata[integrationName] };
 }
+export { isIntegrationName };
+

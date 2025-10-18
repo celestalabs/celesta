@@ -1,3 +1,4 @@
+import { ToolUIPart, UIDataTypes, UIMessagePart, UITools } from "ai";
 import { Mic, Send, Square } from "lucide-react";
 import React, { FormEventHandler } from "react";
 import { useEffect, useRef } from "react";
@@ -6,6 +7,10 @@ import { Avatar, AvatarFallback } from "~/shared/components/ui/avatar";
 import { Button } from "~/shared/components/ui/button";
 import { Input } from "~/shared/components/ui/input";
 import { useLocalChat } from "~/shared/hooks/useLocalChat";
+
+const isToolPart = (
+  part: UIMessagePart<UIDataTypes, UITools>
+): part is ToolUIPart => part.type.startsWith("tool-");
 
 const App = React.memo(function AppFn() {
   const { messages, sendMessage } = useLocalChat();
@@ -69,16 +74,36 @@ const App = React.memo(function AppFn() {
             >
               <p className="text-sm leading-relaxed">
                 {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case "text":
-                      return <div key={`${message.id}-${i}`}>{part.text}</div>;
-                    default:
-                      return (
-                        <div key={`${message.id}-${i}`}>
-                          {JSON.stringify(part)}
-                        </div>
-                      );
+                  if (part.type === "text") {
+                    return <div key={`${message.id}-${i}`}>{part.text}</div>;
                   }
+
+                  if (part.type === "step-start") return;
+
+                  if (isToolPart(part)) {
+                    const [_, toolName] = part.type.split("tool-");
+                    const [integrationName, actionName] = toolName.split("__");
+                    const niceName = `${integrationName} - ${actionName}`;
+
+                    return (
+                      <div key={`${message.id}-${i}`}>
+                        {part.output != null ? (
+                          <details>
+                            <summary>
+                              <i>{niceName}</i>
+                            </summary>
+                            <pre>{JSON.stringify(part.output, null, 2)}</pre>
+                          </details>
+                        ) : (
+                          <i>niceName</i>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={`${message.id}-${i}`}>{JSON.stringify(part)}</div>
+                  );
                 })}
               </p>
               <p

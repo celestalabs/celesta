@@ -1,6 +1,7 @@
 import type { ExecuteIntegrationHandler } from "./routes/executeIntegration.ts";
 import type { GenerateOAuthAccessTokenHandler } from "./routes/generateOAuthAccessToken.ts";
 import type { GenerateOAuthRedirectUrlHandler } from "./routes/generateOAuthRedirectUrl.ts";
+import type { ListIntegrationsHandler } from "./routes/listIntegrations.ts";
 
 const GENERIC_FETCHER =
   (method: "GET" | "POST" | "PUT" | "DELETE", url: string) =>
@@ -24,7 +25,7 @@ const GENERIC_FETCHER =
       method,
       headers: { ...headers, "Content-Type": "application/json" },
     } as RequestInit;
-    
+
     if (body != null) {
       fetchData.body = JSON.stringify(body);
     }
@@ -47,4 +48,8 @@ export const createIntegrationApiClient = (baseUrl: string) =>
       "POST",
       `${baseUrl}/api/executeIntegration`
     ) as ExecuteIntegrationHandler,
+    listIntegrations: GENERIC_FETCHER(
+      "GET",
+      `${baseUrl}/api/listIntegrations`
+    ) as ListIntegrationsHandler,
   }) as const;

@@ -1,7 +1,7 @@
 import { isPieceName } from "../pieces/pieceName.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/wrappedRouter.ts";
-import { isIntegrationName } from "../integrations/index.ts";
+import { isIntegrationName } from "../integrations/integrationName.ts";
 import { executePieceAction } from "../pieces/executePieceAction.ts";
 
 export type ExecuteIntegrationHandler = TypedFetcher<
