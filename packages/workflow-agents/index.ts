@@ -100,6 +100,14 @@ wss.on("connection", (ws: WebSocket) => {
           );
         }
       }
+      // Handle credential provision (OAuth response from frontend)
+      else if (message.type === "provide_credentials") {
+        // This message is handled by the ExecutionAgent's credential request
+        // No need to log or respond - just acknowledge receipt
+        console.log(
+          `[Server] Received credentials for ${message.integrationName} from client ${clientId}`
+        );
+      }
       // Unknown message type
       else {
         messagePipe.send(

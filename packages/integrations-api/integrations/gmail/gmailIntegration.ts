@@ -1,12 +1,12 @@
-import z from 'zod';
-import type { IntegrationMetadata } from '../integrationMetadata.ts';
-import { sendEmail } from './actions/sendEmail.ts';
-import { searchMessages } from './actions/searchMessages.ts';
-import { getMessage } from './actions/getMessage.ts';
-import { listMessages } from './actions/listMessages.ts';
-import { createDraft } from './actions/createDraft.ts';
-import { searchAndRetrieveMessages } from './actions/searchAndRetrieveMessages.ts';
-import { listAndRetrieveMessages } from './actions/listAndRetrieveMessages.ts';
+import z from "zod";
+import type { IntegrationMetadata } from "../integrationMetadata.ts";
+import { sendEmail } from "./actions/sendEmail.ts";
+import { searchMessages } from "./actions/searchMessages.ts";
+import { getMessage } from "./actions/getMessage.ts";
+import { listMessages } from "./actions/listMessages.ts";
+import { createDraft } from "./actions/createDraft.ts";
+import { searchAndRetrieveMessages } from "./actions/searchAndRetrieveMessages.ts";
+import { listAndRetrieveMessages } from "./actions/listAndRetrieveMessages.ts";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -80,57 +80,103 @@ export interface SendEmailResponse {
 // ZOD SCHEMAS (for API validation and LLM tool definitions)
 // ============================================================================
 const sendEmailSchema = z.object({
-  to: z.union([z.string(), z.array(z.string())]).describe('Recipient email address(es)'),
-  subject: z.string().describe('Email subject'),
-  body: z.string().describe('Email body content'),
-  isHtml: z.boolean().optional().describe('Whether the body is HTML formatted'),
-  cc: z.union([z.string(), z.array(z.string())]).optional().describe('CC recipient email address(es)'),
-  bcc: z.union([z.string(), z.array(z.string())]).optional().describe('BCC recipient email address(es)'),
-  from: z.string().optional().describe('Sender email address (defaults to authenticated user)'),
+  to: z
+    .union([z.string(), z.array(z.string())])
+    .describe("Recipient email address(es)"),
+  subject: z.string().describe("Email subject"),
+  body: z.string().describe("Email body content"),
+  isHtml: z.boolean().optional().describe("Whether the body is HTML formatted"),
+  cc: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .describe("CC recipient email address(es)"),
+  bcc: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .describe("BCC recipient email address(es)"),
+  from: z
+    .string()
+    .optional()
+    .describe("Sender email address (defaults to authenticated user)"),
 });
 
 const searchMessagesSchema = z.object({
-  query: z.string().describe('Gmail search query (uses Gmail search syntax)'),
-  maxResults: z.number().optional().describe('Maximum number of messages to return (default: 10)'),
-  pageToken: z.string().optional().describe('Page token for pagination'),
-  labelIds: z.array(z.string()).optional().describe('Filter by label IDs'),
+  query: z.string().describe("Gmail search query (uses Gmail search syntax)"),
+  maxResults: z
+    .number()
+    .optional()
+    .describe("Maximum number of messages to return (default: 10)"),
+  pageToken: z.string().optional().describe("Page token for pagination"),
+  labelIds: z.array(z.string()).optional().describe("Filter by label IDs"),
 });
 
 const getMessageSchema = z.object({
-  messageId: z.string().describe('The ID of the message to retrieve'),
-  format: z.enum(['full', 'metadata', 'minimal', 'raw']).optional().describe('The format of the message to return (default: full)'),
+  messageId: z.string().describe("The ID of the message to retrieve"),
+  format: z
+    .enum(["full", "metadata", "minimal", "raw"])
+    .optional()
+    .describe("The format of the message to return (default: full)"),
 });
 
 const listMessagesSchema = z.object({
-  maxResults: z.number().optional().describe('Maximum number of messages to return (default: 10)'),
-  pageToken: z.string().optional().describe('Page token for pagination'),
-  labelIds: z.array(z.string()).optional().describe('Filter by label IDs'),
-  includeSpamTrash: z.boolean().optional().describe('Include messages from SPAM and TRASH (default: false)'),
+  maxResults: z
+    .number()
+    .optional()
+    .describe("Maximum number of messages to return (default: 10)"),
+  pageToken: z.string().optional().describe("Page token for pagination"),
+  labelIds: z.array(z.string()).optional().describe("Filter by label IDs"),
+  includeSpamTrash: z
+    .boolean()
+    .optional()
+    .describe("Include messages from SPAM and TRASH (default: false)"),
 });
 
 const createDraftSchema = z.object({
-  to: z.union([z.string(), z.array(z.string())]).describe('Recipient email address(es)'),
-  subject: z.string().describe('Email subject'),
-  body: z.string().describe('Email body content'),
-  isHtml: z.boolean().optional().describe('Whether the body is HTML formatted'),
-  cc: z.union([z.string(), z.array(z.string())]).optional().describe('CC recipient email address(es)'),
-  bcc: z.union([z.string(), z.array(z.string())]).optional().describe('BCC recipient email address(es)'),
+  to: z
+    .union([z.string(), z.array(z.string())])
+    .describe("Recipient email address(es)"),
+  subject: z.string().describe("Email subject"),
+  body: z.string().describe("Email body content"),
+  isHtml: z.boolean().optional().describe("Whether the body is HTML formatted"),
+  cc: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .describe("CC recipient email address(es)"),
+  bcc: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .describe("BCC recipient email address(es)"),
 });
 
 const searchAndRetrieveMessagesSchema = z.object({
-  query: z.string().describe('Gmail search query (uses Gmail search syntax)'),
-  maxResults: z.number().optional().describe('Maximum number of messages to return (default: 10, max: 50)'),
-  pageToken: z.string().optional().describe('Page token for pagination'),
-  labelIds: z.array(z.string()).optional().describe('Filter by label IDs'),
-  format: z.enum(['full', 'metadata', 'minimal']).optional().describe('The format of the message to return (default: full)'),
+  query: z.string().describe("Gmail search query (uses Gmail search syntax)"),
+  maxResults: z
+    .number()
+    .optional()
+    .describe("Maximum number of messages to return (default: 10, max: 50)"),
+  pageToken: z.string().optional().describe("Page token for pagination"),
+  labelIds: z.array(z.string()).optional().describe("Filter by label IDs"),
+  format: z
+    .enum(["full", "metadata", "minimal"])
+    .optional()
+    .describe("The format of the message to return (default: full)"),
 });
 
 const listAndRetrieveMessagesSchema = z.object({
-  maxResults: z.number().optional().describe('Maximum number of messages to return (default: 10, max: 50)'),
-  pageToken: z.string().optional().describe('Page token for pagination'),
-  labelIds: z.array(z.string()).optional().describe('Filter by label IDs'),
-  includeSpamTrash: z.boolean().optional().describe('Include messages from SPAM and TRASH (default: false)'),
-  format: z.enum(['full', 'metadata', 'minimal']).optional().describe('The format of the message to return (default: full)'),
+  maxResults: z
+    .number()
+    .optional()
+    .describe("Maximum number of messages to return (default: 10, max: 50)"),
+  pageToken: z.string().optional().describe("Page token for pagination"),
+  labelIds: z.array(z.string()).optional().describe("Filter by label IDs"),
+  includeSpamTrash: z
+    .boolean()
+    .optional()
+    .describe("Include messages from SPAM and TRASH (default: false)"),
+  format: z
+    .enum(["full", "metadata", "minimal"])
+    .optional()
+    .describe("The format of the message to return (default: full)"),
 });
 
 // ============================================================================
@@ -142,8 +188,12 @@ export type SearchMessagesParams = z.infer<typeof searchMessagesSchema>;
 export type GetMessageParams = z.infer<typeof getMessageSchema>;
 export type ListMessagesParams = z.infer<typeof listMessagesSchema>;
 export type CreateDraftParams = z.infer<typeof createDraftSchema>;
-export type SearchAndRetrieveMessagesParams = z.infer<typeof searchAndRetrieveMessagesSchema>;
-export type ListAndRetrieveMessagesParams = z.infer<typeof listAndRetrieveMessagesSchema>;
+export type SearchAndRetrieveMessagesParams = z.infer<
+  typeof searchAndRetrieveMessagesSchema
+>;
+export type ListAndRetrieveMessagesParams = z.infer<
+  typeof listAndRetrieveMessagesSchema
+>;
 
 // ============================================================================
 // INTEGRATION METADATA
@@ -151,44 +201,47 @@ export type ListAndRetrieveMessagesParams = z.infer<typeof listAndRetrieveMessag
 
 // Define the Gmail integration
 export const gmailIntegration: IntegrationMetadata = {
-  name: 'Gmail',
-  description: 'Send and manage emails using Gmail',
-  logoUrl: 'https://www.google.com/gmail/about/static/images/logo-gmail.png',
+  name: "Gmail",
+  description: "Send and manage emails using Gmail",
+  logoUrl: "https://www.google.com/gmail/about/static/images/logo-gmail.png",
   requiresUserAuth: true,
   actions: [
     {
-      name: 'send_email',
-      description: 'Send an email message',
+      name: "send_email",
+      description: "Send an email message",
       props: sendEmailSchema,
     },
     {
-      name: 'search_messages',
-      description: 'Search for email messages using Gmail search syntax',
+      name: "search_messages",
+      description: "Search for email messages using Gmail search syntax",
       props: searchMessagesSchema,
     },
     {
-      name: 'get_message',
-      description: 'Get a specific email message by ID',
+      name: "get_message",
+      description: "Get a specific email message by ID",
       props: getMessageSchema,
     },
     {
-      name: 'list_messages',
-      description: 'List email messages in the mailbox. This method only returns message IDs.',
+      name: "list_messages",
+      description:
+        "List email messages in the mailbox. This method only returns message IDs.",
       props: listMessagesSchema,
     },
     {
-      name: 'create_draft',
-      description: 'Create a draft email message',
+      name: "create_draft",
+      description: "Create a draft email message",
       props: createDraftSchema,
     },
     {
-      name: 'search_and_retrieve_messages',
-      description: 'Search for email messages AND retrieve their full content in one action. This is more efficient than search_messages + get_message. Supports up to 50 messages at once.',
+      name: "search_and_retrieve_messages",
+      description:
+        "Search for email messages AND retrieve their full content in one action. This is more efficient than search_messages + get_message. Supports up to 50 messages at once.",
       props: searchAndRetrieveMessagesSchema,
     },
     {
-      name: 'list_and_retrieve_messages',
-      description: 'List email messages AND retrieve their full content in one action. This is more efficient than list_messages + get_message. Supports up to 50 messages at once.',
+      name: "list_and_retrieve_messages",
+      description:
+        "List email messages AND retrieve their full content in one action. This is more efficient than list_messages + get_message. Supports up to 50 messages at once.",
       props: listAndRetrieveMessagesSchema,
     },
   ],
@@ -196,13 +249,13 @@ export const gmailIntegration: IntegrationMetadata = {
 
 // Export action executors
 export const gmailActions = {
-  sendEmail,
-  searchMessages,
-  getMessage,
-  listMessages,
-  createDraft,
-  searchAndRetrieveMessages,
-  listAndRetrieveMessages,
+  send_email: sendEmail,
+  search_messages: searchMessages,
+  get_message: getMessage,
+  list_messages: listMessages,
+  create_draft: createDraft,
+  search_and_retrieve_messages: searchAndRetrieveMessages,
+  list_and_retrieve_messages: listAndRetrieveMessages,
 } as const;
 
 // Type-safe action executor
