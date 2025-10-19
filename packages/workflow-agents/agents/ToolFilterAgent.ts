@@ -84,6 +84,15 @@ AUTONOMY PRINCIPLES:
   * "my contacts" → select tools to get complete contact information
 - DO NOT select tools that would require asking clarifying questions
 
+TOOL SELECTION PRIORITY:
+- PREFER specialized tools (web_search, gmail, google_calendar, etc.) over browser_use when possible
+- browser_use should be a LAST RESORT when:
+  * Other tools are not working properly
+  * The required functionality is not available in existing tools
+  * The task requires complex web interactions that specialized tools cannot handle
+- For search tasks, ALWAYS prefer web_search tools (search_web, find_similar, get_contents, answer_question) over browser_use
+- For retrieval tasks, use the appropriate specialized integration tools rather than the browser
+
 IMPORTANT RULES:
 1. If this task is about SYNTHESIS or COMPILATION of data that was already collected in previous tasks, DO NOT select any tools (return empty array)
 2. If previous tasks already collected the necessary data, DO NOT select tools to fetch it again

@@ -12,7 +12,7 @@ import { answerQuestion } from './actions/answerQuestion.ts';
 // Auth type for Web Search (uses server-side API key)
 export type WebSearchAuth = {
   access_token: string; // Server-injected Exa API key
-} | null;
+};
 
 // Search result type from Exa
 export interface SearchResult {

@@ -28,6 +28,9 @@ export async function executeCustomIntegration(
         break;
       
       case NonPieceIntegrationName.WEB_SEARCH:
+        if (!auth) {
+          return { success: false, error: 'Exa Web Search requires authentication. This is an internal issue with the server.' };
+        }
         result = await executeWebSearchAction(actionName, props, auth);
         break;
       
