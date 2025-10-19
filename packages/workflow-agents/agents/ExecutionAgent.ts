@@ -27,6 +27,38 @@ export class ExecutionAgent extends BaseAgent {
     // Update task status
     this.executionContext.updateTaskStatus(task.id, "in-progress");
 
+    // Wrap all tools to automatically collect their results for DataRegistry
+    // Exclude system__ tools to avoid recursion (they retrieve data, don't generate it)
+    const toolCallResults: Array<{ toolName: string; result: any }> = [];
+    const wrappedTools: ToolSet = {};
+
+    for (const [toolName, tool] of Object.entries(tools)) {
+      if (tool.execute === undefined) {
+        // Skip non-executable tools (e.g., static data tools)
+        wrappedTools[toolName] = tool;
+        continue;
+      }
+
+      // Check if this is the getTaskData tool (retrieval only, not new data)
+      const isRetrievalTool = toolName === "system__getTaskData";
+
+      wrappedTools[toolName] = {
+        ...tool,
+        execute: async (args: any, options: any) => {
+          const result = await tool.execute?.(args, options);
+          
+          // Only capture non-retrieval tool results to avoid recursion
+          // system__getTaskData retrieves existing data, not new data
+          // system__askQuestion generates NEW data (user's answer) so we DO capture it
+          if (!isRetrievalTool) {
+            toolCallResults.push({ toolName, result });
+          }
+          
+          return result;
+        },
+      };
+    }
+
     try {
       const toolsList = Object.keys(tools).join(", ");
       this.sendInfo(`Using tools: ${toolsList}`);
@@ -60,7 +92,7 @@ export class ExecutionAgent extends BaseAgent {
 
       const streamResult = streamText({
         model: this.model,
-        tools,
+        tools: wrappedTools, // Use wrapped tools that capture results
         stopWhen: stepCountIs(10), // Limit to 7 steps to avoid long runs
         onStepFinish: ({ toolCalls }) => {
           if (toolCalls && toolCalls.length > 0) {
@@ -77,6 +109,18 @@ Task: ${task.description}
 Goal: ${task.goal}${contextSection}
 
 You have access to various tools to help complete this task.
+
+ACCESSING DATA FROM PREVIOUS TASKS:
+- Use system__getTaskData(taskIdentifier: "task-slug-name") to retrieve detailed data from completed tasks
+- The task slug is shown in the "PREVIOUS TASKS" section above (e.g., "search-interview-emails")
+- This gives you the FULL RAW tool outputs (e.g., all 200 email IDs, complete responses)
+- The "Result" shown above is just a summary - use system__getTaskData for complete data
+
+DATA PERSISTENCE:
+- All your tool call results are AUTOMATICALLY saved and will be available to future tasks
+- You do NOT need to repeat data in your final output - just summarize key findings
+- Future tasks can retrieve your raw tool data using system__getTaskData
+- Focus your response on analysis and insights, not regurgitating raw data
 
 DECISION FRAMEWORK FOR CLARIFYING QUESTIONS:
 
@@ -100,21 +144,18 @@ BE AUTONOMOUS (no questions) when:
 General principle: "Better to ask one question than to send the wrong email"
 
 CRITICAL WORKFLOW:
-1. First, check if previous tasks already collected the information you need
-2. If the data already exists in the context above, summarize and work with it - DO NOT call tools again
-3. If you need NEW information not in the context, call the appropriate tools WITH COMPREHENSIVE PARAMETERS
-4. Make multiple tool calls if needed to gather complete information
-5. Continue calling tools and analyzing results until you have all the information needed
-6. After gathering all data, generate a comprehensive natural language summary
+1. Check if you need data from previous tasks → use system__getTaskData("task-slug") to get full details
+2. If you need NEW information, call the appropriate tools WITH COMPREHENSIVE PARAMETERS
+3. Make multiple tool calls if needed to gather complete information
+4. Continue calling tools and analyzing results until you have all the information needed
+5. Generate a concise summary focusing on KEY INSIGHTS, not raw data dumps
 
 YOUR RESPONSE FORMAT:
-- If you call tools, analyze each result as you go
-- Once you have all information, provide a detailed final summary
-- Include specific details from the tool results (names, dates, numbers, etc.)
-- Your text response is the PRIMARY OUTPUT that will be shown to the user
-- NEVER leave your response empty - always provide a detailed summary
-
-MANDATORY: You MUST generate a detailed text response explaining your findings. Empty responses are not acceptable.`,
+- Provide a clear, concise summary of what you accomplished
+- Focus on insights, analysis, and actionable information
+- Do NOT repeat large amounts of raw data (it's auto-saved)
+- Your response should be SHORT and to the point
+- Empty responses are acceptable if tools speak for themselves`,
       });
 
       // Consume the stream to get final results
@@ -123,71 +164,82 @@ MANDATORY: You MUST generate a detailed text response explaining your findings. 
         fullText += chunk;
       }
 
-      // Await all the promises
-      const toolCalls = await streamResult.toolCalls;
-      const toolResults = await streamResult.toolResults;
+      // Await the promises that resolve to arrays
+      const allToolCalls = await streamResult.toolCalls;
+      const allToolResults = await streamResult.toolResults;
+
+      // Debug logging
+      console.log(
+        `[ExecutionAgent] Tool calls count: ${allToolCalls?.length || 0}`
+      );
+      console.log(
+        `[ExecutionAgent] Tool results count: ${allToolResults?.length || 0}`
+      );
+      if (allToolCalls && allToolCalls.length > 0) {
+        console.log(
+          `[ExecutionAgent] First tool call:`,
+          JSON.stringify(allToolCalls[0], null, 2)
+        );
+      }
+      if (allToolResults && allToolResults.length > 0) {
+        console.log(
+          `[ExecutionAgent] First tool result:`,
+          JSON.stringify(allToolResults[0], null, 2)
+        );
+      }
 
       // Log execution details
-      if (toolCalls && toolCalls.length > 0) {
-        this.sendInfo(`Made ${toolCalls.length} total tool call(s)`);
+      if (toolCallResults.length > 0) {
+        this.sendInfo(`Made ${toolCallResults.length} total tool call(s)`);
       }
 
-      // Extract raw tool data for better accessibility
-      const rawToolData: Record<string, any> = {};
-      toolResults?.forEach((tr: any) => {
-        if ("result" in tr) {
-          rawToolData[tr.toolName] = tr.result;
-        }
-      });
-
-      // Build output text that includes both LLM response and tool results
-      let outputText = fullText || "";
-
-      // Always append tool results if any tools were called
-      if (toolResults && toolResults.length > 0) {
-        if (outputText && outputText.trim()) {
-          outputText += "\n\n---\n\n**Tool Results:**\n";
-        } else {
-          this.sendInfo(
-            "Model didn't generate text output, creating summary from tool results"
-          );
-          outputText = `Task completed. Retrieved data using ${toolResults.length} tool(s):\n\n`;
-        }
-
-        toolResults.forEach((tr: any) => {
-          if ("result" in tr) {
-            outputText += `\n**${tr.toolName}:**\n\`\`\`json\n${JSON.stringify(tr.result, null, 2)}\n\`\`\`\n`;
-          }
-        });
-      }
+      // Use LLM's text output directly - tool results are auto-saved in DataRegistry
+      const outputText = fullText || "Task completed.";
 
       const taskResult: TaskResult = {
         taskId: task.id,
         success: true,
         output: outputText,
         data: {
-          toolCalls: toolCalls?.map((tc: any) => ({
+          toolCalls: allToolCalls?.map((tc: any) => ({
             toolName: tc.toolName,
             args: "args" in tc ? tc.args : undefined,
           })),
-          toolResults: toolResults?.map((tr: any) => ({
+          toolResults: toolCallResults.map((tr) => ({
             toolName: tr.toolName,
-            result: "result" in tr ? tr.result : undefined,
+            result: tr.result,
           })),
-          rawToolData, // Easily accessible tool data
         },
         completedAt: new Date(),
       };
 
-      // Store tool results in DataRegistry for cross-task access
-      if (Object.keys(rawToolData).length > 0) {
-        this.executionContext.getDataRegistry().store(
-          task.id,
-          rawToolData,
-          task.slug
-        );
+      // Store comprehensive task data in DataRegistry for cross-task access
+      // Use the captured tool results from our HOF wrapper
+      let capturedToolData = "";
+      if (toolCallResults.length > 0) {
+        toolCallResults.forEach((tr, index) => {
+          capturedToolData += `\n=== ${tr.toolName} (call ${index + 1}) ===\n`;
+          capturedToolData += JSON.stringify(tr.result, null, 2);
+          capturedToolData += "\n";
+        });
+      }
+
+      // Convert to a string format for LLM context consumption
+      let storedDataString = `TASK: ${task.description}\n\n`;
+      storedDataString += `SUMMARY:\n${fullText || "No summary provided"}\n\n`;
+      storedDataString += `RAW TOOL OUTPUT (${toolCallResults.length} tool calls):\n${capturedToolData}`;
+
+      this.executionContext
+        .getDataRegistry()
+        .store(task.id, storedDataString, task.slug);
+
+      if (toolCallResults.length > 0) {
         this.sendInfo(
-          `Stored task data in registry: ${task.slug || task.id}`
+          `Stored task data in registry: ${task.slug || task.id} (${storedDataString.length} chars, ${toolCallResults.length} tool results)`
+        );
+      } else {
+        this.sendInfo(
+          `Stored task summary in registry: ${task.slug || task.id} (${storedDataString.length} chars, no tool results)`
         );
       }
 

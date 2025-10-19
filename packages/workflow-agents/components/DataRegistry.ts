@@ -17,6 +17,9 @@ export class DataRegistry {
    * Store data for a completed task
    */
   store(taskId: string, data: any, slug?: string): void {
+    console.log(`[DataRegistry] Storing data for task ${taskId} with slug: ${slug}`);
+    console.log(`[DataRegistry] Data type: ${typeof data}, length: ${typeof data === 'string' ? data.length : 'N/A'}`);
+    
     this.dataStore.set(taskId, {
       taskId,
       slug,
@@ -32,14 +35,22 @@ export class DataRegistry {
         data,
         timestamp: new Date(),
       });
+      console.log(`[DataRegistry] Also stored by slug: ${slug}`);
     }
+    
+    console.log(`[DataRegistry] Total entries in store: ${this.dataStore.size}`);
+    console.log(`[DataRegistry] All keys: ${Array.from(this.dataStore.keys()).join(', ')}`);
   }
 
   /**
    * Get data by task ID or slug
    */
   get(identifier: string): any | undefined {
-    return this.dataStore.get(identifier)?.data;
+    console.log(`[DataRegistry] Getting data for identifier: ${identifier}`);
+    console.log(`[DataRegistry] Available keys: ${Array.from(this.dataStore.keys()).join(', ')}`);
+    const entry = this.dataStore.get(identifier);
+    console.log(`[DataRegistry] Found entry: ${!!entry}`);
+    return entry?.data;
   }
 
   /**

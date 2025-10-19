@@ -208,14 +208,14 @@ export async function loadToolsFromAPI(
     if (executionContext) {
       tools["system__getTaskData"] = tool({
         description:
-          "Retrieve stored data from a completed task using its task slug or ID. Use this to access data collected in previous tasks (e.g., emails, calendar events, etc.).",
+          "Retrieve the complete stored data from a previous task using its slug or ID. This returns BOTH the task summary AND the full raw tool outputs (e.g., all 200 email IDs, complete API responses). Use this when you need detailed data that was collected in a previous task. The task slug is shown in previous task descriptions (e.g., 'search-interview-emails', 're-search-emails', 'fetch-calendar-events').",
         inputSchema: jsonSchema({
           type: "object",
           properties: {
             taskIdentifier: {
               type: "string",
               description:
-                "The task slug (e.g., 'email-query-1') or task ID to retrieve data from",
+                "The task slug (e.g., 'search-interview-emails') or task ID to retrieve data from. Prefer using the slug as it's more readable.",
             },
           },
           required: ["taskIdentifier"],
@@ -245,7 +245,8 @@ export async function loadToolsFromAPI(
       metadata.push({
         integrationName: "system" as IntegrationName,
         actionName: "getTaskData",
-        description: "Retrieve data from a completed task by its slug or ID",
+        description:
+          "Retrieve complete data from a previous task including both summary and raw tool outputs",
         displayName: "System - Get Task Data",
       });
     }
