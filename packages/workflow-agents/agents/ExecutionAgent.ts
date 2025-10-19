@@ -166,7 +166,7 @@ MANDATORY: You MUST generate a detailed text response explaining your findings. 
       // Update execution context
       this.executionContext.updateWithResult(task, taskResult);
 
-      this.sendStatus(`Task completed: ${task.description}`);
+      this.sendStatus(`Task completed: ${task.description}.\n${taskResult.output}`);
 
       return taskResult;
     } catch (error) {
