@@ -71,6 +71,22 @@ export class ConsoleMessagePipe implements IMessagePipe {
     this.rl.close();
   }
 
+  /**
+   * Send a tool invocation message (logs to console)
+   */
+  sendToolInvocation(toolCallId: string, toolName: string, args: any, sender: string): void {
+    console.log(`🔧 [${sender}] Tool Call [${toolCallId}]: ${toolName}`);
+    console.log(`   Args: ${JSON.stringify(args, null, 2)}`);
+  }
+
+  /**
+   * Send a tool result message (logs to console)
+   */
+  sendToolResult(toolCallId: string, toolName: string, result: any, sender: string): void {
+    console.log(`✅ [${sender}] Tool Result [${toolCallId}]: ${toolName}`);
+    console.log(`   Result: ${JSON.stringify(result, null, 2)}`);
+  }
+
   private getPrefix(type: MessageType): string {
     switch (type) {
       case "status":

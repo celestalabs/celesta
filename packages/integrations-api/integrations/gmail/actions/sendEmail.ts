@@ -1,4 +1,5 @@
 import { createGmailClient } from '../gmailClient.ts';
+import { convertMarkdownToHtmlIfNeeded } from '../utils.ts';
 import type { GmailAuth, SendEmailParams, SendEmailResponse } from '../gmailIntegration.ts';
 
 export async function sendEmail(
@@ -8,12 +9,18 @@ export async function sendEmail(
   const client = createGmailClient(auth);
   const gmail = client.getGmailApi();
 
+  // Auto-detect markdown and convert to HTML if needed
+  const { body, isHtml } = await convertMarkdownToHtmlIfNeeded(
+    params.body,
+    params.isHtml
+  );
+
   // Create MIME message
   const mimeMessage = client.createMimeMessage({
     to: params.to,
     subject: params.subject,
-    body: params.body,
-    ...(params.isHtml !== undefined && { isHtml: params.isHtml }),
+    body,
+    ...(isHtml !== undefined && { isHtml }),
     ...(params.cc && { cc: params.cc }),
     ...(params.bcc && { bcc: params.bcc }),
     ...(params.from && { from: params.from }),

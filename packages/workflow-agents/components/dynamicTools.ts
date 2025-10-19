@@ -60,11 +60,22 @@ export async function loadToolsFromAPI(
           displayName: `${integration.name} - ${action.name}`,
         });
 
-        // Create AI SDK tool
+        // Create AI SDK tool with wrapped execution
         tools[toolName] = tool({
           description: `${integration.name}: ${action.description}`,
           inputSchema: jsonSchema(action.props),
           async execute(params) {
+            // Generate unique tool call ID
+            const toolCallId = `tool_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+            
+            // Send tool invocation message BEFORE execution
+            messagePipe.sendToolInvocation(
+              toolCallId,
+              toolName,
+              params,
+              'ExecutionAgent'
+            );
+
             try {
               // Only request credentials if integration requires user auth
               let auth: { access_token: string } | undefined;
@@ -86,22 +97,43 @@ export async function loadToolsFromAPI(
                 },
               });
 
+              let finalResult;
               if (result.success) {
-                return result.result;
+                finalResult = result.result;
               } else {
-                return {
+                finalResult = {
                   error: true,
                   message: `Integration execution failed: ${result.error}`,
                   code: result.code,
                 };
               }
+
+              // Send tool result message AFTER execution
+              messagePipe.sendToolResult(
+                toolCallId,
+                toolName,
+                finalResult,
+                'ExecutionAgent'
+              );
+
+              return finalResult;
             } catch (error) {
               const errorMsg =
                 error instanceof Error ? error.message : String(error);
-              return {
+              const errorResult = {
                 error: true,
                 message: `Tool execution error: ${errorMsg}`,
               };
+
+              // Send error result
+              messagePipe.sendToolResult(
+                toolCallId,
+                toolName,
+                errorResult,
+                'ExecutionAgent'
+              );
+
+              return errorResult;
             }
           },
         });

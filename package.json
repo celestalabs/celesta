@@ -21,7 +21,7 @@
   "workspaces": [
     "packages/extension",
     "packages/integrations-api",
-    "packages/playground"
+    "packages/workflow-agents"
   ],
   "devDependencies": {
     "concurrently": "^9.2.1"

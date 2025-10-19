@@ -1,16 +1,67 @@
 import { WebSocket, RawData } from "ws";
 import { IMessagePipe, MessageType, Message } from "./IMessagePipe.js";
 
-interface WSMessage {
-  id: string;
-  type: MessageType | "answer" | "provide_credentials";
-  content: string;
-  sender: string;
-  timestamp: Date;
-  isQuestion?: boolean;
-  integrationName?: string;
-  accessToken?: string;
-}
+// Discriminated union for WebSocket messages
+export type WSMessage =
+  | {
+      id: string;
+      type: "status" | "info" | "error" | "final";
+      content: string;
+      sender: string;
+      timestamp: Date;
+    }
+  | {
+      id: string;
+      type: "question";
+      content: string;
+      sender: string;
+      timestamp: Date;
+      isQuestion: true;
+    }
+  | {
+      id: string;
+      type: "request_credentials";
+      content: string;
+      sender: string;
+      timestamp: Date;
+      integrationName: string;
+    }
+  | {
+      id: string;
+      type: "provide_credentials";
+      content: string;
+      sender: string;
+      timestamp: Date;
+      integrationName: string;
+      accessToken: string;
+    }
+  | {
+      id: string;
+      type: "tool_invocation";
+      content: string;
+      sender: string;
+      timestamp: Date;
+      toolCallId: string;
+      toolName: string;
+      toolArgs: any;
+    }
+  | {
+      id: string;
+      type: "tool_result";
+      content: string;
+      sender: string;
+      timestamp: Date;
+      toolCallId: string;
+      toolName: string;
+      toolResult: any;
+    }
+  | {
+      id: string;
+      type: "answer";
+      content: string;
+      sender: string;
+      timestamp: Date;
+    };
 
 interface PendingQuestion {
   resolve: (answer: string) => void;
@@ -37,6 +88,7 @@ export class WSMessagePipe implements IMessagePipe {
   private credentialCache: Map<string, string> = new Map();
   private messageHandler: ((data: RawData) => void) | null = null;
   private askTimeout: number = 300000; // 5 minutes default timeout
+  private toolCallCounter: number = 0;
 
   constructor(ws: WebSocket, askTimeout?: number) {
     this.ws = ws;
@@ -83,8 +135,7 @@ export class WSMessagePipe implements IMessagePipe {
         content,
         sender,
         timestamp: message.timestamp,
-        isQuestion: false,
-      };
+      } as WSMessage;
 
       this.ws.send(JSON.stringify(wsMessage));
     }
@@ -208,6 +259,60 @@ export class WSMessagePipe implements IMessagePipe {
    */
   getMessages(): Message[] {
     return [...this.messages];
+  }
+
+  /**
+   * Send a tool invocation message with a unique ID
+   */
+  sendToolInvocation(toolCallId: string, toolName: string, args: any, sender: string): void {
+    const message: Message = {
+      type: "tool_invocation",
+      content: `Calling ${toolName}`,
+      timestamp: new Date(),
+      sender,
+    };
+    this.messages.push(message);
+
+    if (this.ws.readyState === WebSocket.OPEN) {
+      const wsMessage: WSMessage = {
+        id: this.generateMessageId(),
+        type: "tool_invocation",
+        content: `Calling ${toolName}`,
+        sender,
+        timestamp: message.timestamp,
+        toolCallId,
+        toolName,
+        toolArgs: args,
+      };
+      this.ws.send(JSON.stringify(wsMessage));
+    }
+  }
+
+  /**
+   * Send a tool result message matching the invocation ID
+   */
+  sendToolResult(toolCallId: string, toolName: string, result: any, sender: string): void {
+    const message: Message = {
+      type: "tool_result",
+      content: `Result from ${toolName}`,
+      timestamp: new Date(),
+      sender,
+    };
+    this.messages.push(message);
+
+    if (this.ws.readyState === WebSocket.OPEN) {
+      const wsMessage: WSMessage = {
+        id: this.generateMessageId(),
+        type: "tool_result",
+        content: `Result from ${toolName}`,
+        sender,
+        timestamp: message.timestamp,
+        toolCallId,
+        toolName,
+        toolResult: result,
+      };
+      this.ws.send(JSON.stringify(wsMessage));
+    }
   }
 
   /**

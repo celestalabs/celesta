@@ -1,15 +1,67 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-export interface WSMessage {
-  id?: string;
-  type: string;
-  content: string;
-  sender: string;
-  timestamp: string;
-  integrationName?: string;
-  accessToken?: string;
-  isQuestion?: boolean;
-}
+// Frontend version with timestamp as string (serialized from Date)
+// We need to preserve the discriminated union structure for type narrowing
+export type WSMessage =
+  | {
+      id: string;
+      type: "status" | "info" | "error" | "final";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+    }
+  | {
+      id: string;
+      type: "question";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+      isQuestion: true;
+    }
+  | {
+      id: string;
+      type: "request_credentials";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+      integrationName: string;
+    }
+  | {
+      id: string;
+      type: "provide_credentials";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+      integrationName: string;
+      accessToken: string;
+    }
+  | {
+      id: string;
+      type: "tool_invocation";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+      toolCallId: string;
+      toolName: string;
+      toolArgs: any;
+    }
+  | {
+      id: string;
+      type: "tool_result";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+      toolCallId: string;
+      toolName: string;
+      toolResult: any;
+    }
+  | {
+      id: string;
+      type: "answer";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+    };
 
 export interface UseWebSocketOptions {
   url: string;

@@ -20,38 +20,59 @@ export function useWorkflowState({
 
   const handleIncomingMessage = useCallback(
     async (message: WSMessage) => {
-      // Add to display messages
-      const displayMsg: DisplayMessage = {
+      // Create base display message
+      const baseMsg = {
         id: message.id || `msg_${Date.now()}`,
         type: message.type,
         content: message.content,
         sender: message.sender,
         timestamp: new Date(message.timestamp || Date.now()),
       };
+
+      // Add type-specific fields based on message type
+      let displayMsg: DisplayMessage;
+
+      if (message.type === "tool_invocation") {
+        displayMsg = {
+          ...baseMsg,
+          toolCallId: message.toolCallId,
+          toolName: message.toolName,
+          toolArgs: message.toolArgs,
+        };
+      } else if (message.type === "tool_result") {
+        displayMsg = {
+          ...baseMsg,
+          toolCallId: message.toolCallId,
+          toolName: message.toolName,
+          toolResult: message.toolResult,
+        };
+      } else {
+        displayMsg = baseMsg;
+      }
+
       setMessages((prev) => [...prev, displayMsg]);
 
       // Handle specific message types
       if (message.type === "question" && message.id) {
         setPendingQuestion({ id: message.id, content: message.content });
-      } else if (
-        message.type === "request_credentials" &&
-        message.integrationName &&
-        onRequestCredentials &&
-        sendMessageFn
-      ) {
-        // Trigger OAuth flow
-        const accessToken = await onRequestCredentials(message.integrationName);
+      } else if (message.type === "request_credentials") {
+        if (onRequestCredentials && sendMessageFn) {
+          // Trigger OAuth flow
+          const accessToken = await onRequestCredentials(
+            message.integrationName
+          );
 
-        if (accessToken) {
-          // Send credentials back
-          const response = {
-            id: message.id,
-            type: "provide_credentials",
-            integrationName: message.integrationName,
-            accessToken,
-            timestamp: new Date().toISOString(),
-          };
-          sendMessageFn(response);
+          if (accessToken) {
+            // Send credentials back
+            const response = {
+              id: message.id,
+              type: "provide_credentials",
+              integrationName: message.integrationName,
+              accessToken,
+              timestamp: new Date().toISOString(),
+            };
+            sendMessageFn(response);
+          }
         }
       }
     },

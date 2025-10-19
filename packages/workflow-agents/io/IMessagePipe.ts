@@ -1,4 +1,4 @@
-export type MessageType = "status" | "question" | "info" | "error" | "final" | "request_credentials" | "provide_credentials";
+export type MessageType = "status" | "question" | "info" | "error" | "final" | "request_credentials" | "provide_credentials" | "tool_invocation" | "tool_result";
 
 export interface Message {
   type: MessageType;
@@ -28,6 +28,16 @@ export interface IMessagePipe {
    * Credentials are cached per session to avoid repeated OAuth flows.
    */
   requestCredentials(integrationName: string): Promise<string>;
+
+  /**
+   * Send a tool invocation message with a unique ID
+   */
+  sendToolInvocation(toolCallId: string, toolName: string, args: any, sender: string): void;
+
+  /**
+   * Send a tool result message matching the invocation ID
+   */
+  sendToolResult(toolCallId: string, toolName: string, result: any, sender: string): void;
 
   /**
    * Get all messages sent through the pipe

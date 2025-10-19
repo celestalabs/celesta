@@ -57,7 +57,7 @@ export class ExecutionAgent extends BaseAgent {
         model: this.model,
         tools,
         stopWhen: stepCountIs(10), // Limit to 7 steps to avoid long runs
-        onStepFinish: ({ text, toolCalls }) => {
+        onStepFinish: ({ toolCalls }) => {
           if (toolCalls && toolCalls.length > 0) {
             this.sendInfo(
               `Step completed with ${toolCalls.length} tool call(s)`
