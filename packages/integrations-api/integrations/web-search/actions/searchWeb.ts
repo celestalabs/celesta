@@ -1,5 +1,5 @@
 import { createWebSearchClient } from '../webSearchClient.ts';
-import type { WebSearchAuth, SearchWebParams, SearchResponse } from '../types.ts';
+import type { WebSearchAuth, SearchWebParams, SearchResponse } from '../webSearchIntegration.ts';
 
 export async function searchWeb(
   params: SearchWebParams,

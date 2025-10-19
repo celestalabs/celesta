@@ -1,5 +1,5 @@
 import { createGmailClient } from '../gmailClient.ts';
-import type { GmailAuth, ListMessagesParams, GmailMessageListResponse } from '../types.ts';
+import type { GmailAuth, ListMessagesParams, GmailMessageListResponse } from '../gmailIntegration.ts';
 
 export async function listMessages(
   params: ListMessagesParams,

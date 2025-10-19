@@ -1,13 +1,82 @@
 import z from 'zod';
 import type { IntegrationMetadata } from '../integrationMetadata.ts';
-import type { GmailAuth } from './types.ts';
 import { sendEmail } from './actions/sendEmail.ts';
 import { searchMessages } from './actions/searchMessages.ts';
 import { getMessage } from './actions/getMessage.ts';
 import { listMessages } from './actions/listMessages.ts';
 import { createDraft } from './actions/createDraft.ts';
 
-// Define Zod schemas for each action's input
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export interface GmailAuth {
+  access_token: string;
+}
+
+export interface EmailRecipient {
+  email: string;
+  name?: string;
+}
+
+export interface EmailAttachment {
+  filename: string;
+  mimeType: string;
+  data: string; // base64 encoded
+}
+
+export interface GmailMessage {
+  id: string;
+  threadId: string;
+  labelIds?: string[];
+  snippet: string;
+  historyId?: string;
+  internalDate?: string;
+  payload?: GmailMessagePayload;
+  sizeEstimate?: number;
+  raw?: string;
+}
+
+export interface GmailMessagePayload {
+  partId?: string;
+  mimeType: string;
+  filename?: string;
+  headers: GmailHeader[];
+  body?: GmailMessageBody;
+  parts?: GmailMessagePayload[];
+}
+
+export interface GmailHeader {
+  name: string;
+  value: string;
+}
+
+export interface GmailMessageBody {
+  attachmentId?: string;
+  size: number;
+  data?: string; // base64url encoded
+}
+
+export interface GmailMessageListResponse {
+  messages: Array<{ id: string; threadId: string }>;
+  nextPageToken?: string | undefined;
+  resultSizeEstimate: number;
+}
+
+export interface GmailDraft {
+  id: string;
+  message: GmailMessage;
+}
+
+export interface SendEmailResponse {
+  id: string;
+  threadId: string;
+  labelIds: string[];
+}
+
+// ============================================================================
+// ZOD SCHEMAS (for API validation and LLM tool definitions)
+// ============================================================================
 const sendEmailSchema = z.object({
   to: z.union([z.string(), z.array(z.string())]).describe('Recipient email address(es)'),
   subject: z.string().describe('Email subject'),
@@ -45,6 +114,20 @@ const createDraftSchema = z.object({
   cc: z.union([z.string(), z.array(z.string())]).optional().describe('CC recipient email address(es)'),
   bcc: z.union([z.string(), z.array(z.string())]).optional().describe('BCC recipient email address(es)'),
 });
+
+// ============================================================================
+// INFERRED TYPES FROM ZOD SCHEMAS
+// ============================================================================
+
+export type SendEmailParams = z.infer<typeof sendEmailSchema>;
+export type SearchMessagesParams = z.infer<typeof searchMessagesSchema>;
+export type GetMessageParams = z.infer<typeof getMessageSchema>;
+export type ListMessagesParams = z.infer<typeof listMessagesSchema>;
+export type CreateDraftParams = z.infer<typeof createDraftSchema>;
+
+// ============================================================================
+// INTEGRATION METADATA
+// ============================================================================
 
 // Define the Gmail integration
 export const gmailIntegration: IntegrationMetadata = {

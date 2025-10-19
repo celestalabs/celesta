@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import type { GmailAuth } from './types.ts';
+import type { GmailAuth } from './gmailIntegration.ts';
 
 export class GmailClient {
   private gmail;

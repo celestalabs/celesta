@@ -1,12 +1,48 @@
 import z from 'zod';
 import type { IntegrationMetadata } from '../integrationMetadata.ts';
-import type { WebSearchAuth } from './types.ts';
 import { searchWeb } from './actions/searchWeb.ts';
 import { findSimilar } from './actions/findSimilar.ts';
 import { getContents } from './actions/getContents.ts';
 import { answerQuestion } from './actions/answerQuestion.ts';
 
-// Define Zod schemas for each action's input
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+// Auth type for Web Search (uses server-side API key)
+export type WebSearchAuth = {
+  access_token: string; // Server-injected Exa API key
+} | null;
+
+// Search result type from Exa
+export interface SearchResult {
+  id: string;
+  url: string;
+  title: string | null;
+  publishedDate?: string;
+  author?: string;
+  text?: string;
+  highlights?: string[];
+  highlightScores?: number[];
+  summary?: string;
+}
+
+// Search response from Exa
+export interface SearchResponse {
+  results: SearchResult[];
+  autopromptString?: string | undefined;
+}
+
+// Answer response
+export interface AnswerResponse {
+  answer: string;
+  citations: SearchResult[];
+  requestId?: string | undefined;
+}
+
+// ============================================================================
+// ZOD SCHEMAS (for API validation and LLM tool definitions)
+// ============================================================================
 const searchWebSchema = z.object({
   query: z.string().describe('The search query'),
   numResults: z.number().optional().describe('Number of results to return (max 100)'),
@@ -16,6 +52,8 @@ const searchWebSchema = z.object({
   excludeDomains: z.array(z.string()).optional().describe('List of domains to exclude'),
   startPublishedDate: z.string().optional().describe('Filter results published after this date (ISO format: YYYY-MM-DD)'),
   endPublishedDate: z.string().optional().describe('Filter results published before this date (ISO format: YYYY-MM-DD)'),
+  includeText: z.array(z.string()).optional().describe('List of strings that must be present in webpage text (currently supports 1 string of up to 5 words)'),
+  excludeText: z.array(z.string()).optional().describe('List of strings that must not be present in webpage text (currently supports 1 string of up to 5 words)'),
   text: z.union([
     z.boolean(),
     z.object({
@@ -67,6 +105,19 @@ const answerQuestionSchema = z.object({
   query: z.string().describe('The question to answer'),
   includeText: z.boolean().optional().describe('Include full text of citation sources'),
 });
+
+// ============================================================================
+// INFERRED TYPES FROM ZOD SCHEMAS
+// ============================================================================
+
+export type SearchWebParams = z.infer<typeof searchWebSchema>;
+export type FindSimilarParams = z.infer<typeof findSimilarSchema>;
+export type GetContentsParams = z.infer<typeof getContentsSchema>;
+export type AnswerQuestionParams = z.infer<typeof answerQuestionSchema>;
+
+// ============================================================================
+// INTEGRATION METADATA
+// ============================================================================
 
 // Define the Web Search integration
 export const webSearchIntegration: IntegrationMetadata = {

@@ -1,5 +1,5 @@
 import { createGmailClient } from '../gmailClient.ts';
-import type { GmailAuth, CreateDraftParams, GmailDraft } from '../types.ts';
+import type { GmailAuth, CreateDraftParams, GmailDraft } from '../gmailIntegration.ts';
 
 export async function createDraft(
   params: CreateDraftParams,

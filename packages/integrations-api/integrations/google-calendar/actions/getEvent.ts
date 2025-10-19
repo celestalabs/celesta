@@ -1,5 +1,5 @@
-import { createCalendarClient } from '../calendarClient.ts';
-import type { CalendarAuth, GetEventParams, CalendarEvent } from '../types.ts';
+import { CalendarClient, createCalendarClient } from '../calendarClient.ts';
+import type { CalendarAuth, GetEventParams, CalendarEvent } from '../calendarIntegration.ts';
 
 export async function getEvent(
   params: GetEventParams,

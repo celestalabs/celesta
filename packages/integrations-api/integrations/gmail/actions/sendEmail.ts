@@ -1,5 +1,5 @@
 import { createGmailClient } from '../gmailClient.ts';
-import type { GmailAuth, SendEmailParams, SendEmailResponse } from '../types.ts';
+import type { GmailAuth, SendEmailParams, SendEmailResponse } from '../gmailIntegration.ts';
 
 export async function sendEmail(
   params: SendEmailParams,

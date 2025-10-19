@@ -1,5 +1,5 @@
 import { Exa } from "exa-js";
-import type { WebSearchAuth } from "./types.ts";
+import type { WebSearchAuth } from "./webSearchIntegration.ts";
 
 export class WebSearchClient {
   private exa: Exa;

@@ -1,9 +1,9 @@
-import { createWebSearchClient } from "../webSearchClient.ts";
+import { createWebSearchClient } from '../webSearchClient.ts';
 import type {
   WebSearchAuth,
   AnswerQuestionParams,
   AnswerResponse,
-} from "../types.ts";
+} from '../webSearchIntegration.ts';
 
 export async function answerQuestion(
   params: AnswerQuestionParams,

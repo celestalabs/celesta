@@ -1,5 +1,5 @@
 import { createWebSearchClient } from '../webSearchClient.ts';
-import type { WebSearchAuth, FindSimilarParams, SearchResponse } from '../types.ts';
+import type { WebSearchAuth, FindSimilarParams, SearchResponse } from '../webSearchIntegration.ts';
 
 export async function findSimilar(
   params: FindSimilarParams,

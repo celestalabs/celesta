@@ -1,5 +1,5 @@
 import { createCalendarClient } from '../calendarClient.ts';
-import type { CalendarAuth, DeleteEventParams } from '../types.ts';
+import type { CalendarAuth, DeleteEventParams } from '../calendarIntegration.ts';
 
 export async function deleteEvent(
   params: DeleteEventParams,

@@ -15,7 +15,8 @@
   "scripts": {
     "dev:extension": "cd packages/extension && npm run dev",
     "dev:integrations-api": "cd packages/integrations-api && npm run dev",
-    "dev": "concurrently \"npm run dev:extension\" \"npm run dev:integrations-api\""
+    "dev:workflow-agents": "cd packages/workflow-agents && npm run dev",
+    "dev": "concurrently \"npm run dev:extension\" \"npm run dev:integrations-api\" \"npm run dev:workflow-agents\""
   },
   "workspaces": [
     "packages/extension",

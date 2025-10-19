@@ -1,6 +1,5 @@
 import z from 'zod';
 import type { IntegrationMetadata } from '../integrationMetadata.ts';
-import type { CalendarAuth } from './types.ts';
 import { createEvent } from './actions/createEvent.ts';
 import { listEvents } from './actions/listEvents.ts';
 import { getEvent } from './actions/getEvent.ts';
@@ -8,18 +7,78 @@ import { updateEvent } from './actions/updateEvent.ts';
 import { deleteEvent } from './actions/deleteEvent.ts';
 import { quickAddEvent } from './actions/quickAddEvent.ts';
 
+// ============================================================================
+// TYPE DEFINITIONS (Manual - for response types that don't have Zod schemas)
+// ============================================================================
+
+export interface CalendarAuth {
+  access_token: string;
+}
+
+export interface EventAttendee {
+  email: string;
+  displayName?: string;
+  optional?: boolean;
+  responseStatus?: 'needsAction' | 'declined' | 'tentative' | 'accepted';
+}
+
+export interface EventDateTime {
+  dateTime?: string; // RFC3339 timestamp
+  date?: string; // Date only (all-day events)
+  timeZone?: string;
+}
+
+export interface EventReminder {
+  method: 'email' | 'popup';
+  minutes: number;
+}
+
+export interface CalendarEvent {
+  id: string;
+  summary: string;
+  description?: string;
+  location?: string;
+  start: EventDateTime;
+  end: EventDateTime;
+  attendees?: EventAttendee[];
+  creator?: {
+    email: string;
+    displayName?: string;
+  };
+  organizer?: {
+    email: string;
+    displayName?: string;
+  };
+  status?: 'confirmed' | 'tentative' | 'cancelled';
+  htmlLink?: string;
+  created?: string;
+  updated?: string;
+  colorId?: string;
+  reminders?: {
+    useDefault: boolean;
+    overrides?: EventReminder[];
+  };
+}
+
+export interface CalendarEventList {
+  items: CalendarEvent[];
+  nextPageToken?: string | undefined;
+  summary: string;
+  timeZone: string;
+}
+
 // Define Zod schemas for each action's input
 const eventDateTimeSchema = z.object({
-  dateTime: z.string().optional().describe('RFC3339 timestamp (e.g., "2024-01-15T10:00:00-07:00")'),
-  date: z.string().optional().describe('Date only for all-day events (e.g., "2024-01-15")'),
-  timeZone: z.string().optional().describe('Time zone (e.g., "America/Los_Angeles")'),
+  dateTime: z.string().nullable().describe('RFC3339 timestamp (e.g., "2024-01-15T10:00:00-07:00")'),
+  date: z.string().nullable().describe('Date only for all-day events (e.g., "2024-01-15")'),
+  timeZone: z.string().nullable().describe('Time zone (e.g., "America/Los_Angeles")'),
 });
 
 const eventAttendeeSchema = z.object({
   email: z.string().describe('Attendee email address'),
-  displayName: z.string().optional().describe('Attendee display name'),
-  optional: z.boolean().optional().describe('Whether attendance is optional'),
-  responseStatus: z.enum(['needsAction', 'declined', 'tentative', 'accepted']).optional(),
+  displayName: z.string().nullable().describe('Attendee display name'),
+  optional: z.boolean().nullable().describe('Whether attendance is optional'),
+  responseStatus: z.enum(['needsAction', 'declined', 'tentative', 'accepted']).nullable(),
 });
 
 const eventReminderSchema = z.object({
@@ -85,6 +144,17 @@ const quickAddEventSchema = z.object({
   text: z.string().describe('Natural language event description (e.g., "Dinner with John tomorrow at 7pm")'),
   calendarId: z.string().optional().describe('Calendar ID (default: "primary")'),
 });
+
+// ============================================================================
+// INFERRED TYPES (from Zod schemas - single source of truth for params)
+// ============================================================================
+
+export type CreateEventParams = z.infer<typeof createEventSchema>;
+export type ListEventsParams = z.infer<typeof listEventsSchema>;
+export type GetEventParams = z.infer<typeof getEventSchema>;
+export type UpdateEventParams = z.infer<typeof updateEventSchema>;
+export type DeleteEventParams = z.infer<typeof deleteEventSchema>;
+export type QuickAddEventParams = z.infer<typeof quickAddEventSchema>;
 
 // Define the Google Calendar integration
 export const calendarIntegration: IntegrationMetadata = {
