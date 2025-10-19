@@ -60,10 +60,11 @@ Execute actions on integrated services (send email, create calendar event, etc.)
 ```
 
 **Supported Integrations**:
-- `gmail` - Email management
-- `google_calendar` - Calendar events
-- `google_drive` - File storage
-- `google_contacts` - Contact management
+- `gmail` - Email management (requires OAuth)
+- `google_calendar` - Calendar events (requires OAuth)
+- `google_drive` - File storage (requires OAuth)
+- `google_contacts` - Contact management (requires OAuth)
+- `web_search` - AI-powered web search (server-side API key)
 
 ---
 

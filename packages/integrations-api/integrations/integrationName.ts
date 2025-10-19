@@ -4,6 +4,7 @@ export enum NonPieceIntegrationName {
   BROWSER_USE = "browser_use",
   GMAIL = "gmail",
   GOOGLE_CALENDAR = "google_calendar",
+  WEB_SEARCH = "web_search",
 }
 
 export type IntegrationName = NonPieceIntegrationName | PieceName;

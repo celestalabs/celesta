@@ -11,8 +11,8 @@ import { readIntegrationMetadata } from "../integrations/integrationMetadata.ts"
  */
 function getServerApiKey(integrationName: IntegrationName): string | null {
   const envKeyMap: Partial<Record<IntegrationName, string>> = {
-    // Add server-authenticated integrations here
-    // Example: 'exa': 'EXA_API_KEY',
+    // Server-authenticated integrations
+    'web_search': 'EXA_API_KEY',
   };
   
   const envKey = envKeyMap[integrationName];

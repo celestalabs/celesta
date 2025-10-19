@@ -5,6 +5,7 @@ import type { SuccessResponse } from "../utils/responseType.ts";
 import { isIntegrationName, NonPieceIntegrationName } from "./integrationName.ts";
 import { gmailIntegration } from "./gmail/gmailIntegration.ts";
 import { calendarIntegration } from "./google-calendar/calendarIntegration.ts";
+import { webSearchIntegration } from "./web-search/webSearchIntegration.ts";
 
 export type IntegrationMetadata = {
   name: string;
@@ -45,6 +46,7 @@ const nonPieceIntegrationMetadata: Record<
   },
   [NonPieceIntegrationName.GMAIL]: gmailIntegration,
   [NonPieceIntegrationName.GOOGLE_CALENDAR]: calendarIntegration,
+  [NonPieceIntegrationName.WEB_SEARCH]: webSearchIntegration,
 };
 
 export function readIntegrationMetadata(

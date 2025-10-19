@@ -1,5 +1,6 @@
 import { executeGmailAction } from './gmail/gmailIntegration.ts';
 import { executeCalendarAction } from './google-calendar/calendarIntegration.ts';
+import { executeWebSearchAction } from './web-search/webSearchIntegration.ts';
 import { NonPieceIntegrationName } from './integrationName.ts';
 
 export async function executeCustomIntegration(
@@ -24,6 +25,10 @@ export async function executeCustomIntegration(
           return { success: false, error: 'Google Calendar requires authentication' };
         }
         result = await executeCalendarAction(actionName, props, auth);
+        break;
+      
+      case NonPieceIntegrationName.WEB_SEARCH:
+        result = await executeWebSearchAction(actionName, props, auth);
         break;
       
       case NonPieceIntegrationName.BROWSER_USE:
