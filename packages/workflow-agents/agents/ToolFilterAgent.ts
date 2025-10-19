@@ -73,16 +73,28 @@ Task Goal: ${task.goal}
 Available Tools:
 ${availableToolDescriptions}${previousTasksContext}
 
-AUTONOMY PRINCIPLES:
+TOOL SELECTION STRATEGY:
+
+For READ OPERATIONS (comprehensive and autonomous):
 - Select tools that enable COMPREHENSIVE data gathering
-- When multiple sources might be relevant (e.g., multiple calendars, email folders), select tools to check ALL of them
+- When multiple sources might be relevant, select tools to check ALL of them
 - Default to gathering MORE rather than LESS information
-- Make reasonable assumptions about what the user wants
 - Examples:
   * "upcoming events" → select tools for ALL calendar sources
   * "recent activity" → select tools for ALL relevant activity streams
   * "my contacts" → select tools to get complete contact information
-- DO NOT select tools that would require asking clarifying questions
+
+For WRITE OPERATIONS (ask when unclear):
+- If critical information is missing (e.g., email recipient, event details), SELECT the askQuestion tool
+- Examples:
+  * "send to my colleague" but recipient unclear → SELECT askQuestion
+  * "create event" but date/time ambiguous → SELECT askQuestion
+  * Clear instructions → proceed without asking
+
+SPECIAL TOOL: askQuestion
+- ALWAYS available as a system tool
+- Use when the task requires clarification before risky operations
+- Do NOT use for read operations or when information can be reasonably inferred
 
 TOOL SELECTION PRIORITY:
 - PREFER specialized tools (web_search, gmail, google_calendar, etc.) over browser_use when possible
@@ -108,6 +120,13 @@ If no tools are needed, select an empty array.`,
       // Filter the tool registry to only include selected tools
       const selectedTools: ToolSet = {};
 
+      // Always include system tools (they're always available)
+      for (const [toolId, tool] of Object.entries(allTools)) {
+        if (toolId.startsWith("system__")) {
+          selectedTools[toolId] = tool;
+        }
+      }
+
       for (const selection of object.selectedTools) {
         const toolId = selection.toolId;
         if (allTools[toolId]) {
@@ -119,7 +138,8 @@ If no tools are needed, select an empty array.`,
       }
 
       const toolCount = Object.keys(selectedTools).length;
-      this.sendStatus(`Selected ${toolCount} tool(s) for task execution`);
+      const systemToolCount = Object.keys(selectedTools).filter(id => id.startsWith("system__")).length;
+      this.sendStatus(`Selected ${toolCount} tool(s) for task execution (${systemToolCount} system tools always included)`);
 
       return selectedTools;
     } catch (error) {

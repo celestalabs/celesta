@@ -12,16 +12,75 @@ export interface ToolMetadata {
 }
 
 /**
+ * Higher-order function that wraps a tool execution function with logging.
+ * Automatically sends tool invocation and result messages to the UI.
+ */
+function wrapToolWithLogging<TParams = any, TResult = any>(
+  toolName: string,
+  executeFn: (params: TParams) => Promise<TResult>,
+  messagePipe: IMessagePipe
+): (params: TParams) => Promise<TResult> {
+  return async (params: TParams): Promise<TResult> => {
+    // Generate unique tool call ID
+    const toolCallId = `tool_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+    // Send tool invocation message BEFORE execution
+    messagePipe.sendToolInvocation(
+      toolCallId,
+      toolName,
+      params,
+      "ExecutionAgent"
+    );
+
+    try {
+      // Execute the tool
+      const result = await executeFn(params);
+
+      // Send tool result message AFTER execution
+      messagePipe.sendToolResult(
+        toolCallId,
+        toolName,
+        result,
+        "ExecutionAgent"
+      );
+
+      return result;
+    } catch (error) {
+      // Handle errors and send error result
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorResult = {
+        error: true,
+        message: `Tool execution error: ${errorMsg}`,
+      } as TResult;
+
+      // Send error result
+      messagePipe.sendToolResult(
+        toolCallId,
+        toolName,
+        errorResult,
+        "ExecutionAgent"
+      );
+
+      return errorResult;
+    }
+  };
+}
+
+/**
  * Loads tools dynamically from the integrations API and converts them
  * to AI SDK compatible tools that execute via the API client.
  */
 export async function loadToolsFromAPI(
   apiBaseUrl: string,
-  messagePipe: IMessagePipe
+  messagePipe: IMessagePipe,
+  executionContext?: any
 ): Promise<{
   tools: ToolSet;
   metadata: ToolMetadata[];
-  integrationMetadata: Record<IntegrationName, Omit<IntegrationMetadata, "actions">>;
+  integrationMetadata: Record<
+    IntegrationName,
+    Omit<IntegrationMetadata, "actions">
+  >;
 }> {
   const apiClient = createIntegrationApiClient(apiBaseUrl);
   const tools: ToolSet = {};
@@ -64,22 +123,12 @@ export async function loadToolsFromAPI(
         tools[toolName] = tool({
           description: `${integration.name}: ${action.description}`,
           inputSchema: jsonSchema(action.props),
-          async execute(params) {
-            // Generate unique tool call ID
-            const toolCallId = `tool_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-            
-            // Send tool invocation message BEFORE execution
-            messagePipe.sendToolInvocation(
-              toolCallId,
-              toolName,
-              params,
-              'ExecutionAgent'
-            );
-
-            try {
+          execute: wrapToolWithLogging(
+            toolName,
+            async (params) => {
               // Only request credentials if integration requires user auth
               let auth: { access_token: string } | undefined;
-              
+
               if (integration.requiresUserAuth) {
                 const accessToken = await messagePipe.requestCredentials(
                   integrationName as IntegrationName
@@ -97,47 +146,108 @@ export async function loadToolsFromAPI(
                 },
               });
 
-              let finalResult;
               if (result.success) {
-                finalResult = result.result;
+                return result.result;
               } else {
-                finalResult = {
+                return {
                   error: true,
                   message: `Integration execution failed: ${result.error}`,
                   code: result.code,
                 };
               }
-
-              // Send tool result message AFTER execution
-              messagePipe.sendToolResult(
-                toolCallId,
-                toolName,
-                finalResult,
-                'ExecutionAgent'
-              );
-
-              return finalResult;
-            } catch (error) {
-              const errorMsg =
-                error instanceof Error ? error.message : String(error);
-              const errorResult = {
-                error: true,
-                message: `Tool execution error: ${errorMsg}`,
-              };
-
-              // Send error result
-              messagePipe.sendToolResult(
-                toolCallId,
-                toolName,
-                errorResult,
-                'ExecutionAgent'
-              );
-
-              return errorResult;
-            }
-          },
+            },
+            messagePipe
+          ),
         });
       }
+    }
+
+    // Add system tool: askQuestion
+    // This allows agents to ask clarifying questions when needed
+    tools["system__askQuestion"] = tool({
+      description:
+        "Ask the user a clarifying question and wait for their response. Use this when you need critical information that cannot be reasonably assumed, especially before performing risky operations like sending emails or creating calendar events.",
+      inputSchema: jsonSchema({
+        type: "object",
+        properties: {
+          question: {
+            type: "string",
+            description:
+              "The question to ask the user. Be specific and clear about what information you need and why.",
+          },
+        },
+        required: ["question"],
+      }),
+      execute: wrapToolWithLogging(
+        "system__askQuestion",
+        async (params: { question: string }) => {
+          const answer = await messagePipe.ask(
+            params.question,
+            "ExecutionAgent"
+          );
+          return {
+            success: true,
+            answer,
+          };
+        },
+        messagePipe
+      ),
+    });
+
+    // Add metadata for askQuestion tool
+    metadata.push({
+      integrationName: "system" as IntegrationName,
+      actionName: "askQuestion",
+      description:
+        "Ask the user a clarifying question when critical information is needed",
+      displayName: "System - Ask Question",
+    });
+
+    // Add system tool: getTaskData
+    // Allows agents to retrieve data from completed tasks
+    if (executionContext) {
+      tools["system__getTaskData"] = tool({
+        description:
+          "Retrieve stored data from a completed task using its task slug or ID. Use this to access data collected in previous tasks (e.g., emails, calendar events, etc.).",
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            taskIdentifier: {
+              type: "string",
+              description:
+                "The task slug (e.g., 'email-query-1') or task ID to retrieve data from",
+            },
+          },
+          required: ["taskIdentifier"],
+        }),
+        execute: wrapToolWithLogging(
+          "system__getTaskData",
+          async (params: { taskIdentifier: string }) => {
+            const data = executionContext
+              .getDataRegistry()
+              .get(params.taskIdentifier);
+            if (!data) {
+              return {
+                success: false,
+                error: `No data found for task: ${params.taskIdentifier}`,
+              };
+            }
+            return {
+              success: true,
+              data,
+            };
+          },
+          messagePipe
+        ),
+      });
+
+      // Add metadata for getTaskData tool
+      metadata.push({
+        integrationName: "system" as IntegrationName,
+        actionName: "getTaskData",
+        description: "Retrieve data from a completed task by its slug or ID",
+        displayName: "System - Get Task Data",
+      });
     }
 
     return { tools, metadata, integrationMetadata };

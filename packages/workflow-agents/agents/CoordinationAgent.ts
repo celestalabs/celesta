@@ -13,6 +13,11 @@ const NextTaskSchema = z.object({
     .describe("Reasoning for the decision to continue or stop"),
   task: z
     .object({
+      slug: z
+        .string()
+        .describe(
+          "Short semantic identifier for this task (e.g., 'email-query-1', 'calendar-check-1'). Use lowercase with hyphens."
+        ),
       description: z.string().describe("Clear description of the task"),
       goal: z.string().describe("What this task aims to achieve"),
     })
@@ -65,17 +70,26 @@ Your job is to:
 4. If yes, define the next specific task to execute
 5. If no, signal that execution should complete
 
-AUTONOMY PRINCIPLES:
-- ALWAYS make reasonable assumptions to provide comprehensive results
-- When a request is ambiguous, default to the MOST COMPLETE and USEFUL interpretation
-- Examples of autonomous behavior:
-  * "what's upcoming" → check ALL calendars, not just one
-  * "check emails" → check all recent emails, not ask which folder
-  * "my schedule" → gather complete schedule information across all sources
-  * "send message" → use the most appropriate channel based on context
-- DO NOT create tasks that ask clarifying questions unless absolutely critical
-- Prefer gathering ALL relevant data over asking which subset to gather
-- Be proactive and comprehensive rather than cautious and minimal
+WHEN TO ASK CLARIFYING QUESTIONS:
+Ask questions for RISKY WRITE OPERATIONS when critical information is missing:
+- Sending emails: Ask for recipient if unclear ("my colleague" → ask which one)
+- Creating/modifying calendar events: Ask for details if ambiguous
+- Deleting or modifying data: Confirm if there's risk of data loss
+- Financial transactions or important decisions: Clarify before acting
+- Any operation that cannot be easily undone
+
+When to mention doubts related to the task:
+- If the user says "send to my colleague" but you don't know who → create a clarification task
+- If creating an event without clear date/time → identify the ambiguity
+- If modifying data and the target is unclear → note what needs clarification
+
+BE AUTONOMOUS FOR SAFE READ OPERATIONS:
+- Reading calendars: Check ALL calendars without asking
+- Reading emails: Retrieve comprehensive data without asking which folder
+- Searching information: Gather complete results
+- Listing/viewing data: Default to comprehensive rather than minimal
+
+General principle: "Ask before writing/modifying, be autonomous when reading"
 
 IMPORTANT RULES:
 - DO NOT create tasks to retrieve information that has already been collected
@@ -112,6 +126,7 @@ If all necessary tasks have been completed (both data collection AND final synth
       // Create a new task
       const task: Task = {
         id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        slug: object.task.slug,
         description: object.task.description,
         goal: object.task.goal,
         status: "pending",
@@ -119,7 +134,7 @@ If all necessary tasks have been completed (both data collection AND final synth
       };
 
       this.executionContext.addTask(task);
-      this.sendStatus(`Next task created: ${task.description}`);
+      this.sendStatus(`Next task created: ${task.slug} - ${task.description}`);
 
       return task;
     } catch (error) {

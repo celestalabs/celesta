@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { ConnectionStatus } from "../../shared/components/ConnectionStatus";
+import { CredentialRequest } from "../../shared/components/CredentialRequest";
 import { LoadingScreen } from "../../shared/components/LoadingScreen";
 import { MessagePanel } from "../../shared/components/MessagePanel";
 import { QuestionPrompt } from "../../shared/components/QuestionPrompt";
@@ -50,7 +51,17 @@ const App = React.memo(function AppFn() {
           onSubmit={workflowState.submitAnswer}
         />
       )}
-      <WorkflowInput onExecute={workflowState.executeWorkflow} />
+      {workflowState.pendingCredentialRequest && (
+        <CredentialRequest
+          request={workflowState.pendingCredentialRequest}
+          onApprove={workflowState.approveCredentials}
+          onReject={workflowState.rejectCredentials}
+        />
+      )}
+      <WorkflowInput
+        onExecute={workflowState.executeWorkflow}
+        disabled={workflowState.isExecuting && !workflowState.pendingQuestion}
+      />
     </div>
   );
 });

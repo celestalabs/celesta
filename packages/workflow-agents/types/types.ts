@@ -4,6 +4,7 @@ export type ExecutionStatus = "running" | "completed" | "failed";
 
 export interface Task {
   id: string;
+  slug?: string; // Human-readable identifier like "email-query-1"
   description: string;
   goal: string;
   status: "pending" | "in-progress" | "completed" | "failed";

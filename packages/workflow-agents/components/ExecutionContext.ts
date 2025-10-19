@@ -4,6 +4,7 @@ import { Task, TaskResult, ExecutionStatus } from "../types/types.js";
 import type { ToolMetadata } from "./dynamicTools.js";
 import type { IntegrationMetadata } from "@celesta/integrations-api/integrations/integrationMetadata.js";
 import type { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
+import { DataRegistry } from "./DataRegistry.js";
 
 interface ExecutionContextConfig {
   prompt: string;
@@ -26,6 +27,7 @@ export class ExecutionContext {
   private messagePipe: IMessagePipe;
   private tasks: Map<string, Task>;
   private results: Map<string, TaskResult>;
+  private dataRegistry: DataRegistry;
   private status: ExecutionStatus;
   private startTime: Date;
   private endTime?: Date;
@@ -41,6 +43,7 @@ export class ExecutionContext {
     this.messagePipe = config.messagePipe;
     this.tasks = new Map();
     this.results = new Map();
+    this.dataRegistry = new DataRegistry();
     this.status = "running";
     this.startTime = new Date();
     this.tools = config.tools;
@@ -70,6 +73,10 @@ export class ExecutionContext {
     Omit<IntegrationMetadata, "actions">
   > {
     return this.integrationMetadata;
+  }
+
+  getDataRegistry(): DataRegistry {
+    return this.dataRegistry;
   }
 
   getCompletionStatus(): ExecutionStatus {
@@ -136,17 +143,22 @@ export class ExecutionContext {
     }
     summary += `\n\n`;
 
+    // Show available task data
+    const dataSummary = this.dataRegistry.getSummary();
+    if (dataSummary !== "No task data stored yet.") {
+      summary += `Available Task Data:\n${dataSummary}\n\n`;
+    }
+
     if (this.results.size > 0) {
       summary += `Completed Tasks and Their Results:\n`;
       const allTaskData = this.getAllTaskData();
       allTaskData.forEach((taskData, index) => {
-        summary += `${index + 1}. Task: ${taskData.taskDescription}\n`;
+        const task = this.getTask(this.getResults()[index].taskId);
+        const taskLabel = task?.slug || task?.id || "Unknown";
+        summary += `${index + 1}. [${taskLabel}] ${taskData.taskDescription}\n`;
         summary += `   Goal: ${taskData.taskGoal}\n`;
         if (taskData.output) {
           summary += `   Output: ${taskData.output}\n`;
-        }
-        if (taskData.data && taskData.data.toolResults) {
-          summary += `   Data Retrieved: Available\n`;
         }
         summary += `\n`;
       });

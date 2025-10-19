@@ -51,7 +51,12 @@ export class ExecutionAgent extends BaseAgent {
 
       // Use streamText for multi-step agentic behavior
       const now = new Date();
-      const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const dateString = now.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
 
       const streamResult = streamText({
         model: this.model,
@@ -73,17 +78,26 @@ Goal: ${task.goal}${contextSection}
 
 You have access to various tools to help complete this task.
 
-AUTONOMY PRINCIPLES:
-- Make intelligent assumptions to provide the MOST USEFUL and COMPLETE results
-- When scope is unclear, default to being COMPREHENSIVE rather than minimal
-- Examples of autonomous behavior:
+DECISION FRAMEWORK FOR CLARIFYING QUESTIONS:
+
+ASK QUESTIONS (using askQuestion tool) when:
+- Performing WRITE operations with missing critical information:
+  * Sending emails and recipient is unclear ("my colleague", "my boss")
+  * Creating/modifying calendar events with ambiguous details
+  * Deleting or modifying data where the target is unclear
+  * Any irreversible action that could cause problems if done incorrectly
+- The task is genuinely ambiguous and assumptions could lead to wrong results
+
+BE AUTONOMOUS (no questions) when:
+- Performing READ operations:
   * Checking calendars → check ALL available calendars
-  * Getting emails → retrieve sufficient emails to provide meaningful insights (e.g., last 20-50)
+  * Getting emails → retrieve sufficient emails (e.g., last 20-50)
   * Finding contacts → search across all available sources
   * Gathering information → collect complete, actionable data sets
-- DO NOT ask clarifying questions - make reasonable assumptions instead
-- Call tools with parameters that maximize utility (e.g., reasonable page sizes, comprehensive queries)
-- If multiple related items exist, retrieve all of them unless it would be excessive (100+ items)
+- Information can be reasonably inferred from context
+- The operation is safe and can be easily corrected
+
+General principle: "Better to ask one question than to send the wrong email"
 
 CRITICAL WORKFLOW:
 1. First, check if previous tasks already collected the information you need
@@ -126,21 +140,23 @@ MANDATORY: You MUST generate a detailed text response explaining your findings. 
         }
       });
 
-      // Fallback: if text is empty but we have tool results, generate a summary
-      let outputText = fullText;
-      if (
-        (!fullText || fullText.trim() === "") &&
-        toolResults &&
-        toolResults.length > 0
-      ) {
-        this.sendInfo(
-          "Model didn't generate text output, creating summary from tool results"
-        );
+      // Build output text that includes both LLM response and tool results
+      let outputText = fullText || "";
 
-        outputText = `Task completed. Retrieved data using ${toolResults.length} tool(s):\n`;
+      // Always append tool results if any tools were called
+      if (toolResults && toolResults.length > 0) {
+        if (outputText && outputText.trim()) {
+          outputText += "\n\n---\n\n**Tool Results:**\n";
+        } else {
+          this.sendInfo(
+            "Model didn't generate text output, creating summary from tool results"
+          );
+          outputText = `Task completed. Retrieved data using ${toolResults.length} tool(s):\n\n`;
+        }
+
         toolResults.forEach((tr: any) => {
           if ("result" in tr) {
-            outputText += `\n${tr.toolName}: ${JSON.stringify(tr.result, null, 2)}`;
+            outputText += `\n**${tr.toolName}:**\n\`\`\`json\n${JSON.stringify(tr.result, null, 2)}\n\`\`\`\n`;
           }
         });
       }
@@ -163,10 +179,24 @@ MANDATORY: You MUST generate a detailed text response explaining your findings. 
         completedAt: new Date(),
       };
 
+      // Store tool results in DataRegistry for cross-task access
+      if (Object.keys(rawToolData).length > 0) {
+        this.executionContext.getDataRegistry().store(
+          task.id,
+          rawToolData,
+          task.slug
+        );
+        this.sendInfo(
+          `Stored task data in registry: ${task.slug || task.id}`
+        );
+      }
+
       // Update execution context
       this.executionContext.updateWithResult(task, taskResult);
 
-      this.sendStatus(`Task completed: ${task.description}.\n${taskResult.output}`);
+      this.sendStatus(
+        `Task completed: ${task.description}.\n${taskResult.output}`
+      );
 
       return taskResult;
     } catch (error) {

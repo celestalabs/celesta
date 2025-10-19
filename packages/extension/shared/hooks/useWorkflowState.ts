@@ -14,69 +14,106 @@ export function useWorkflowState({
     id: string;
     content: string;
   } | null>(null);
+  const [pendingCredentialRequest, setPendingCredentialRequest] = useState<{
+    id: string;
+    integrationName: string;
+  } | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
   const [sendMessageFn, setSendMessageFn] = useState<
     ((message: object) => void) | undefined
   >();
 
-  const handleIncomingMessage = useCallback(
-    async (message: WSMessage) => {
-      // Create base display message
-      const baseMsg = {
-        id: message.id || `msg_${Date.now()}`,
-        type: message.type,
-        content: message.content,
-        sender: message.sender,
-        timestamp: new Date(message.timestamp || Date.now()),
+  const handleIncomingMessage = useCallback(async (message: WSMessage) => {
+    // Create base display message
+    const baseMsg = {
+      id: message.id || `msg_${Date.now()}`,
+      type: message.type,
+      content: message.content,
+      sender: message.sender,
+      timestamp: new Date(message.timestamp || Date.now()),
+    };
+
+    // Add type-specific fields based on message type
+    let displayMsg: DisplayMessage;
+
+    if (message.type === "tool_invocation") {
+      displayMsg = {
+        ...baseMsg,
+        toolCallId: message.toolCallId,
+        toolName: message.toolName,
+        toolArgs: message.toolArgs,
       };
+    } else if (message.type === "tool_result") {
+      displayMsg = {
+        ...baseMsg,
+        toolCallId: message.toolCallId,
+        toolName: message.toolName,
+        toolResult: message.toolResult,
+      };
+    } else {
+      displayMsg = baseMsg;
+    }
 
-      // Add type-specific fields based on message type
-      let displayMsg: DisplayMessage;
+    setMessages((prev) => [...prev, displayMsg]);
 
-      if (message.type === "tool_invocation") {
-        displayMsg = {
-          ...baseMsg,
-          toolCallId: message.toolCallId,
-          toolName: message.toolName,
-          toolArgs: message.toolArgs,
+    // Handle specific message types
+    if (message.type === "question" && message.id) {
+      setPendingQuestion({ id: message.id, content: message.content });
+    } else if (message.type === "request_credentials") {
+      // Don't auto-trigger OAuth - store as pending request
+      setPendingCredentialRequest({
+        id: message.id,
+        integrationName: message.integrationName,
+      });
+    } else if (message.type === "final") {
+      // Workflow finished
+      setIsExecuting(false);
+    }
+  }, []);
+
+  const approveCredentials = useCallback(
+    async (id: string, integrationName: string) => {
+      if (!onRequestCredentials || !sendMessageFn) return;
+
+      // Trigger OAuth flow
+      const accessToken = await onRequestCredentials(integrationName);
+
+      if (accessToken) {
+        // Send credentials back
+        const response = {
+          id,
+          type: "provide_credentials",
+          integrationName,
+          accessToken,
+          timestamp: new Date().toISOString(),
         };
-      } else if (message.type === "tool_result") {
-        displayMsg = {
-          ...baseMsg,
-          toolCallId: message.toolCallId,
-          toolName: message.toolName,
-          toolResult: message.toolResult,
-        };
-      } else {
-        displayMsg = baseMsg;
+        sendMessageFn(response);
       }
 
-      setMessages((prev) => [...prev, displayMsg]);
-
-      // Handle specific message types
-      if (message.type === "question" && message.id) {
-        setPendingQuestion({ id: message.id, content: message.content });
-      } else if (message.type === "request_credentials") {
-        if (onRequestCredentials && sendMessageFn) {
-          // Trigger OAuth flow
-          const accessToken = await onRequestCredentials(
-            message.integrationName
-          );
-
-          if (accessToken) {
-            // Send credentials back
-            const response = {
-              id: message.id,
-              type: "provide_credentials",
-              integrationName: message.integrationName,
-              accessToken,
-              timestamp: new Date().toISOString(),
-            };
-            sendMessageFn(response);
-          }
-        }
-      }
+      // Clear pending request
+      setPendingCredentialRequest(null);
     },
     [onRequestCredentials, sendMessageFn]
+  );
+
+  const rejectCredentials = useCallback(
+    (id: string, integrationName: string) => {
+      if (!sendMessageFn) return;
+
+      // Send error response
+      const response = {
+        id,
+        type: "provide_credentials",
+        integrationName,
+        accessToken: "", // Empty token signals rejection
+        timestamp: new Date().toISOString(),
+      };
+      sendMessageFn(response);
+
+      // Clear pending request
+      setPendingCredentialRequest(null);
+    },
+    [sendMessageFn]
   );
 
   const submitAnswer = useCallback(
@@ -99,6 +136,8 @@ export function useWorkflowState({
     (prompt: string) => {
       if (!sendMessageFn) return;
 
+      setIsExecuting(true); // Start executing
+
       const message = {
         type: "execute_workflow",
         prompt,
@@ -112,8 +151,12 @@ export function useWorkflowState({
   return {
     messages,
     pendingQuestion,
+    pendingCredentialRequest,
+    isExecuting,
     handleIncomingMessage,
     submitAnswer,
+    approveCredentials,
+    rejectCredentials,
     executeWorkflow,
     setSendMessage: setSendMessageFn,
   };

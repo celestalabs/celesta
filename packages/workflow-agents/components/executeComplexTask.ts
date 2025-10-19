@@ -23,10 +23,25 @@ export async function executeComplexTask(
 ) {
   messagePipe.send("status", "Loading tools from integrations API...", "System");
 
+  // Create execution context first (needed for system tools)
+  const executionContext = new ExecutionContext({
+    prompt,
+    messagePipe,
+    tools: {}, // Will be updated after loading
+    toolMetadata: [],
+    integrationMetadata: {} as any,
+  });
+
   // Load tools dynamically from the integrations API
   let toolsData;
   try {
-    toolsData = await loadToolsFromAPI(apiBaseUrl, messagePipe);
+    toolsData = await loadToolsFromAPI(apiBaseUrl, messagePipe, executionContext);
+    
+    // Update execution context with loaded tools
+    (executionContext as any).tools = toolsData.tools;
+    (executionContext as any).toolMetadata = toolsData.metadata;
+    (executionContext as any).integrationMetadata = toolsData.integrationMetadata;
+    
     messagePipe.send(
       "info",
       `Loaded ${Object.keys(toolsData.tools).length} tools from ${toolsData.metadata.length} actions`,
@@ -37,14 +52,6 @@ export async function executeComplexTask(
     messagePipe.send("error", `Failed to load tools: ${errorMsg}`, "System");
     throw error;
   }
-
-  const executionContext = new ExecutionContext({
-    prompt,
-    messagePipe,
-    tools: toolsData.tools,
-    toolMetadata: toolsData.metadata,
-    integrationMetadata: toolsData.integrationMetadata,
-  });
 
   const coordinationAgent = new CoordinationAgent({ executionContext });
   const toolFilterAgent = new ToolFilterAgent({ executionContext });
