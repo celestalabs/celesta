@@ -1,0 +1,36 @@
+/* Markdown content styling */
+.markdown-content {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.markdown-content > *:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-content > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Ensure code blocks scroll horizontally if needed */
+.markdown-content pre {
+  max-width: 100%;
+  white-space: pre;
+}
+
+/* Style horizontal rules */
+.markdown-content hr {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 16px 0;
+}
+
+/* Task list styling */
+.markdown-content input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+/* Strikethrough text */
+.markdown-content del {
+  color: #9ca3af;
+}
