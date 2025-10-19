@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import * as readline from "readline";
 import { ConsoleMessagePipe } from "./io/ConsoleMessagePipe.js";
-import { executeComplexTask } from "./components/executor.js";
+import { executeComplexTask } from "./components/executeComplexTask.js";
 
 /**
  * Get initial prompt from user
