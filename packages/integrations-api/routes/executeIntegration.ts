@@ -1,9 +1,23 @@
 import { isPieceName } from "../pieces/pieceName.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/wrappedRouter.ts";
-import { isIntegrationName, isNonPieceIntegrationName } from "../integrations/integrationName.ts";
+import { isIntegrationName, isNonPieceIntegrationName, type IntegrationName } from "../integrations/integrationName.ts";
 import { executePieceAction } from "../pieces/executePieceAction.ts";
 import { executeCustomIntegration } from "../integrations/executeCustomIntegration.ts";
+import { readIntegrationMetadata } from "../integrations/integrationMetadata.ts";
+
+/**
+ * Get server-side API key for integrations that don't require user auth
+ */
+function getServerApiKey(integrationName: IntegrationName): string | null {
+  const envKeyMap: Partial<Record<IntegrationName, string>> = {
+    // Add server-authenticated integrations here
+    // Example: 'exa': 'EXA_API_KEY',
+  };
+  
+  const envKey = envKeyMap[integrationName];
+  return envKey ? (process.env[envKey] || null) : null;
+}
 
 export type ExecuteIntegrationHandler = TypedFetcher<
   /* Response */ {
@@ -15,8 +29,7 @@ export type ExecuteIntegrationHandler = TypedFetcher<
     integrationName: string;
     actionName: string;
     props: object;
-    // For simplicity, we only support OAuth2 for now.
-    auth: { access_token: string };
+    auth?: { access_token: string }; // Now optional
   }
 >;
 
@@ -25,11 +38,11 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
 }) => {
   const { integrationName, actionName, props, auth } = body;
 
+  // Basic validation
   if (
     !isIntegrationName(integrationName) ||
     typeof actionName !== "string" ||
-    typeof props !== "object" ||
-    !isOAuth2PropertyValue(auth)
+    typeof props !== "object"
   ) {
     return {
       success: false,
@@ -38,12 +51,53 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
     };
   }
 
+  // Get integration metadata to check auth requirements
+  const metadataResult = readIntegrationMetadata(integrationName);
+  if (!metadataResult.success) {
+    return {
+      success: false,
+      code: 400,
+      error: "Integration not found",
+    };
+  }
+
+  // Handle authentication based on integration requirements
+  let finalAuth: { access_token: string } | null = null;
+
+  if (metadataResult.requiresUserAuth) {
+    // User auth required - must be provided by client
+    if (!auth || !isOAuth2PropertyValue(auth)) {
+      return {
+        success: false,
+        code: 401,
+        error: "Authentication required for this integration",
+      };
+    }
+    finalAuth = auth;
+  } else {
+    // No user auth required - try to get server credentials if needed
+    const serverKey = getServerApiKey(integrationName);
+    if (serverKey) {
+      finalAuth = { access_token: serverKey };
+    }
+    // If no server key, finalAuth stays null (some integrations need no auth at all)
+  }
+
   if (isPieceName(integrationName)) {
+    // Pieces require auth, finalAuth is guaranteed to be non-null here
+    if (!finalAuth) {
+      return {
+        success: false,
+        code: 500,
+        error: "Server configuration error: missing credentials",
+      };
+    }
+    
     const response = await executePieceAction(
       integrationName,
       actionName,
       props,
-      auth
+      finalAuth
     );
 
     return response.success
@@ -56,7 +110,7 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
       integrationName,
       actionName,
       props,
-      auth
+      finalAuth
     );
 
     return response.success

@@ -6,17 +6,23 @@ export async function executeCustomIntegration(
   integrationName: NonPieceIntegrationName,
   actionName: string,
   props: object,
-  auth: { access_token: string }
+  auth: { access_token: string } | null
 ): Promise<{ success: true; data: any } | { success: false; error: string }> {
   try {
     let result: any;
 
     switch (integrationName) {
       case NonPieceIntegrationName.GMAIL:
+        if (!auth) {
+          return { success: false, error: 'Gmail requires authentication' };
+        }
         result = await executeGmailAction(actionName, props, auth);
         break;
       
       case NonPieceIntegrationName.GOOGLE_CALENDAR:
+        if (!auth) {
+          return { success: false, error: 'Google Calendar requires authentication' };
+        }
         result = await executeCalendarAction(actionName, props, auth);
         break;
       

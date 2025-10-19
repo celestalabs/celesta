@@ -10,6 +10,7 @@ export type IntegrationMetadata = {
   name: string;
   description: string;
   logoUrl: string | null;
+  requiresUserAuth: boolean;
   actions: { name: string; description: string; props: ZodObject }[];
 };
 
@@ -21,6 +22,7 @@ const nonPieceIntegrationMetadata: Record<
     name: "Browser Use Agent",
     description: "Interact directly with the user's browser.",
     logoUrl: null,
+    requiresUserAuth: false,
     actions: [
       {
         name: "goalOrientedBrowsing",
@@ -145,6 +147,7 @@ export function readIntegrationMetadata(
       name,
       description,
       logoUrl,
+      requiresUserAuth: true, // Activepieces integrations require OAuth
       actions: actionData,
     };
   }

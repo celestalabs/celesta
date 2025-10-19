@@ -46,6 +46,7 @@ export async function loadToolsFromAPI(
         name: integration.name,
         description: integration.description,
         logoUrl: integration.logoUrl,
+        requiresUserAuth: integration.requiresUserAuth,
       };
 
       for (const action of integration.actions) {
@@ -65,10 +66,15 @@ export async function loadToolsFromAPI(
           inputSchema: jsonSchema(action.props),
           async execute(params) {
             try {
-              // Request credentials for this integration
-              const accessToken = await messagePipe.requestCredentials(
-                integrationName as IntegrationName
-              );
+              // Only request credentials if integration requires user auth
+              let auth: { access_token: string } | undefined;
+              
+              if (integration.requiresUserAuth) {
+                const accessToken = await messagePipe.requestCredentials(
+                  integrationName as IntegrationName
+                );
+                auth = { access_token: accessToken };
+              }
 
               // Execute the integration action
               const result = await apiClient.executeIntegration({
@@ -76,7 +82,7 @@ export async function loadToolsFromAPI(
                   integrationName: integrationName as IntegrationName,
                   actionName: action.name,
                   props: params,
-                  auth: { access_token: accessToken },
+                  ...(auth && { auth }),
                 },
               });
 

@@ -91,6 +91,7 @@ export const calendarIntegration: IntegrationMetadata = {
   name: 'Google Calendar',
   description: 'Manage calendar events and schedules',
   logoUrl: 'https://www.google.com/calendar/about/images/calendar-icon.png',
+  requiresUserAuth: true,
   actions: [
     {
       name: 'create_event',

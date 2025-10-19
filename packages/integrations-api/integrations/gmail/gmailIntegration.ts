@@ -51,6 +51,7 @@ export const gmailIntegration: IntegrationMetadata = {
   name: 'Gmail',
   description: 'Send and manage emails using Gmail',
   logoUrl: 'https://www.google.com/gmail/about/static/images/logo-gmail.png',
+  requiresUserAuth: true,
   actions: [
     {
       name: 'send_email',
