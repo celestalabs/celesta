@@ -1,14 +1,14 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { ConnectionStatus } from "../../shared/components/ConnectionStatus";
-import { CredentialRequest } from "../../shared/components/CredentialRequest";
-import { LoadingScreen } from "../../shared/components/LoadingScreen";
-import { MessagePanel } from "../../shared/components/MessagePanel";
-import { QuestionPrompt } from "../../shared/components/QuestionPrompt";
-import { WorkflowInput } from "../../shared/components/WorkflowInput";
-import { useOAuth } from "../../shared/hooks/useOAuth";
-import { useWebSocket } from "../../shared/hooks/useWebSocket";
-import { useWorkflowState } from "../../shared/hooks/useWorkflowState";
+import { ConnectionStatus } from "./components/ConnectionStatus";
+import { CredentialRequest } from "./components/CredentialRequest";
+import { LoadingScreen } from "./components/LoadingScreen";
+import { MessagePanel } from "./components/MessagePanel";
+import { QuestionPrompt } from "./components/QuestionPrompt";
+import { WorkflowInput } from "./components/WorkflowInput";
+import { useOAuth } from "./hooks/useOAuth";
+import { useWebSocket } from "./hooks/useWebSocket";
+import { useWorkflowState } from "./hooks/useWorkflowState";
 
 const WS_URL = "ws://localhost:8081";
 const INTEGRATION_API_URL = "http://localhost:8080";
