@@ -253,7 +253,45 @@ YOUR RESPONSE FORMAT:
       return taskResult;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      
+      // Check if this is a rate limit error
+      const isRateLimitError = 
+        error instanceof Error && 
+        (error.message.includes("quota") || 
+         error.message.includes("rate limit") ||
+         error.message.includes("RESOURCE_EXHAUSTED") ||
+         (error as any).statusCode === 429);
 
+      if (isRateLimitError) {
+        // Extract retry time if available
+        const retryMatch = errorMsg.match(/retry in ([\d.]+)s/i);
+        const retryTime = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 60;
+        
+        const rateLimitMsg = `⚠️ API Rate Limit Exceeded - Workflow stopped.\n\n` +
+          `The AI provider (Gemini) has rate limited requests. Please wait ${retryTime} seconds and try again.\n\n` +
+          `This typically happens when:\n` +
+          `• Too many requests in a short time\n` +
+          `• Monthly token quota exceeded\n` +
+          `• Check your API plan at: https://ai.google.dev/gemini-api/docs/rate-limits`;
+        
+        this.sendError(rateLimitMsg);
+        
+        const result: TaskResult = {
+          taskId: task.id,
+          success: false,
+          output: "",
+          error: rateLimitMsg,
+          isRateLimitError: true, // Flag to stop workflow
+          completedAt: new Date(),
+        };
+
+        this.executionContext.updateWithResult(task, result);
+        
+        // Return the error result (don't rethrow - let workflow handle it gracefully)
+        return result;
+      }
+
+      // Handle other errors normally
       this.sendError(`Task failed: ${errorMsg}`);
 
       const result: TaskResult = {

@@ -77,6 +77,16 @@ export async function executeComplexTask(
       const result = await executionAgent.run({ task: nextTask, tools });
 
       console.log(`\n📋 Task result: ${result.output}\n`);
+      
+      // Check if task failed due to rate limiting - stop workflow immediately
+      if (result.isRateLimitError) {
+        messagePipe.send("error", result.error || "Rate limit exceeded", "System");
+        executionContext.markAsFailed(result.error || "Rate limit exceeded");
+        console.log("\n" + "=".repeat(60));
+        console.log("⚠️  Workflow stopped due to rate limiting");
+        console.log("=".repeat(60) + "\n");
+        break;
+      }
     }
 
     if (executionContext.getCompletionStatus() === "completed") {

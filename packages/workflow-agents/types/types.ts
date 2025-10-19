@@ -17,6 +17,7 @@ export interface TaskResult {
   output: string; // Natural language description of the outcome
   data?: any; // Optional structured data from the task execution
   error?: string; // Error message if failed
+  isRateLimitError?: boolean; // Flag to indicate rate limit error (stops workflow)
   completedAt: Date;
 }
 
