@@ -12,6 +12,8 @@ import { ToolFilterAgent } from "../agents/ToolFilterAgent.js";
 import { ExecutionAgent } from "../agents/ExecutionAgent.js";
 import { SynthesisAgent } from "../agents/SynthesisAgent.js";
 import { loadToolsFromAPI } from "./dynamicTools.js";
+import type { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
+import type { IntegrationMetadata } from "@celesta/integrations-api/integrations/integrationMetadata.js";
 
 /**
  * Main orchestration function that manages the workflow execution loop
@@ -19,17 +21,21 @@ import { loadToolsFromAPI } from "./dynamicTools.js";
 export async function executeComplexTask(
   prompt: string,
   messagePipe: IMessagePipe,
-  apiBaseUrl: string = "http://localhost:8080"
+  apiBaseUrl: string = "http://localhost:8080",
+  workflowId?: string,
+  chatContext?: string
 ) {
-  messagePipe.send("status", "Loading tools from integrations API...", "System");
+  messagePipe.send("status", "Loading tools from integrations API...", "System", workflowId);
 
   // Create execution context first (needed for system tools)
+  // We'll update tools and metadata after loading from API
   const executionContext = new ExecutionContext({
     prompt,
     messagePipe,
-    tools: {}, // Will be updated after loading
+    tools: {},
     toolMetadata: [],
-    integrationMetadata: {} as any,
+    integrationMetadata: {} as Record<IntegrationName, Omit<IntegrationMetadata, "actions">>,
+    workflowId,
   });
 
   // Load tools dynamically from the integrations API
@@ -37,28 +43,36 @@ export async function executeComplexTask(
   try {
     toolsData = await loadToolsFromAPI(apiBaseUrl, messagePipe, executionContext);
     
-    // Update execution context with loaded tools
-    (executionContext as any).tools = toolsData.tools;
-    (executionContext as any).toolMetadata = toolsData.metadata;
-    (executionContext as any).integrationMetadata = toolsData.integrationMetadata;
+    // Update execution context with loaded tools using setter methods
+    executionContext.setTools(toolsData.tools);
+    executionContext.setToolMetadata(toolsData.metadata);
+    executionContext.setIntegrationMetadata(toolsData.integrationMetadata);
     
     messagePipe.send(
       "info",
       `Loaded ${Object.keys(toolsData.tools).length} tools from ${toolsData.metadata.length} actions`,
-      "System"
+      "System",
+      workflowId
     );
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    messagePipe.send("error", `Failed to load tools: ${errorMsg}`, "System");
+    messagePipe.send("error", `Failed to load tools: ${errorMsg}`, "System", workflowId);
     throw error;
   }
 
-  const coordinationAgent = new CoordinationAgent({ executionContext });
-  const toolFilterAgent = new ToolFilterAgent({ executionContext });
-  const executionAgent = new ExecutionAgent({ executionContext });
-  const synthesisAgent = new SynthesisAgent({ executionContext });
+  const coordinationAgent = new CoordinationAgent({ executionContext, workflowId });
+  const toolFilterAgent = new ToolFilterAgent({ executionContext, workflowId });
+  const executionAgent = new ExecutionAgent({ executionContext, workflowId });
+  const synthesisAgent = new SynthesisAgent({ executionContext, workflowId });
 
-  messagePipe.send("status", "Starting workflow execution...", "System");
+  // If chat context provided, inject it into the execution
+  if (chatContext) {
+    messagePipe.send("info", `Using chat context: ${chatContext}`, "System", workflowId);
+    // Store context for agents to access
+    executionContext.chatContext = chatContext;
+  }
+
+  messagePipe.send("status", "Starting workflow execution...", "System", workflowId);
 
   try {
     while (executionContext.getCompletionStatus() === "running") {
@@ -80,7 +94,7 @@ export async function executeComplexTask(
       
       // Check if task failed due to rate limiting - stop workflow immediately
       if (result.isRateLimitError) {
-        messagePipe.send("error", result.error || "Rate limit exceeded", "System");
+        messagePipe.send("error", result.error || "Rate limit exceeded", "System", workflowId);
         executionContext.markAsFailed(result.error || "Rate limit exceeded");
         console.log("\n" + "=".repeat(60));
         console.log("⚠️  Workflow stopped due to rate limiting");
@@ -105,7 +119,7 @@ export async function executeComplexTask(
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
-    messagePipe.send("error", `Critical error: ${errorMsg}`, "System");
+    messagePipe.send("error", `Critical error: ${errorMsg}`, "System", workflowId);
     executionContext.markAsFailed(errorMsg);
   }
 }

@@ -9,6 +9,7 @@ export type WSMessage =
       content: string;
       sender: string;
       timestamp: string | Date;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -17,6 +18,7 @@ export type WSMessage =
       sender: string;
       timestamp: string | Date;
       isQuestion: true;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -25,6 +27,7 @@ export type WSMessage =
       sender: string;
       timestamp: string | Date;
       integrationName: string;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -34,6 +37,7 @@ export type WSMessage =
       timestamp: string | Date;
       integrationName: string;
       accessToken: string;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -44,6 +48,7 @@ export type WSMessage =
       toolCallId: string;
       toolName: string;
       toolArgs: any;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -54,6 +59,7 @@ export type WSMessage =
       toolCallId: string;
       toolName: string;
       toolResult: any;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -61,6 +67,49 @@ export type WSMessage =
       content: string;
       sender: string;
       timestamp: string | Date;
+      workflowId?: string;
+    }
+  | {
+      id: string;
+      type: "chat_message";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+    }
+  | {
+      id: string;
+      type: "chat_response";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+    }
+  | {
+      id: string;
+      type: "workflow_intent_detected";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+      suggestedPrompt: string;
+      confidence: "high" | "medium" | "low";
+      reasoning: string;
+    }
+  | {
+      id: string;
+      type: "workflow_started";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+      workflowId: string;
+      prompt: string;
+      hasNavButton: boolean;
+    }
+  | {
+      id: string;
+      type: "start_workflow";
+      content: string;
+      sender: string;
+      timestamp: string | Date;
+      prompt: string;
     };
 
 export interface UseWebSocketOptions {

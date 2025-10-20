@@ -3,6 +3,8 @@ import "dotenv/config";
 import { WebSocketServer, WebSocket } from "ws";
 import { WSMessagePipe } from "./io/WSMessagePipe.js";
 import { executeComplexTask } from "./components/executeComplexTask.js";
+import { ExecutionContext } from "./components/ExecutionContext.js";
+import { ChatAgent, type ChatMessage } from "./agents/ChatAgent.js";
 
 const PORT = 8081;
 
@@ -15,8 +17,36 @@ if (!process.env.GEMINI_API_KEY) {
 
 console.log("[Server] API key loaded successfully");
 
+/**
+ * Represents an active workflow execution
+ */
+interface WorkflowExecution {
+  workflowId: string;
+  prompt: string;
+  executionContext: ExecutionContext | null;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: Date;
+}
+
+/**
+ * Represents a client session with multiple workflows and chat history
+ */
+interface ClientSession {
+  clientId: string;
+  messagePipe: WSMessagePipe;
+  activeWorkflows: Map<string, WorkflowExecution>;
+  chatHistory: Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>;
+}
+
 // Store active sessions by client ID
-const activeSessions = new Map<string, WSMessagePipe>();
+const activeSessions = new Map<string, ClientSession>();
+
+/**
+ * Generate a unique workflow ID
+ */
+function generateWorkflowId(): string {
+  return `workflow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
 /**
  * WebSocket server for Celesta workflow automation framework.
@@ -32,7 +62,16 @@ wss.on("connection", (ws: WebSocket) => {
 
   // Create a message pipe for this client
   const messagePipe = new WSMessagePipe(ws);
-  activeSessions.set(clientId, messagePipe);
+  
+  // Create client session
+  const session: ClientSession = {
+    clientId,
+    messagePipe,
+    activeWorkflows: new Map(),
+    chatHistory: [],
+  };
+  
+  activeSessions.set(clientId, session);
 
   // Send welcome message
   messagePipe.send(
@@ -40,6 +79,9 @@ wss.on("connection", (ws: WebSocket) => {
     `Connected to Celesta server (ID: ${clientId})`,
     "Server"
   );
+
+  // Create ChatAgent for this session
+  const chatAgent = new ChatAgent({ messagePipe });
 
   // Handle incoming messages
   ws.on("message", async (data) => {
@@ -84,10 +126,10 @@ wss.on("connection", (ws: WebSocket) => {
           console.log(
             `[Server] Reconnecting client ${message.oldClientId} -> ${clientId}`
           );
-          oldSession.reconnect(ws, false); // Keep pending questions alive
+          oldSession.messagePipe.reconnect(ws, false); // Keep pending questions alive
           activeSessions.delete(message.oldClientId);
           activeSessions.set(clientId, oldSession);
-          oldSession.send(
+          oldSession.messagePipe.send(
             "info",
             `Reconnected successfully (new ID: ${clientId})`,
             "Server"
@@ -107,6 +149,183 @@ wss.on("connection", (ws: WebSocket) => {
         console.log(
           `[Server] Received credentials for ${message.integrationName} from client ${clientId}`
         );
+      }
+      // Handle chat message
+      else if (message.type === "chat_message" && message.content) {
+        console.log(`[Server] Chat message from client ${clientId}: "${message.content}"`);
+        
+        const session = activeSessions.get(clientId);
+        if (!session) {
+          messagePipe.send("error", "Session not found", "Server");
+          return;
+        }
+
+        try {
+          // Add user message to chat history
+          session.chatHistory.push({
+            role: "user",
+            content: message.content,
+            timestamp: new Date(),
+          });
+
+          // Check if message is substantial enough for intent detection FIRST
+          let shouldSendChatResponse = true;
+          
+          if (message.content.length >= 20) {
+            console.log(`[Server] Detecting workflow intent for message: "${message.content}"`);
+            
+            const intent = await chatAgent.detectWorkflowIntent(
+              message.content,
+              session.chatHistory
+            );
+
+            console.log(
+              `[Server] Intent detection result: needsWorkflow=${intent.needsWorkflow}, confidence=${intent.confidence}`
+            );
+
+            // If workflow is detected with high/medium confidence, skip chat response
+            if (intent.needsWorkflow && intent.confidence !== "low") {
+              shouldSendChatResponse = false;
+              
+              const intentMessage = {
+                id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                type: "workflow_intent_detected",
+                content: `I can help you with that using a workflow. ${intent.reasoning}`,
+                sender: "System",
+                timestamp: new Date(),
+                suggestedPrompt: intent.suggestedPrompt || message.content,
+                confidence: intent.confidence,
+                reasoning: intent.reasoning,
+              };
+
+              // Send via raw WebSocket to include all fields
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(intentMessage));
+              }
+
+              console.log(
+                `[Server] Sent workflow intent detection to client ${clientId}`
+              );
+            }
+          }
+
+          // Only generate and send chat response if no workflow was detected
+          if (shouldSendChatResponse) {
+            // Generate response
+            const response = await chatAgent.handleMessage(
+              message.content,
+              session.chatHistory
+            );
+
+            // Add assistant response to chat history
+            session.chatHistory.push({
+              role: "assistant",
+              content: response,
+              timestamp: new Date(),
+            });
+
+            // Send response to client
+            messagePipe.send("chat_response", response, "ChatAgent");
+            console.log(`[Server] Sent chat response to client ${clientId}`);
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.error(`[Server] Chat error for client ${clientId}:`, error);
+          messagePipe.send("error", `Chat error: ${errorMsg}`, "Server");
+        }
+      }
+      // Handle workflow start request
+      else if (message.type === "start_workflow" && message.prompt) {
+        console.log(
+          `[Server] Starting workflow for client ${clientId}: "${message.prompt}"`
+        );
+
+        const session = activeSessions.get(clientId);
+        if (!session) {
+          messagePipe.send("error", "Session not found", "Server");
+          return;
+        }
+
+        try {
+          // Generate unique workflow ID
+          const workflowId = generateWorkflowId();
+
+          // Generate context from chat history
+          const chatContext = await chatAgent.generateWorkflowContext(
+            session.chatHistory,
+            message.prompt
+          );
+
+          console.log(
+            `[Server] Generated workflow context: "${chatContext || "none"}"`
+          );
+
+          // Send workflow_started message with navigation button
+          const workflowStartedMessage = {
+            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: "workflow_started",
+            content: `Started workflow: ${message.prompt}`,
+            sender: "System",
+            timestamp: new Date(),
+            workflowId,
+            prompt: message.prompt,
+            hasNavButton: true,
+          };
+
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(workflowStartedMessage));
+          }
+
+          // Create workflow execution record
+          const workflowExecution: WorkflowExecution = {
+            workflowId,
+            prompt: message.prompt,
+            executionContext: null, // Will be set during execution
+            status: "running",
+            startedAt: new Date(),
+          };
+
+          session.activeWorkflows.set(workflowId, workflowExecution);
+
+          // Execute the workflow with context
+          executeComplexTask(
+            message.prompt,
+            messagePipe,
+            "http://localhost:8080",
+            workflowId,
+            chatContext || undefined
+          )
+            .then(() => {
+              // Mark workflow as completed
+              const workflow = session.activeWorkflows.get(workflowId);
+              if (workflow) {
+                workflow.status = "completed";
+              }
+              console.log(`[Server] Workflow ${workflowId} completed successfully`);
+            })
+            .catch((error) => {
+              // Mark workflow as failed
+              const workflow = session.activeWorkflows.get(workflowId);
+              if (workflow) {
+                workflow.status = "failed";
+              }
+              const errorMsg = error instanceof Error ? error.message : String(error);
+              console.error(`[Server] Workflow ${workflowId} failed:`, error);
+              messagePipe.send(
+                "error",
+                `Workflow execution failed: ${errorMsg}`,
+                "Server",
+                workflowId
+              );
+            });
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.error(
+            `[Server] Error starting workflow for client ${clientId}:`,
+            error
+          );
+          messagePipe.send("error", `Failed to start workflow: ${errorMsg}`, "Server");
+        }
       }
       // Unknown message type
       else {
@@ -128,8 +347,11 @@ wss.on("connection", (ws: WebSocket) => {
   // Handle client disconnect
   ws.on("close", () => {
     console.log(`[Server] Client ${clientId} disconnected`);
-    activeSessions.delete(clientId);
-    messagePipe.close();
+    const session = activeSessions.get(clientId);
+    if (session) {
+      session.messagePipe.close();
+      activeSessions.delete(clientId);
+    }
   });
 
   // Handle errors
@@ -149,9 +371,9 @@ process.on("SIGINT", () => {
   console.log("\n[Server] Shutting down...");
 
   // Close all active sessions
-  for (const [clientId, messagePipe] of activeSessions.entries()) {
-    messagePipe.send("info", "Server shutting down", "Server");
-    messagePipe.close();
+  for (const [clientId, session] of activeSessions.entries()) {
+    session.messagePipe.send("info", "Server shutting down", "Server");
+    session.messagePipe.close();
   }
   activeSessions.clear();
 

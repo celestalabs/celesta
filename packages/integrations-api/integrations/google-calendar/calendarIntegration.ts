@@ -216,5 +216,8 @@ export async function executeCalendarAction(
   if (!action) {
     throw new Error(`Unknown Calendar action: ${actionName}`);
   }
+  // Note: Each action has its own specific params type. We use 'as any' here because
+  // TypeScript can't verify at compile time that the props match the selected action.
+  // Runtime validation happens within each action function.
   return action(props as any, auth);
 }

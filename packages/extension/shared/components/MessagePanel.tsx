@@ -15,13 +15,20 @@ export interface DisplayMessage {
   toolName?: string;
   toolArgs?: any;
   toolResult?: any;
+  workflowId?: string;
+  prompt?: string;
+  hasNavButton?: boolean;
 }
 
 interface MessagePanelProps {
   messages: DisplayMessage[];
+  onNavigateToWorkflow?: (workflowId: string) => void;
 }
 
-export const MessagePanel: React.FC<MessagePanelProps> = ({ messages }) => {
+export const MessagePanel: React.FC<MessagePanelProps> = ({
+  messages,
+  onNavigateToWorkflow,
+}) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -111,6 +118,70 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({ messages }) => {
               toolResult={toolData?.result?.toolResult}
               timestamp={msg.timestamp}
             />
+          );
+        }
+
+        // Render workflow_started messages with navigation button
+        if (
+          msg.type === "workflow_started" &&
+          msg.hasNavButton &&
+          msg.workflowId &&
+          onNavigateToWorkflow
+        ) {
+          return (
+            <div
+              key={msg.id}
+              style={{
+                marginBottom: "10px",
+                padding: "12px",
+                background: "#dbeafe",
+                borderLeft: "4px solid #3b82f6",
+                borderRadius: "4px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                }}
+              >
+                <strong>{msg.sender}</strong> •{" "}
+                {msg.timestamp.toLocaleTimeString()}
+              </div>
+              <div
+                style={{
+                  fontSize: "14px",
+                  marginBottom: "12px",
+                  color: "#1e40af",
+                  fontWeight: "500",
+                }}
+              >
+                {msg.content}
+              </div>
+              <button
+                onClick={() => onNavigateToWorkflow(msg.workflowId!)}
+                style={{
+                  background: "#3b82f6",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#2563eb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#3b82f6";
+                }}
+              >
+                View Workflow →
+              </button>
+            </div>
           );
         }
 

@@ -9,6 +9,7 @@ export type WSMessage =
       content: string;
       sender: string;
       timestamp: Date;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -17,6 +18,7 @@ export type WSMessage =
       sender: string;
       timestamp: Date;
       isQuestion: true;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -25,6 +27,7 @@ export type WSMessage =
       sender: string;
       timestamp: Date;
       integrationName: string;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -34,6 +37,7 @@ export type WSMessage =
       timestamp: Date;
       integrationName: string;
       accessToken: string;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -44,6 +48,7 @@ export type WSMessage =
       toolCallId: string;
       toolName: string;
       toolArgs: any;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -54,6 +59,7 @@ export type WSMessage =
       toolCallId: string;
       toolName: string;
       toolResult: any;
+      workflowId?: string;
     }
   | {
       id: string;
@@ -61,6 +67,49 @@ export type WSMessage =
       content: string;
       sender: string;
       timestamp: Date;
+      workflowId?: string;
+    }
+  | {
+      id: string;
+      type: "chat_message";
+      content: string;
+      sender: string;
+      timestamp: Date;
+    }
+  | {
+      id: string;
+      type: "chat_response";
+      content: string;
+      sender: string;
+      timestamp: Date;
+    }
+  | {
+      id: string;
+      type: "workflow_intent_detected";
+      content: string;
+      sender: string;
+      timestamp: Date;
+      suggestedPrompt: string;
+      confidence: "high" | "medium" | "low";
+      reasoning: string;
+    }
+  | {
+      id: string;
+      type: "workflow_started";
+      content: string;
+      sender: string;
+      timestamp: Date;
+      workflowId: string;
+      prompt: string;
+      hasNavButton: boolean;
+    }
+  | {
+      id: string;
+      type: "start_workflow";
+      content: string;
+      sender: string;
+      timestamp: Date;
+      prompt: string;
     };
 
 interface PendingQuestion {
@@ -118,12 +167,13 @@ export class WSMessagePipe implements IMessagePipe {
   /**
    * Send a message through the WebSocket
    */
-  send(type: MessageType, content: string, sender: string): void {
+  send(type: MessageType, content: string, sender: string, workflowId?: string): void {
     const message: Message = {
       type,
       content,
       timestamp: new Date(),
       sender,
+      workflowId,
     };
     this.messages.push(message);
 
@@ -135,6 +185,7 @@ export class WSMessagePipe implements IMessagePipe {
         content,
         sender,
         timestamp: message.timestamp,
+        ...(workflowId && { workflowId }),
       } as WSMessage;
 
       this.ws.send(JSON.stringify(wsMessage));
@@ -146,9 +197,9 @@ export class WSMessagePipe implements IMessagePipe {
   /**
    * Ask a question and wait for user response via WebSocket
    */
-  async ask(question: string, sender: string): Promise<string> {
+  async ask(question: string, sender: string, workflowId?: string): Promise<string> {
     // Store the question in message history
-    this.send("question", question, sender);
+    this.send("question", question, sender, workflowId);
 
     // Check connection state
     if (this.ws.readyState !== WebSocket.OPEN) {
@@ -166,6 +217,7 @@ export class WSMessagePipe implements IMessagePipe {
       sender,
       timestamp: new Date(),
       isQuestion: true,
+      ...(workflowId && { workflowId }),
     };
 
     // Send the question
@@ -196,7 +248,7 @@ export class WSMessagePipe implements IMessagePipe {
    * Request OAuth credentials for a specific integration.
    * Credentials are cached per session to avoid repeated OAuth flows.
    */
-  async requestCredentials(integrationName: string): Promise<string> {
+  async requestCredentials(integrationName: string, workflowId?: string): Promise<string> {
     // Check cache first
     if (this.credentialCache.has(integrationName)) {
       console.log(
@@ -221,6 +273,7 @@ export class WSMessagePipe implements IMessagePipe {
       sender: "System",
       timestamp: new Date(),
       integrationName,
+      ...(workflowId && { workflowId }),
     };
 
     this.ws.send(JSON.stringify(wsMessage));
@@ -264,12 +317,13 @@ export class WSMessagePipe implements IMessagePipe {
   /**
    * Send a tool invocation message with a unique ID
    */
-  sendToolInvocation(toolCallId: string, toolName: string, args: any, sender: string): void {
+  sendToolInvocation(toolCallId: string, toolName: string, args: any, sender: string, workflowId?: string): void {
     const message: Message = {
       type: "tool_invocation",
       content: `Calling ${toolName}`,
       timestamp: new Date(),
       sender,
+      workflowId,
     };
     this.messages.push(message);
 
@@ -283,6 +337,7 @@ export class WSMessagePipe implements IMessagePipe {
         toolCallId,
         toolName,
         toolArgs: args,
+        ...(workflowId && { workflowId }),
       };
       this.ws.send(JSON.stringify(wsMessage));
     }
@@ -291,12 +346,13 @@ export class WSMessagePipe implements IMessagePipe {
   /**
    * Send a tool result message matching the invocation ID
    */
-  sendToolResult(toolCallId: string, toolName: string, result: any, sender: string): void {
+  sendToolResult(toolCallId: string, toolName: string, result: any, sender: string, workflowId?: string): void {
     const message: Message = {
       type: "tool_result",
       content: `Result from ${toolName}`,
       timestamp: new Date(),
       sender,
+      workflowId,
     };
     this.messages.push(message);
 
@@ -310,6 +366,7 @@ export class WSMessagePipe implements IMessagePipe {
         toolCallId,
         toolName,
         toolResult: result,
+        ...(workflowId && { workflowId }),
       };
       this.ws.send(JSON.stringify(wsMessage));
     }

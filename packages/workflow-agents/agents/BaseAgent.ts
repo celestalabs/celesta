@@ -7,8 +7,10 @@ import { IMessagePipe } from "../io/IMessagePipe.js";
  * Base configuration for all agents
  */
 export interface BaseAgentConfig {
-  executionContext: ExecutionContext;
+  executionContext?: ExecutionContext;
+  messagePipe?: IMessagePipe;
   modelName?: string;
+  workflowId?: string;
 }
 
 /**
@@ -17,14 +19,17 @@ export interface BaseAgentConfig {
  * and standardized error handling.
  */
 export abstract class BaseAgent {
-  protected executionContext: ExecutionContext;
+  protected executionContext?: ExecutionContext;
   protected model: ReturnType<ReturnType<typeof createGoogleGenerativeAI>>;
   protected messagePipe: IMessagePipe;
   protected abstract agentName: string;
+  protected workflowId?: string;
 
   constructor(config: BaseAgentConfig) {
     this.executionContext = config.executionContext;
-    this.messagePipe = config.executionContext.getMessagePipe();
+    // Use provided messagePipe or get from executionContext
+    this.messagePipe = config.messagePipe || config.executionContext!.getMessagePipe();
+    this.workflowId = config.workflowId;
 
     const google = createGoogleGenerativeAI({
       apiKey: process.env.GEMINI_API_KEY,
@@ -42,35 +47,35 @@ export abstract class BaseAgent {
    * Send a status message through the message pipe
    */
   protected sendStatus(message: string): void {
-    this.messagePipe.send("status", message, this.agentName);
+    this.messagePipe.send("status", message, this.agentName, this.workflowId);
   }
 
   /**
    * Send an info message through the message pipe
    */
   protected sendInfo(message: string): void {
-    this.messagePipe.send("info", message, this.agentName);
+    this.messagePipe.send("info", message, this.agentName, this.workflowId);
   }
 
   /**
    * Send an error message through the message pipe
    */
   protected sendError(message: string): void {
-    this.messagePipe.send("error", message, this.agentName);
+    this.messagePipe.send("error", message, this.agentName, this.workflowId);
   }
 
   /**
    * Send a final response message through the message pipe
    */
   protected sendFinal(message: string): void {
-    this.messagePipe.send("final", message, this.agentName);
+    this.messagePipe.send("final", message, this.agentName, this.workflowId);
   }
 
   /**
    * Ask a question to the user through the message pipe
    */
   protected async ask(question: string): Promise<string> {
-    return this.messagePipe.ask(question, this.agentName);
+    return this.messagePipe.ask(question, this.agentName, this.workflowId);
   }
 
   /**
@@ -86,6 +91,9 @@ export abstract class BaseAgent {
    * Get previous task data for context-aware operations
    */
   protected getPreviousTaskData() {
+    if (!this.executionContext) {
+      throw new Error("ExecutionContext not available for this agent");
+    }
     return this.executionContext.getAllTaskData();
   }
 
@@ -93,6 +101,9 @@ export abstract class BaseAgent {
    * Get detailed context summary
    */
   protected getDetailedContext(): string {
+    if (!this.executionContext) {
+      throw new Error("ExecutionContext not available for this agent");
+    }
     return this.executionContext.getDetailedContextSummary();
   }
 
@@ -100,6 +111,9 @@ export abstract class BaseAgent {
    * Get the original user prompt
    */
   protected getPrompt(): string {
+    if (!this.executionContext) {
+      throw new Error("ExecutionContext not available for this agent");
+    }
     return this.executionContext.getPrompt();
   }
 }

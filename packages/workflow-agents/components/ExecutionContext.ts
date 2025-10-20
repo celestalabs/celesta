@@ -15,6 +15,7 @@ interface ExecutionContextConfig {
     IntegrationName,
     Omit<IntegrationMetadata, "actions">
   >;
+  workflowId?: string;
 }
 
 /**
@@ -37,6 +38,8 @@ export class ExecutionContext {
     IntegrationName,
     Omit<IntegrationMetadata, "actions">
   >;
+  private workflowId?: string;
+  public chatContext?: string;
 
   constructor(config: ExecutionContextConfig) {
     this.prompt = config.prompt;
@@ -49,6 +52,7 @@ export class ExecutionContext {
     this.tools = config.tools;
     this.toolMetadata = config.toolMetadata;
     this.integrationMetadata = config.integrationMetadata;
+    this.workflowId = config.workflowId;
   }
 
   // Getters
@@ -58,6 +62,10 @@ export class ExecutionContext {
 
   getMessagePipe(): IMessagePipe {
     return this.messagePipe;
+  }
+
+  getWorkflowId(): string | undefined {
+    return this.workflowId;
   }
 
   getTools(): ToolSet {
@@ -81,6 +89,21 @@ export class ExecutionContext {
 
   getCompletionStatus(): ExecutionStatus {
     return this.status;
+  }
+
+  // Setters for dynamic updates
+  setTools(tools: ToolSet): void {
+    this.tools = tools;
+  }
+
+  setToolMetadata(metadata: ToolMetadata[]): void {
+    this.toolMetadata = metadata;
+  }
+
+  setIntegrationMetadata(
+    metadata: Record<IntegrationName, Omit<IntegrationMetadata, "actions">>
+  ): void {
+    this.integrationMetadata = metadata;
   }
 
   getTasks(): Task[] {

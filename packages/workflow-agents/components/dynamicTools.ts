@@ -85,10 +85,10 @@ export async function loadToolsFromAPI(
   const apiClient = createIntegrationApiClient(apiBaseUrl);
   const tools: ToolSet = {};
   const metadata: ToolMetadata[] = [];
-  const integrationMetadata: Record<
+  const integrationMetadata: Partial<Record<
     IntegrationName,
     Omit<IntegrationMetadata, "actions">
-  > = {} as any;
+  >> = {};
 
   try {
     const response = await apiClient.listIntegrations({});
@@ -131,7 +131,8 @@ export async function loadToolsFromAPI(
 
               if (integration.requiresUserAuth) {
                 const accessToken = await messagePipe.requestCredentials(
-                  integrationName as IntegrationName
+                  integrationName as IntegrationName,
+                  executionContext?.workflowId
                 );
                 auth = { access_token: accessToken };
               }
@@ -183,7 +184,8 @@ export async function loadToolsFromAPI(
         async (params: { question: string }) => {
           const answer = await messagePipe.ask(
             params.question,
-            "ExecutionAgent"
+            "ExecutionAgent",
+            executionContext?.workflowId
           );
           return {
             success: true,
@@ -272,7 +274,14 @@ export async function loadToolsFromAPI(
       });
     }
 
-    return { tools, metadata, integrationMetadata };
+    return {
+      tools,
+      metadata,
+      integrationMetadata: integrationMetadata as Record<
+        IntegrationName,
+        Omit<IntegrationMetadata, "actions">
+      >,
+    };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to load tools from API: ${errorMsg}`);

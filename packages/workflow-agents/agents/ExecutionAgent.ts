@@ -10,6 +10,16 @@ export class ExecutionAgent extends BaseAgent {
 
   constructor(config: BaseAgentConfig) {
     super(config);
+    if (!this.executionContext) {
+      throw new Error("ExecutionAgent requires an ExecutionContext");
+    }
+  }
+
+  /**
+   * Get executionContext with type assertion (guaranteed by constructor check)
+   */
+  private getExecutionContext() {
+    return this.executionContext!;
   }
 
   /**
@@ -25,7 +35,7 @@ export class ExecutionAgent extends BaseAgent {
     this.sendStatus(`Executing task: ${task.description}`);
 
     // Update task status
-    this.executionContext.updateTaskStatus(task.id, "in-progress");
+    this.executionContext!.updateTaskStatus(task.id, "in-progress");
 
     // Wrap all tools to automatically collect their results for DataRegistry
     // Exclude system__ tools to avoid recursion (they retrieve data, don't generate it)
@@ -229,7 +239,7 @@ YOUR RESPONSE FORMAT:
       storedDataString += `SUMMARY:\n${fullText || "No summary provided"}\n\n`;
       storedDataString += `RAW TOOL OUTPUT (${toolCallResults.length} tool calls):\n${capturedToolData}`;
 
-      this.executionContext
+      this.executionContext!
         .getDataRegistry()
         .store(task.id, storedDataString, task.slug);
 
@@ -244,7 +254,7 @@ YOUR RESPONSE FORMAT:
       }
 
       // Update execution context
-      this.executionContext.updateWithResult(task, taskResult);
+      this.executionContext!.updateWithResult(task, taskResult);
 
       this.sendStatus(
         `Task completed: ${task.description}.\n${taskResult.output}`
@@ -260,7 +270,7 @@ YOUR RESPONSE FORMAT:
         (error.message.includes("quota") || 
          error.message.includes("rate limit") ||
          error.message.includes("RESOURCE_EXHAUSTED") ||
-         (error as any).statusCode === 429);
+         (typeof error === 'object' && error !== null && 'statusCode' in error && (error as {statusCode: number}).statusCode === 429));
 
       if (isRateLimitError) {
         // Extract retry time if available
@@ -285,7 +295,7 @@ YOUR RESPONSE FORMAT:
           completedAt: new Date(),
         };
 
-        this.executionContext.updateWithResult(task, result);
+        this.executionContext!.updateWithResult(task, result);
         
         // Return the error result (don't rethrow - let workflow handle it gracefully)
         return result;
@@ -303,7 +313,7 @@ YOUR RESPONSE FORMAT:
       };
 
       // Update execution context with failure
-      this.executionContext.updateWithResult(task, result);
+      this.executionContext!.updateWithResult(task, result);
 
       return result;
     }
