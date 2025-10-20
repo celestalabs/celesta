@@ -159,7 +159,7 @@ const searchAndRetrieveMessagesSchema = z.object({
   format: z
     .enum(["full", "metadata", "minimal"])
     .optional()
-    .describe("The format of the message to return (default: full)"),
+    .describe("The format of the message to return (default: metadata). Use 'metadata' for headers/subject/snippet, 'full' for complete email body (warning: can be very large)"),
 });
 
 const listAndRetrieveMessagesSchema = z.object({
@@ -176,7 +176,7 @@ const listAndRetrieveMessagesSchema = z.object({
   format: z
     .enum(["full", "metadata", "minimal"])
     .optional()
-    .describe("The format of the message to return (default: full)"),
+    .describe("The format of the message to return (default: metadata). Use 'metadata' for headers/subject/snippet, 'full' for complete email body (warning: can be very large)"),
 });
 
 // ============================================================================
@@ -235,13 +235,13 @@ export const gmailIntegration: IntegrationMetadata = {
     {
       name: "search_and_retrieve_messages",
       description:
-        "Search for email messages AND retrieve their full content in one action. This is more efficient than search_messages + get_message. Supports up to 50 messages at once.",
+        "Search for email messages AND retrieve their content (headers, subject, snippet) in one action. More efficient than search_messages + get_message. Supports up to 50 messages. Default format: metadata (compact). Use format: full only when you need complete email body content.",
       props: searchAndRetrieveMessagesSchema,
     },
     {
       name: "list_and_retrieve_messages",
       description:
-        "List email messages AND retrieve their full content in one action. This is more efficient than list_messages + get_message. Supports up to 50 messages at once.",
+        "List email messages AND retrieve their content (headers, subject, snippet) in one action. More efficient than list_messages + get_message. Supports up to 50 messages. Default format: metadata (compact). Use format: full only when you need complete email body content.",
       props: listAndRetrieveMessagesSchema,
     },
   ],

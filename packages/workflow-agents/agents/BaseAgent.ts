@@ -1,6 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { ExecutionContext } from "../components/ExecutionContext.js";
 import { IMessagePipe } from "../io/IMessagePipe.js";
+// import { createGroq } from "@ai-sdk/groq";
 
 /**
  * Base configuration for all agents
@@ -24,12 +25,17 @@ export abstract class BaseAgent {
   constructor(config: BaseAgentConfig) {
     this.executionContext = config.executionContext;
     this.messagePipe = config.executionContext.getMessagePipe();
-    
+
     const google = createGoogleGenerativeAI({
       apiKey: process.env.GEMINI_API_KEY,
     });
-    
+
     this.model = google(config.modelName || "gemini-2.5-flash");
+    // const groq = createGroq({
+    //   apiKey: process.env.GROQ_API_KEY,
+    // });
+
+    // this.model = groq("llama-3.1-8b-instant");
   }
 
   /**

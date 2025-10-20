@@ -15,15 +15,16 @@
   "license": "ISC",
   "dependencies": {
     "@ai-sdk/google": "^2.0.23",
+    "@ai-sdk/groq": "^2.0.24",
     "ai": "^5.0.76",
     "dotenv": "^16.4.5",
-    "zod": "^4.1.12",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
-    "@types/ws": "^8.18.1"
+    "typescript": "^5.9.2"
   }
 }

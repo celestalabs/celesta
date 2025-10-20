@@ -217,13 +217,18 @@ export async function loadToolsFromAPI(
               description:
                 "The task slug (e.g., 'search-interview-emails') or task ID to retrieve data from. Prefer using the slug as it's more readable.",
             },
+            maxLength: {
+              type: "number",
+              description:
+                "Optional: Maximum number of characters to return (default: 100000, max: 500000). Use smaller values if you only need a preview.",
+            },
           },
           required: ["taskIdentifier"],
         }),
         execute: wrapToolWithLogging(
           "system__getTaskData",
-          async (params: { taskIdentifier: string }) => {
-            const data = executionContext
+          async (params: { taskIdentifier: string; maxLength?: number }) => {
+            let data = executionContext
               .getDataRegistry()
               .get(params.taskIdentifier);
             if (!data) {
@@ -232,6 +237,22 @@ export async function loadToolsFromAPI(
                 error: `No data found for task: ${params.taskIdentifier}`,
               };
             }
+            
+            // Apply character limit to prevent token overflow
+            const maxLength = Math.min(params.maxLength || 100000, 500000);
+            const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
+            
+            if (dataStr.length > maxLength) {
+              const truncated = dataStr.substring(0, maxLength);
+              return {
+                success: true,
+                data: truncated,
+                truncated: true,
+                originalLength: dataStr.length,
+                message: `Data truncated from ${dataStr.length} to ${maxLength} characters. Retrieve with larger maxLength if needed.`,
+              };
+            }
+            
             return {
               success: true,
               data,
