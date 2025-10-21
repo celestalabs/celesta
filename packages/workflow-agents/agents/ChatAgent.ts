@@ -37,6 +37,7 @@ export class ChatAgent extends BaseAgent {
     super({
       messagePipe: config.messagePipe,
       modelName: config.modelName,
+      
     });
   }
 

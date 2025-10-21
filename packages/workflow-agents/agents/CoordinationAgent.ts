@@ -44,7 +44,7 @@ export class CoordinationAgent extends BaseAgent {
 
     const detailedContextSummary = this.getDetailedContext();
     const prompt = this.getPrompt();
-    const toolMetadata = this.executionContext.getToolMetadata();
+    const toolMetadata = this.executionContext!.getToolMetadata();
     const availableToolsText = formatToolMetadataForPrompt(toolMetadata);
 
     try {
@@ -107,7 +107,7 @@ If all necessary tasks have been completed (both data collection AND final synth
 
       if (!object.shouldContinue) {
         this.sendStatus("No more tasks needed. Marking execution as complete.");
-        this.executionContext.markAsCompleted();
+        this.executionContext!.markAsCompleted();
         
         // Return a dummy task that won't be executed
         return {
@@ -133,12 +133,12 @@ If all necessary tasks have been completed (both data collection AND final synth
         createdAt: new Date(),
       };
 
-      this.executionContext.addTask(task);
+      this.executionContext!.addTask(task);
       this.sendStatus(`Next task created: ${task.slug} - ${task.description}`);
 
       return task;
     } catch (error) {
-      this.executionContext.markAsFailed(
+      this.executionContext!.markAsFailed(
         error instanceof Error ? error.message : "Unknown error"
       );
       this.handleError(error, "determine next task");
