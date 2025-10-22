@@ -210,39 +210,46 @@ export const gmailIntegration: IntegrationMetadata = {
       name: "send_email",
       description: "Send an email message",
       props: sendEmailSchema,
+      mode: 'workflow' as const, // Write operation - workflow only
     },
     {
       name: "search_messages",
       description: "Search for email messages using Gmail search syntax",
       props: searchMessagesSchema,
+      mode: 'all' as const, // Read operation - available in both chat and workflow
     },
     {
       name: "get_message",
       description: "Get a specific email message by ID",
       props: getMessageSchema,
+      mode: 'all' as const, // Read operation - available in both chat and workflow
     },
     {
       name: "list_messages",
       description:
         "List email messages in the mailbox. This method only returns message IDs.",
       props: listMessagesSchema,
+      mode: 'workflow' as const, // Read operation - available in both chat and workflow
     },
     {
       name: "create_draft",
       description: "Create a draft email message",
       props: createDraftSchema,
+      mode: 'workflow' as const, // Write operation - workflow only
     },
     {
       name: "search_and_retrieve_messages",
       description:
         "Search for email messages AND retrieve their content (headers, subject, snippet) in one action. More efficient than search_messages + get_message. Supports up to 50 messages. Default format: metadata (compact). Use format: full only when you need complete email body content.",
       props: searchAndRetrieveMessagesSchema,
+      mode: 'all' as const, // Read operation - available in both chat and workflow
     },
     {
       name: "list_and_retrieve_messages",
       description:
         "List email messages AND retrieve their content (headers, subject, snippet) in one action. More efficient than list_messages + get_message. Supports up to 50 messages. Default format: metadata (compact). Use format: full only when you need complete email body content.",
       props: listAndRetrieveMessagesSchema,
+      mode: 'all' as const, // Read operation - available in both chat and workflow
     },
   ],
 };

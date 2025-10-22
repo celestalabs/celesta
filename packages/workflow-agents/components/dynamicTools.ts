@@ -18,7 +18,8 @@ export interface ToolMetadata {
 function wrapToolWithLogging<TParams = any, TResult = any>(
   toolName: string,
   executeFn: (params: TParams) => Promise<TResult>,
-  messagePipe: IMessagePipe
+  messagePipe: IMessagePipe,
+  agentName: string = "ExecutionAgent"
 ): (params: TParams) => Promise<TResult> {
   return async (params: TParams): Promise<TResult> => {
     // Generate unique tool call ID
@@ -29,7 +30,7 @@ function wrapToolWithLogging<TParams = any, TResult = any>(
       toolCallId,
       toolName,
       params,
-      "ExecutionAgent"
+      agentName
     );
 
     try {
@@ -41,7 +42,7 @@ function wrapToolWithLogging<TParams = any, TResult = any>(
         toolCallId,
         toolName,
         result,
-        "ExecutionAgent"
+        agentName
       );
 
       return result;
@@ -58,7 +59,7 @@ function wrapToolWithLogging<TParams = any, TResult = any>(
         toolCallId,
         toolName,
         errorResult,
-        "ExecutionAgent"
+        agentName
       );
 
       return errorResult;
@@ -85,13 +86,14 @@ export async function loadToolsFromAPI(
   const apiClient = createIntegrationApiClient(apiBaseUrl);
   const tools: ToolSet = {};
   const metadata: ToolMetadata[] = [];
-  const integrationMetadata: Partial<Record<
-    IntegrationName,
-    Omit<IntegrationMetadata, "actions">
-  >> = {};
+  const integrationMetadata: Partial<
+    Record<IntegrationName, Omit<IntegrationMetadata, "actions">>
+  > = {};
 
   try {
-    const response = await apiClient.listIntegrations({});
+    const response = await apiClient.listIntegrations({
+      params: { mode: "workflow" },
+    });
 
     if (!response.success) {
       throw new Error(`Failed to list integrations: ${response.error}`);
@@ -239,11 +241,12 @@ export async function loadToolsFromAPI(
                 error: `No data found for task: ${params.taskIdentifier}`,
               };
             }
-            
+
             // Apply character limit to prevent token overflow
             const maxLength = Math.min(params.maxLength || 100000, 500000);
-            const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-            
+            const dataStr =
+              typeof data === "string" ? data : JSON.stringify(data);
+
             if (dataStr.length > maxLength) {
               const truncated = dataStr.substring(0, maxLength);
               return {
@@ -254,7 +257,7 @@ export async function loadToolsFromAPI(
                 message: `Data truncated from ${dataStr.length} to ${maxLength} characters. Retrieve with larger maxLength if needed.`,
               };
             }
-            
+
             return {
               success: true,
               data,
@@ -285,6 +288,122 @@ export async function loadToolsFromAPI(
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to load tools from API: ${errorMsg}`);
+  }
+}
+
+/**
+ * Loads chat-compatible tools from the integrations API.
+ * These are simple, read-only tools suitable for conversational interactions.
+ */
+export async function loadChatToolsFromAPI(
+  apiBaseUrl: string,
+  messagePipe: IMessagePipe,
+  workflowId?: string
+): Promise<ToolSet> {
+  const apiClient = createIntegrationApiClient(apiBaseUrl);
+  const tools: ToolSet = {};
+
+  try {
+    // Request only chat-compatible tools
+    const response = await apiClient.listIntegrations({
+      params: { mode: "chat" },
+    });
+
+    if (!response.success) {
+      throw new Error(`Failed to list chat integrations: ${response.error}`);
+    }
+
+    for (const [integrationName, integration] of Object.entries(
+      response.integrations
+    )) {
+      for (const action of integration.actions) {
+        const toolName = `${integrationName}__${action.name}`;
+
+        // Create AI SDK tool with wrapped execution
+        tools[toolName] = tool({
+          description: `${integration.name}: ${action.description}`,
+          inputSchema: jsonSchema(action.props),
+          execute: wrapToolWithLogging(
+            toolName,
+            async (params) => {
+              // Only request credentials if integration requires user auth
+              let auth: { access_token: string } | undefined;
+
+              if (integration.requiresUserAuth) {
+                const accessToken = await messagePipe.requestCredentials(
+                  integrationName as IntegrationName,
+                  workflowId
+                );
+                auth = { access_token: accessToken };
+              }
+
+              // Execute the integration action
+              const result = await apiClient.executeIntegration({
+                body: {
+                  integrationName: integrationName as IntegrationName,
+                  actionName: action.name,
+                  props: params,
+                  ...(auth && { auth }),
+                },
+              });
+
+              if (result.success) {
+                return result.result;
+              } else {
+                return {
+                  error: true,
+                  message: `Integration execution failed: ${result.error}`,
+                  code: result.code,
+                };
+              }
+            },
+            messagePipe,
+            "ChatAgent"
+          ),
+        });
+      }
+    }
+
+    // Add system tool: askQuestion
+    // This allows chat agent to ask clarifying questions when needed
+    tools["system__askQuestion"] = tool({
+      description:
+        "Ask the user a clarifying question and wait for their response. Use this when you need additional information to complete a request.",
+      inputSchema: jsonSchema({
+        type: "object",
+        properties: {
+          question: {
+            type: "string",
+            description:
+              "The question to ask the user. Be specific and clear about what information you need.",
+          },
+        },
+        required: ["question"],
+      }),
+      execute: wrapToolWithLogging(
+        "system__askQuestion",
+        async (params: { question: string }) => {
+          const answer = await messagePipe.ask(
+            params.question,
+            "ChatAgent",
+            workflowId
+          );
+          return {
+            success: true,
+            answer,
+          };
+        },
+        messagePipe,
+        "ChatAgent"
+      ),
+    });
+
+    return tools;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[loadChatToolsFromAPI] Error: ${errorMsg}`);
+    // Return empty toolset on error - chat will still work without tools
+    return {};
   }
 }
 

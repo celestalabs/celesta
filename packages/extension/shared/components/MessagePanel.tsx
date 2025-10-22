@@ -107,7 +107,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
         }
 
         // Render tool invocations with their results
-        if (msg.type === "tool_invocation" && msg.toolCallId && msg.toolName) {
+        if (msg.type === "tool_invocation" && "toolCallId" in msg && "toolName" in msg) {
           const toolData = toolCallMap.get(msg.toolCallId);
           return (
             <ToolCallDisplay

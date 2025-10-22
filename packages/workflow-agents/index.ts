@@ -5,8 +5,11 @@ import { WSMessagePipe } from "./io/WSMessagePipe.js";
 import { executeComplexTask } from "./components/executeComplexTask.js";
 import { ExecutionContext } from "./components/ExecutionContext.js";
 import { ChatAgent, type ChatMessage } from "./agents/ChatAgent.js";
+import { loadChatToolsFromAPI } from "./components/dynamicTools.js";
+import { ToolSet } from "ai";
 
 const PORT = 8081;
+const INTEGRATIONS_API_URL = "http://localhost:8080";
 
 // Verify API key is loaded
 if (!process.env.GEMINI_API_KEY) {
@@ -16,6 +19,9 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 console.log("[Server] API key loaded successfully");
+
+// Cache for chat tools (loaded once on startup, shared across all clients)
+let chatToolsCache: ToolSet | undefined;
 
 /**
  * Represents an active workflow execution
@@ -82,6 +88,26 @@ wss.on("connection", (ws: WebSocket) => {
 
   // Create ChatAgent for this session
   const chatAgent = new ChatAgent({ messagePipe });
+
+  // Load chat tools if not already cached
+  if (!chatToolsCache) {
+    console.log("[Server] Loading chat-compatible tools from integrations API...");
+    loadChatToolsFromAPI(INTEGRATIONS_API_URL, messagePipe)
+      .then((tools) => {
+        chatToolsCache = tools;
+        const toolCount = Object.keys(tools).length;
+        console.log(`[Server] Loaded ${toolCount} chat-compatible tools`);
+        // Update the current chat agent with tools
+        chatAgent.setTools(tools);
+      })
+      .catch((error) => {
+        console.error("[Server] Failed to load chat tools:", error);
+        // Chat will still work without tools
+      });
+  } else {
+    // Use cached tools
+    chatAgent.setTools(chatToolsCache);
+  }
 
   // Handle incoming messages
   ws.on("message", async (data) => {

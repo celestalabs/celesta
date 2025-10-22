@@ -1,4 +1,4 @@
-import { generateText, generateObject } from "ai";
+import { generateText, generateObject, streamText, ToolSet } from "ai";
 import { z } from "zod";
 import { BaseAgent } from "./BaseAgent.js";
 import { IMessagePipe } from "../io/IMessagePipe.js";
@@ -25,45 +25,79 @@ export interface ChatMessage {
 }
 
 /**
- * ChatAgent handles general conversational interactions without tools.
- * It can detect when a user's request requires a complex workflow and
- * generate relevant context to pass to workflow execution.
+ * ChatAgent handles conversational interactions with lightweight tool access.
+ * It can execute simple, single-tool operations (like checking emails, searching web)
+ * and detect when a user's request requires a complex multi-step workflow.
  */
 export class ChatAgent extends BaseAgent {
   protected agentName = "ChatAgent";
+  private tools: ToolSet | undefined;
 
-  constructor(config: { messagePipe: IMessagePipe; modelName?: string }) {
+  constructor(config: { messagePipe: IMessagePipe; modelName?: string; tools?: ToolSet }) {
     // ChatAgent doesn't need ExecutionContext, just messagePipe
     super({
       messagePipe: config.messagePipe,
       modelName: config.modelName,
       
     });
+    this.tools = config.tools;
   }
 
   /**
-   * Handle a simple chat message and generate a conversational response
+   * Update the tools available to the chat agent
+   */
+  setTools(tools: ToolSet): void {
+    this.tools = tools;
+  }
+
+  /**
+   * Handle a chat message with optional tool execution for simple operations
    */
   async handleMessage(
     userMessage: string,
     chatHistory: ChatMessage[]
   ): Promise<string> {
     try {
+      const now = new Date();
+      const dateString = now.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
       // Build conversation history for context
       const messages = [
         {
           role: "system" as const,
-          content: `You are Celesta, a helpful AI assistant. You can have casual conversations and answer questions.
+          content: `You are Celesta, a helpful AI assistant with access to simple tools for quick information retrieval.
 
-For simple greetings, questions about yourself, jokes, or general knowledge - respond naturally and helpfully.
+Current Date: ${dateString}
 
-IMPORTANT: You only respond to messages in this chat mode. You do NOT respond to messages that require:
-- Accessing emails, calendar, or files
-- Searching the web
-- Using external services or APIs
-- Multi-step operations with tools
+You can handle:
+- Simple questions (greetings, general knowledge, jokes)
+- Quick single-tool operations (checking latest emails, searching web, looking up calendar events)
+- Read-only information retrieval that doesn't require multi-step planning
 
-The system will automatically detect these requests and handle them separately. You will never see those messages in chat mode.`,
+For quick reads like "what's my latest email" or "what do I have today" - use your tools directly and respond conversationally.
+
+IMPORTANT: You should ONLY use tools for SIMPLE, SINGLE-PURPOSE reads. For complex requests that need:
+- Multiple tool calls in sequence
+- Write operations (sending emails, creating events, deleting data)
+- Multi-step planning or coordination
+- Ambiguous requests requiring clarifying questions
+
+...you should respond with: "This request requires a workflow. Please use the 'Start Workflow' button to execute this task."
+
+USING TOOLS APPROPRIATELY:
+- ✅ "What are my latest emails?" → Use gmail__search_and_retrieve_messages
+- ✅ "What's on my calendar today?" → Use google-calendar__list_events
+- ✅ "Search the web for X" → Use web-search__search_web
+- ❌ "Send an email to John" → Requires workflow (write operation)
+- ❌ "Find all emails from John and summarize them" → Requires workflow (multi-step)
+- ❌ "Schedule a meeting tomorrow" → Requires workflow (write operation)
+
+Be conversational and natural in your responses. Present tool results in a friendly, readable way.`,
         },
         // Add recent chat history (last 10 messages for context)
         ...chatHistory.slice(-10).map((msg) => ({
@@ -76,12 +110,30 @@ The system will automatically detect these requests and handle them separately. 
         },
       ];
 
-      const response = await generateText({
-        model: this.model,
-        messages,
-      });
+      // If tools are available, use streamText for tool execution
+      if (this.tools && Object.keys(this.tools).length > 0) {
+        const streamResult = streamText({
+          model: this.model,
+          tools: this.tools,
+          messages,
+        });
 
-      return response.text;
+        // Consume the stream to get final text
+        let fullText = "";
+        for await (const chunk of streamResult.textStream) {
+          fullText += chunk;
+        }
+
+        return fullText.trim() || "I've completed your request.";
+      } else {
+        // No tools available, just generate text
+        const response = await generateText({
+          model: this.model,
+          messages,
+        });
+
+        return response.text;
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`[ChatAgent] Error generating response: ${errorMsg}`);
@@ -106,21 +158,32 @@ The system will automatically detect these requests and handle them separately. 
 
       const prompt = `${contextStr}User message: "${userMessage}"
 
-Analyze if this message requires a complex workflow with tools (email, calendar, web search, file access, etc.) or if it's a simple question/conversation.
+Analyze if this message requires a COMPLEX MULTI-STEP WORKFLOW or if it's a SIMPLE OPERATION that can be handled with a single tool call or conversation.
 
-Examples of workflow-needing requests:
-- "Check my emails from today"
-- "Find recent articles about AI"
-- "Schedule a meeting for tomorrow"
-- "What's on my calendar this week?"
-- "Search for information about X"
+The chat agent now HAS ACCESS TO TOOLS and can handle simple reads directly. Only flag as needsWorkflow if the request is genuinely complex.
 
-Examples of simple chat:
-- "Hello, how are you?"
-- "What can you do?"
-- "Tell me a joke"
-- "Thanks for your help"
-- "That's interesting"
+Examples that DO NOT need a workflow (chat can handle):
+- "What's on my calendar today/tomorrow?" → Simple calendar read
+- "Show me my latest emails" → Simple email read
+- "Search the web for X" → Simple web search
+- "What do I have due this week?" → Simple calendar read
+- "Who emailed me today?" → Simple email search
+- "Hello, how are you?" → Conversation
+- "What can you do?" → Conversation
+
+Examples that NEED a workflow (complex operations):
+- "Send an email to all my colleagues about X" → Write operation with multiple recipients
+- "Schedule a meeting with John, check his availability, and send invites" → Multi-step coordination
+- "Find all emails from John, summarize them, and draft a response" → Multi-step analysis
+- "Search for articles about X, read them, and create a summary report" → Multi-step with analysis
+- "Cancel all my meetings tomorrow and reschedule them" → Multiple write operations
+- "Find information about X across my emails, calendar, and web" → Multi-source aggregation
+
+Key distinction:
+- SIMPLE READ with 1 tool call + conversational response = NO WORKFLOW (chat handles it)
+- WRITE operations (send, create, delete, update) = WORKFLOW
+- Multi-step coordination or analysis = WORKFLOW
+- Questions requiring clarification before action = WORKFLOW
 
 Respond with your analysis.`;
 

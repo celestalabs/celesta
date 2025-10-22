@@ -33,11 +33,11 @@ const App = React.memo(function AppFn() {
 
   // OAuth flow integration
   const handleCredentialApprove = React.useCallback(
-    async (workflowId: string, integrationName: string) => {
+    async (messageId: string, workflowId: string, integrationName: string) => {
       try {
         const accessToken = await handleOAuthFlow(integrationName);
         if (accessToken) {
-          provideCredentials(workflowId, integrationName, accessToken);
+          provideCredentials(messageId, workflowId, integrationName, accessToken);
         }
       } catch (error) {
         console.error("OAuth flow failed:", error);

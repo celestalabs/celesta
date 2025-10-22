@@ -7,11 +7,11 @@ import { QuestionPrompt } from "./QuestionPrompt";
 export interface WorkflowDetailViewProps {
   workflow: WorkflowState;
   onBack: () => void;
-  onAnswerQuestion: (workflowId: string, answer: string) => void;
+  onAnswerQuestion: (messageId: string, workflowId: string, answer: string) => void;
   onApproveCredentials: (
+    messageId: string,
     workflowId: string,
-    integrationName: string,
-    accessToken: string
+    integrationName: string
   ) => void;
   onRejectCredentials: (workflowId: string, integrationName: string) => void;
 }
@@ -70,14 +70,13 @@ export function WorkflowDetailView({
     timestamp: new Date(msg.timestamp),
   }));
 
-  const handleAnswerSubmit = (_id: string, answer: string) => {
-    onAnswerQuestion(workflow.id, answer);
+  const handleAnswerSubmit = (messageId: string, answer: string) => {
+    onAnswerQuestion(messageId, workflow.id, answer);
   };
 
-  const handleApproveCredentials = (_id: string, integrationName: string) => {
-    // In real implementation, this would trigger OAuth flow
-    // For now, we'll pass empty token - the OAuth hook will handle it
-    onApproveCredentials(workflow.id, integrationName, "");
+  const handleApproveCredentials = (messageId: string, integrationName: string) => {
+    // Trigger OAuth flow with the original message ID for proper response matching
+    onApproveCredentials(messageId, workflow.id, integrationName);
   };
 
   const handleRejectCredentials = (_id: string, integrationName: string) => {

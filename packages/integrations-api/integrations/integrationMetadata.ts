@@ -12,7 +12,12 @@ export type IntegrationMetadata = {
   description: string;
   logoUrl: string | null;
   requiresUserAuth: boolean;
-  actions: { name: string; description: string; props: ZodObject }[];
+  actions: { 
+    name: string; 
+    description: string; 
+    props: ZodObject;
+    mode: 'chat' | 'workflow' | 'all';
+  }[];
 };
 
 const nonPieceIntegrationMetadata: Record<
@@ -41,6 +46,7 @@ const nonPieceIntegrationMetadata: Record<
               "What information do you want me to return to you? Describe in detail."
             ),
         }),
+        mode: 'workflow' as const, // Browser use is complex, workflow-only
       },
     ],
   },
@@ -141,6 +147,7 @@ export function readIntegrationMetadata(
         name: action.name,
         description: action.description,
         props: zodProps,
+        mode: 'workflow' as const, // Default all piece actions to workflow-only
       });
     }
 

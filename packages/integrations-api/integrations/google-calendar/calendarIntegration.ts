@@ -167,31 +167,37 @@ export const calendarIntegration: IntegrationMetadata = {
       name: 'create_event',
       description: 'Create a new calendar event',
       props: createEventSchema,
+      mode: 'all' as const, // Write operation - workflow only
     },
     {
       name: 'list_events',
       description: 'List calendar events with optional filtering',
       props: listEventsSchema,
+      mode: 'all' as const, // Read operation - available in both chat and workflow
     },
     {
       name: 'get_event',
       description: 'Get details of a specific calendar event',
       props: getEventSchema,
+      mode: 'all' as const, // Read operation - available in both chat and workflow
     },
     {
       name: 'update_event',
       description: 'Update an existing calendar event',
       props: updateEventSchema,
+      mode: 'workflow' as const, // Write operation - workflow only
     },
     {
       name: 'delete_event',
       description: 'Delete a calendar event',
       props: deleteEventSchema,
+      mode: 'workflow' as const, // Write operation - workflow only
     },
     {
       name: 'quick_add_event',
       description: 'Create an event using natural language (e.g., "Lunch tomorrow at noon")',
       props: quickAddEventSchema,
+      mode: 'workflow' as const, // Write operation - workflow only
     },
   ],
 };

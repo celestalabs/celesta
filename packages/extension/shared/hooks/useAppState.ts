@@ -160,9 +160,9 @@ export function useAppState({ websocketUrl }: UseAppStateOptions) {
 
   // Answer workflow question
   const answerQuestion = useCallback(
-    (workflowId: string, answer: string) => {
+    (messageId: string, workflowId: string, answer: string) => {
       const message = {
-        id: crypto.randomUUID(),
+        id: messageId,
         type: "answer",
         content: answer,
         sender: "user",
@@ -176,9 +176,9 @@ export function useAppState({ websocketUrl }: UseAppStateOptions) {
 
   // Provide credentials
   const provideCredentials = useCallback(
-    (workflowId: string, integrationName: string, accessToken: string) => {
+    (messageId: string, workflowId: string, integrationName: string, accessToken: string) => {
       const message = {
-        id: crypto.randomUUID(),
+        id: messageId,
         type: "provide_credentials",
         content: `Providing credentials for ${integrationName}`,
         sender: "user",
