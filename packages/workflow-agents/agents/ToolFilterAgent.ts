@@ -34,8 +34,8 @@ export class ToolFilterAgent extends BaseAgent {
   async run({ task }: { task: Task }): Promise<ToolSet> {
     this.sendStatus("Analyzing available tools for task...");
 
-    const allTools = this.executionContext.getTools();
-    const toolMetadata = this.executionContext.getToolMetadata();
+    const allTools = this.executionContext!.getTools();
+    const toolMetadata = this.executionContext!.getToolMetadata();
 
     const availableToolDescriptions = toolMetadata
       .map((meta) => {
