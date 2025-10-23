@@ -15,10 +15,7 @@ export interface ChatViewProps {
   onSendMessage: (content: string) => void;
   onStartWorkflow: (prompt: string) => void;
   onDismissIntent: () => void;
-  onApproveCredentials?: (
-    messageId: string,
-    integrationName: string
-  ) => void;
+  onApproveCredentials?: (messageId: string, integrationName: string) => void;
   onRejectCredentials?: (integrationName: string) => void;
 }
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { ChatView } from "./components/ChatView";
 import { ConnectionStatus } from "./components/ConnectionStatus";
@@ -6,8 +6,9 @@ import { LoadingScreen } from "./components/LoadingScreen";
 import { TabbedLayout } from "./components/TabbedLayout";
 import { WorkflowDetailView } from "./components/WorkflowDetailView";
 import { WorkflowsView } from "./components/WorkflowsView";
-import { useAppState } from "./hooks/useAppState";
+import { useChatStore, useWorkflowsStore, useAppStore } from "./hooks/stores";
 import { useOAuth } from "./hooks/useOAuth";
+import { connectWebSocket, sendMessage } from "./hooks/websocketManager";
 
 const WS_URL = "ws://localhost:8081";
 const INTEGRATION_API_URL = "http://localhost:8080";
@@ -16,136 +17,198 @@ const App = React.memo(function AppFn() {
   // OAuth handler
   const { handleOAuthFlow } = useOAuth(INTEGRATION_API_URL);
 
-  // Application state management (combines chat + workflows)
-  const {
-    appState,
-    chatState,
-    workflowsState,
-    connected,
-    switchToChat,
-    switchToWorkflowsList,
-    focusWorkflow,
-    backToWorkflowsList,
-    startWorkflow,
-    answerQuestion,
-    provideCredentials,
-  } = useAppState({ websocketUrl: WS_URL });
+  // Zustand stores
+  const messages = useChatStore((s) => s.messages);
+  const pendingIntent = useChatStore((s) => s.pendingIntent);
+  const pendingCredentialRequest = useChatStore(
+    (s) => s.pendingCredentialRequest
+  );
+  const addUserMessage = useChatStore((s) => s.addUserMessage);
+  const clearIntent = useChatStore((s) => s.clearIntent);
 
-  // OAuth flow integration for chat
-  const handleChatCredentialApprove = React.useCallback(
-    async (messageId: string, integrationName: string) => {
-      try {
-        const accessToken = await handleOAuthFlow(integrationName);
-        if (accessToken) {
-          provideCredentials(messageId, "CHAT", integrationName, accessToken);
-        }
-      } catch (error) {
-        console.error("OAuth flow failed:", error);
-      }
-    },
-    [handleOAuthFlow, provideCredentials]
+  const getWorkflow = useWorkflowsStore((s) => s.getWorkflow);
+  const getRunningWorkflows = useWorkflowsStore((s) => s.getRunningWorkflows);
+  const getCompletedWorkflows = useWorkflowsStore(
+    (s) => s.getCompletedWorkflows
   );
 
-  // OAuth flow integration for workflows
-  const handleCredentialApprove = React.useCallback(
-    async (messageId: string, workflowId: string, integrationName: string) => {
-      try {
-        const accessToken = await handleOAuthFlow(integrationName);
-        if (accessToken) {
-          provideCredentials(
-            messageId,
-            workflowId,
-            integrationName,
-            accessToken
-          );
-        }
-      } catch (error) {
-        console.error("OAuth flow failed:", error);
-      }
-    },
-    [handleOAuthFlow, provideCredentials]
-  );
+  const currentView = useAppStore((s) => s.currentView);
+  const selectedWorkflowId = useAppStore((s) => s.selectedWorkflowId);
+  const setView = useAppStore((s) => s.setView);
 
-  const handleCredentialReject = React.useCallback(
-    (workflowId: string, integrationName: string) => {
-      // Send error message or handle rejection
-      console.log(`Credentials rejected for ${integrationName}`);
-    },
-    []
-  );
+  const isConnected = useAppStore((s) => s.connected);
+
+  // Connect WebSocket on mount
+  useEffect(() => {
+    connectWebSocket(WS_URL);
+  }, []);
 
   // Show loading while connecting
-  if (!connected) {
+  if (!isConnected) {
     return <LoadingScreen />;
   }
 
-  // Determine which tab is active
-  const activeTab = appState.currentView === "chat" ? "chat" : "workflows";
-
-  // Handle tab changes
+  // Tab logic
+  const activeTab = currentView === "chat" ? "chat" : "workflows";
   const handleTabChange = (tab: "chat" | "workflows") => {
-    if (tab === "chat") {
-      switchToChat();
-    } else {
-      switchToWorkflowsList();
+    if (tab === "chat") setView("chat");
+    else setView("workflows-list");
+  };
+
+  // Actions
+  const handleSendMessage = (content: string) => {
+    const msg = {
+      id: crypto.randomUUID(),
+      type: "chat_message",
+      content,
+      sender: "user",
+      timestamp: new Date(),
+    };
+    addUserMessage(msg);
+    sendMessage(msg);
+  };
+
+  const handleStartWorkflow = (prompt: string) => {
+    const msg = {
+      id: crypto.randomUUID(),
+      type: "start_workflow",
+      content: `Starting workflow: ${prompt}`,
+      sender: "user",
+      timestamp: new Date(),
+      prompt,
+    };
+    sendMessage(msg);
+    clearIntent();
+  };
+
+  const handleAnswerQuestion = (
+    messageId: string,
+    workflowId: string,
+    answer: string
+  ) => {
+    const msg = {
+      id: messageId,
+      type: "answer",
+      content: answer,
+      sender: "user",
+      timestamp: new Date(),
+      workflowId,
+    };
+    sendMessage(msg);
+  };
+
+  const handleProvideCredentials = (
+    messageId: string,
+    workflowId: string,
+    integrationName: string,
+    accessToken: string
+  ) => {
+    const msg = {
+      id: messageId,
+      type: "provide_credentials",
+      content: `Providing credentials for ${integrationName}`,
+      sender: "user",
+      timestamp: new Date(),
+      workflowId,
+      integrationName,
+      accessToken,
+    };
+    sendMessage(msg);
+  };
+
+  // OAuth flow integration for chat
+  const handleChatCredentialApprove = async (
+    messageId: string,
+    integrationName: string
+  ) => {
+    try {
+      const accessToken = await handleOAuthFlow(integrationName);
+      if (accessToken) {
+        handleProvideCredentials(
+          messageId,
+          "CHAT",
+          integrationName,
+          accessToken
+        );
+      }
+    } catch (error) {
+      console.error("OAuth flow failed:", error);
     }
+  };
+
+  // OAuth flow integration for workflows
+  const handleCredentialApprove = async (
+    messageId: string,
+    workflowId: string,
+    integrationName: string
+  ) => {
+    try {
+      const accessToken = await handleOAuthFlow(integrationName);
+      if (accessToken) {
+        handleProvideCredentials(
+          messageId,
+          workflowId,
+          integrationName,
+          accessToken
+        );
+      }
+    } catch (error) {
+      console.error("OAuth flow failed:", error);
+    }
+  };
+
+  const handleCredentialReject = (
+    workflowId: string,
+    integrationName: string
+  ) => {
+    // Send error message or handle rejection
+    console.log(`Credentials rejected for ${integrationName}`);
   };
 
   // Render content based on current view
   const renderContent = () => {
-    if (appState.currentView === "chat") {
+    if (currentView === "chat") {
       return (
         <ChatView
-          messages={chatState.messages}
-          pendingIntent={chatState.pendingIntent}
-          pendingCredentialRequest={chatState.pendingCredentialRequest}
-          onSendMessage={chatState.addUserMessage}
-          onStartWorkflow={(prompt) => {
-            startWorkflow(prompt);
-            // Don't navigate here - wait for workflow_started message
-            // which will automatically navigate to the workflow detail view
-          }}
-          onDismissIntent={chatState.clearIntent}
+          messages={messages}
+          pendingIntent={pendingIntent}
+          pendingCredentialRequest={pendingCredentialRequest}
+          onSendMessage={handleSendMessage}
+          onStartWorkflow={handleStartWorkflow}
+          onDismissIntent={clearIntent}
           onApproveCredentials={handleChatCredentialApprove}
         />
       );
     }
-
-    if (
-      appState.currentView === "workflow-detail" &&
-      appState.selectedWorkflowId
-    ) {
-      const workflow = workflowsState.getWorkflow(appState.selectedWorkflowId);
+    if (currentView === "workflow-detail" && selectedWorkflowId) {
+      const workflow = getWorkflow(selectedWorkflowId);
       if (!workflow) {
-        // Workflow not found, go back to list
-        backToWorkflowsList();
+        setView("workflows-list");
         return null;
       }
-
       return (
         <WorkflowDetailView
           workflow={workflow}
-          onBack={backToWorkflowsList}
-          onAnswerQuestion={answerQuestion}
+          onBack={() => setView("workflows-list")}
+          onAnswerQuestion={handleAnswerQuestion}
           onApproveCredentials={handleCredentialApprove}
           onRejectCredentials={handleCredentialReject}
         />
       );
     }
-
     // Default: workflows-list view
     return (
       <WorkflowsView
-        runningWorkflows={workflowsState.getRunningWorkflows()}
-        completedWorkflows={workflowsState.getCompletedWorkflows()}
-        onSelectWorkflow={focusWorkflow}
+        runningWorkflows={getRunningWorkflows()}
+        completedWorkflows={getCompletedWorkflows()}
+        onSelectWorkflow={(id) => setView("workflow-detail", id)}
       />
     );
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      <ConnectionStatus connected={connected} />
+      <ConnectionStatus connected={isConnected} />
       <TabbedLayout activeTab={activeTab} onTabChange={handleTabChange}>
         {renderContent()}
       </TabbedLayout>
