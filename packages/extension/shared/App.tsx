@@ -31,7 +31,22 @@ const App = React.memo(function AppFn() {
     provideCredentials,
   } = useAppState({ websocketUrl: WS_URL });
 
-  // OAuth flow integration
+  // OAuth flow integration for chat
+  const handleChatCredentialApprove = React.useCallback(
+    async (messageId: string, integrationName: string) => {
+      try {
+        const accessToken = await handleOAuthFlow(integrationName);
+        if (accessToken) {
+          provideCredentials(messageId, "", integrationName, accessToken);
+        }
+      } catch (error) {
+        console.error("OAuth flow failed:", error);
+      }
+    },
+    [handleOAuthFlow, provideCredentials]
+  );
+
+  // OAuth flow integration for workflows
   const handleCredentialApprove = React.useCallback(
     async (messageId: string, workflowId: string, integrationName: string) => {
       try {
@@ -78,6 +93,7 @@ const App = React.memo(function AppFn() {
         <ChatView
           messages={chatState.messages}
           pendingIntent={chatState.pendingIntent}
+          pendingCredentialRequest={chatState.pendingCredentialRequest}
           onSendMessage={chatState.addUserMessage}
           onStartWorkflow={(prompt) => {
             startWorkflow(prompt);
@@ -85,6 +101,7 @@ const App = React.memo(function AppFn() {
             // which will automatically navigate to the workflow detail view
           }}
           onDismissIntent={chatState.clearIntent}
+          onApproveCredentials={handleChatCredentialApprove}
         />
       );
     }

@@ -20,8 +20,9 @@ if (!process.env.GEMINI_API_KEY) {
 
 console.log("[Server] API key loaded successfully");
 
-// Cache for chat tools (loaded once on startup, shared across all clients)
+// Cache for chat tools (loaded on first use, shared across all clients)
 let chatToolsCache: ToolSet | undefined;
+let chatToolsLoadingPromise: Promise<ToolSet> | undefined;
 
 /**
  * Represents an active workflow execution
@@ -86,28 +87,8 @@ wss.on("connection", (ws: WebSocket) => {
     "Server"
   );
 
-  // Create ChatAgent for this session
+  // Create ChatAgent for this session (tools will be loaded on first message)
   const chatAgent = new ChatAgent({ messagePipe });
-
-  // Load chat tools if not already cached
-  if (!chatToolsCache) {
-    console.log("[Server] Loading chat-compatible tools from integrations API...");
-    loadChatToolsFromAPI(INTEGRATIONS_API_URL, messagePipe)
-      .then((tools) => {
-        chatToolsCache = tools;
-        const toolCount = Object.keys(tools).length;
-        console.log(`[Server] Loaded ${toolCount} chat-compatible tools`);
-        // Update the current chat agent with tools
-        chatAgent.setTools(tools);
-      })
-      .catch((error) => {
-        console.error("[Server] Failed to load chat tools:", error);
-        // Chat will still work without tools
-      });
-  } else {
-    // Use cached tools
-    chatAgent.setTools(chatToolsCache);
-  }
 
   // Handle incoming messages
   ws.on("message", async (data) => {
@@ -184,6 +165,32 @@ wss.on("connection", (ws: WebSocket) => {
         if (!session) {
           messagePipe.send("error", "Session not found", "Server");
           return;
+        }
+
+        // Ensure chat tools are loaded (happens once, cached for all future requests)
+        if (!chatToolsCache) {
+          if (!chatToolsLoadingPromise) {
+            console.log("[Server] Loading chat-compatible tools from integrations API...");
+            chatToolsLoadingPromise = loadChatToolsFromAPI(INTEGRATIONS_API_URL, messagePipe)
+              .then((tools) => {
+                chatToolsCache = tools;
+                const toolCount = Object.keys(tools).length;
+                console.log(`[Server] Loaded ${toolCount} chat-compatible tools`);
+                return tools;
+              })
+              .catch((error) => {
+                console.error("[Server] Failed to load chat tools:", error);
+                chatToolsLoadingPromise = undefined; // Reset on error so it can retry
+                return {}; // Return empty toolset on error
+              });
+          }
+          
+          // Wait for tools to load
+          const tools = await chatToolsLoadingPromise;
+          chatAgent.setTools(tools);
+        } else {
+          // Use cached tools
+          chatAgent.setTools(chatToolsCache);
         }
 
         try {

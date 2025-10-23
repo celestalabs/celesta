@@ -1,22 +1,36 @@
 import React, { useState } from "react";
-import { ChatMessage, PendingIntent } from "../hooks/types";
+import { PendingIntent } from "../hooks/types";
+import { WSMessage } from "../hooks/useWebSocket";
+import { CredentialRequest } from "./CredentialRequest";
 import { MessagePanel } from "./MessagePanel";
 import { WorkflowIntentPrompt } from "./WorkflowIntentPrompt";
 
 export interface ChatViewProps {
-  messages: ChatMessage[];
+  messages: WSMessage[];
   pendingIntent: PendingIntent | null;
+  pendingCredentialRequest?: {
+    messageId: string;
+    integrationName: string;
+  } | null;
   onSendMessage: (content: string) => void;
   onStartWorkflow: (prompt: string) => void;
   onDismissIntent: () => void;
+  onApproveCredentials?: (
+    messageId: string,
+    integrationName: string
+  ) => void;
+  onRejectCredentials?: (integrationName: string) => void;
 }
 
 export function ChatView({
   messages,
   pendingIntent,
+  pendingCredentialRequest,
   onSendMessage,
   onStartWorkflow,
   onDismissIntent,
+  onApproveCredentials,
+  onRejectCredentials,
 }: ChatViewProps) {
   const [input, setInput] = useState("");
 
@@ -28,20 +42,11 @@ export function ChatView({
     }
   };
 
-  // Convert chat messages to WSMessage format for MessagePanel
-  const wsMessages = messages.map((msg) => ({
-    id: msg.id,
-    type: "chat_response" as const,
-    content: msg.content,
-    sender: msg.sender === "user" ? "user" : "assistant",
-    timestamp: msg.timestamp,
-  }));
-
   return (
     <div className="flex flex-col h-full">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
-        <MessagePanel messages={wsMessages} />
+        <MessagePanel messages={messages} />
 
         {/* Workflow Intent Prompt */}
         {pendingIntent && (
@@ -50,6 +55,22 @@ export function ChatView({
               intent={pendingIntent}
               onStartWorkflow={onStartWorkflow}
               onDismiss={onDismissIntent}
+            />
+          </div>
+        )}
+
+        {/* Credential Request Prompt */}
+        {pendingCredentialRequest && onApproveCredentials && (
+          <div className="p-4 border-t border-gray-200">
+            <CredentialRequest
+              request={pendingCredentialRequest}
+              onApprove={onApproveCredentials}
+              onReject={
+                onRejectCredentials
+                  ? (_id, integrationName) =>
+                      onRejectCredentials(integrationName)
+                  : () => {}
+              }
             />
           </div>
         )}

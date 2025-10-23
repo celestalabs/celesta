@@ -112,17 +112,21 @@ Be conversational and natural in your responses. Present tool results in a frien
 
       // If tools are available, use streamText for tool execution
       if (this.tools && Object.keys(this.tools).length > 0) {
-        const streamResult = streamText({
+        const result = streamText({
           model: this.model,
           tools: this.tools,
           messages,
         });
 
-        // Consume the stream to get final text
+        // Consume the text stream
         let fullText = "";
-        for await (const chunk of streamResult.textStream) {
+        for await (const chunk of result.textStream) {
           fullText += chunk;
         }
+
+        // Wait for all tool executions to complete
+        await result.toolCalls;
+        await result.toolResults;
 
         return fullText.trim() || "I've completed your request.";
       } else {

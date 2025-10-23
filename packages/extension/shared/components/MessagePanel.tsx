@@ -37,11 +37,20 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Convert messages to DisplayMessage format with proper Date objects
+  const displayMessages = useMemo(() => {
+    return messages.map((msg) => ({
+      ...msg,
+      timestamp:
+        msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
+    }));
+  }, [messages]);
+
   // Group tool invocations with their results
   const toolCallMap = useMemo(() => {
     const map = new Map<string, DisplayMessage & { result?: DisplayMessage }>();
 
-    messages.forEach((msg) => {
+    displayMessages.forEach((msg) => {
       if (msg.type === "tool_invocation" && msg.toolCallId) {
         map.set(msg.toolCallId, { ...msg });
       } else if (msg.type === "tool_result" && msg.toolCallId) {
@@ -53,7 +62,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
     });
 
     return map;
-  }, [messages]);
+  }, [displayMessages]);
 
   const getMessageBackground = (type: string) => {
     switch (type) {
@@ -100,7 +109,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
         background: "#f9fafb",
       }}
     >
-      {messages.map((msg) => {
+      {displayMessages.map((msg) => {
         // Skip tool_result messages as they're handled by tool_invocation
         if (msg.type === "tool_result") {
           return null;

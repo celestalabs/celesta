@@ -50,6 +50,26 @@ export function useAppState({ websocketUrl }: UseAppStateOptions) {
         return;
       }
 
+      // Handle tool invocation/result messages without workflowId (chat tools)
+      if (
+        (message.type === "tool_invocation" ||
+          message.type === "tool_result") &&
+        !("workflowId" in message && message.workflowId)
+      ) {
+        chatStateRef.current.addMessage(message);
+        return;
+      }
+
+      // Handle credential requests without workflowId (chat tools)
+      if (
+        (message.type === "request_credentials" ||
+          message.type === "provide_credentials") &&
+        !("workflowId" in message && message.workflowId)
+      ) {
+        chatStateRef.current.addMessage(message);
+        return;
+      }
+
       if (
         message.type === "workflow_intent_detected" &&
         "suggestedPrompt" in message &&
@@ -190,7 +210,7 @@ export function useAppState({ websocketUrl }: UseAppStateOptions) {
         content: `Providing credentials for ${integrationName}`,
         sender: "user",
         timestamp: new Date().toISOString(),
-        workflowId,
+        ...(workflowId && { workflowId }), // Only include workflowId if not empty
         integrationName,
         accessToken,
       };
