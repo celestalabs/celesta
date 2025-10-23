@@ -3,9 +3,8 @@ import "dotenv/config";
 import { WebSocketServer, WebSocket } from "ws";
 import { WSMessagePipe } from "./io/WSMessagePipe.js";
 import { executeComplexTask } from "./components/executeComplexTask.js";
-import { ExecutionContext } from "./components/ExecutionContext.js";
 import { ChatAgent, type ChatMessage } from "./agents/ChatAgent.js";
-import { loadChatToolsFromAPI } from "./components/dynamicTools.js";
+import { SessionManager } from "./components/SessionManager.js";
 import { ToolSet } from "ai";
 
 const PORT = 8081;
@@ -20,33 +19,8 @@ if (!process.env.GEMINI_API_KEY) {
 
 console.log("[Server] API key loaded successfully");
 
-// Cache for chat tools (loaded on first use, shared across all clients)
-let chatToolsCache: ToolSet | undefined;
-let chatToolsLoadingPromise: Promise<ToolSet> | undefined;
-
-/**
- * Represents an active workflow execution
- */
-interface WorkflowExecution {
-  workflowId: string;
-  prompt: string;
-  executionContext: ExecutionContext | null;
-  status: 'running' | 'completed' | 'failed';
-  startedAt: Date;
-}
-
-/**
- * Represents a client session with multiple workflows and chat history
- */
-interface ClientSession {
-  clientId: string;
-  messagePipe: WSMessagePipe;
-  activeWorkflows: Map<string, WorkflowExecution>;
-  chatHistory: Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>;
-}
-
-// Store active sessions by client ID
-const activeSessions = new Map<string, ClientSession>();
+// Initialize SessionManager with integrations API URL
+const sessionManager = SessionManager.getInstance(INTEGRATIONS_API_URL);
 
 /**
  * Generate a unique workflow ID
@@ -70,15 +44,8 @@ wss.on("connection", (ws: WebSocket) => {
   // Create a message pipe for this client
   const messagePipe = new WSMessagePipe(ws);
   
-  // Create client session
-  const session: ClientSession = {
-    clientId,
-    messagePipe,
-    activeWorkflows: new Map(),
-    chatHistory: [],
-  };
-  
-  activeSessions.set(clientId, session);
+  // Create session in SessionManager
+  sessionManager.createSession(clientId, messagePipe);
 
   // Send welcome message
   messagePipe.send(
@@ -87,13 +54,13 @@ wss.on("connection", (ws: WebSocket) => {
     "Server"
   );
 
-  // Create ChatAgent for this session (tools will be loaded on first message)
-  const chatAgent = new ChatAgent({ messagePipe });
-
   // Handle incoming messages
   ws.on("message", async (data) => {
     try {
       const message = JSON.parse(data.toString());
+      
+      // Log all incoming messages
+      console.log("[Server] Raw message received:", JSON.stringify(message, null, 2));
 
       // Handle workflow execution request
       if (message.type === "execute_workflow" && message.prompt) {
@@ -128,14 +95,14 @@ wss.on("connection", (ws: WebSocket) => {
       }
       // Handle reconnection request
       else if (message.type === "reconnect" && message.oldClientId) {
-        const oldSession = activeSessions.get(message.oldClientId);
-        if (oldSession) {
+        const oldSession = sessionManager.getSession(message.oldClientId);
+        if (oldSession && oldSession.messagePipe instanceof WSMessagePipe) {
           console.log(
             `[Server] Reconnecting client ${message.oldClientId} -> ${clientId}`
           );
           oldSession.messagePipe.reconnect(ws, false); // Keep pending questions alive
-          activeSessions.delete(message.oldClientId);
-          activeSessions.set(clientId, oldSession);
+          sessionManager.deleteSession(message.oldClientId);
+          sessionManager.createSession(clientId, oldSession.messagePipe);
           oldSession.messagePipe.send(
             "info",
             `Reconnected successfully (new ID: ${clientId})`,
@@ -161,45 +128,19 @@ wss.on("connection", (ws: WebSocket) => {
       else if (message.type === "chat_message" && message.content) {
         console.log(`[Server] Chat message from client ${clientId}: "${message.content}"`);
         
-        const session = activeSessions.get(clientId);
+        const session = sessionManager.getSession(clientId);
         if (!session) {
           messagePipe.send("error", "Session not found", "Server");
           return;
         }
 
-        // Ensure chat tools are loaded (happens once, cached for all future requests)
-        if (!chatToolsCache) {
-          if (!chatToolsLoadingPromise) {
-            console.log("[Server] Loading chat-compatible tools from integrations API...");
-            chatToolsLoadingPromise = loadChatToolsFromAPI(INTEGRATIONS_API_URL, messagePipe)
-              .then((tools) => {
-                chatToolsCache = tools;
-                const toolCount = Object.keys(tools).length;
-                console.log(`[Server] Loaded ${toolCount} chat-compatible tools`);
-                return tools;
-              })
-              .catch((error) => {
-                console.error("[Server] Failed to load chat tools:", error);
-                chatToolsLoadingPromise = undefined; // Reset on error so it can retry
-                return {}; // Return empty toolset on error
-              });
-          }
-          
-          // Wait for tools to load
-          const tools = await chatToolsLoadingPromise;
-          chatAgent.setTools(tools);
-        } else {
-          // Use cached tools
-          chatAgent.setTools(chatToolsCache);
-        }
-
         try {
+          // Ensure chat tools are loaded (happens once, cached for all future requests)
+          const tools = await sessionManager.loadChatTools(messagePipe);
+          session.chatAgent.setTools(tools);
+
           // Add user message to chat history
-          session.chatHistory.push({
-            role: "user",
-            content: message.content,
-            timestamp: new Date(),
-          });
+          sessionManager.addChatMessage(clientId, "user", message.content);
 
           // Check if message is substantial enough for intent detection FIRST
           let shouldSendChatResponse = true;
@@ -207,7 +148,7 @@ wss.on("connection", (ws: WebSocket) => {
           if (message.content.length >= 20) {
             console.log(`[Server] Detecting workflow intent for message: "${message.content}"`);
             
-            const intent = await chatAgent.detectWorkflowIntent(
+            const intent = await session.chatAgent.detectWorkflowIntent(
               message.content,
               session.chatHistory
             );
@@ -245,17 +186,13 @@ wss.on("connection", (ws: WebSocket) => {
           // Only generate and send chat response if no workflow was detected
           if (shouldSendChatResponse) {
             // Generate response
-            const response = await chatAgent.handleMessage(
+            const response = await session.chatAgent.handleMessage(
               message.content,
               session.chatHistory
             );
 
             // Add assistant response to chat history
-            session.chatHistory.push({
-              role: "assistant",
-              content: response,
-              timestamp: new Date(),
-            });
+            sessionManager.addChatMessage(clientId, "assistant", response);
 
             // Send response to client
             messagePipe.send("chat_response", response, "ChatAgent");
@@ -273,7 +210,7 @@ wss.on("connection", (ws: WebSocket) => {
           `[Server] Starting workflow for client ${clientId}: "${message.prompt}"`
         );
 
-        const session = activeSessions.get(clientId);
+        const session = sessionManager.getSession(clientId);
         if (!session) {
           messagePipe.send("error", "Session not found", "Server");
           return;
@@ -284,7 +221,7 @@ wss.on("connection", (ws: WebSocket) => {
           const workflowId = generateWorkflowId();
 
           // Generate context from chat history
-          const chatContext = await chatAgent.generateWorkflowContext(
+          const chatContext = await session.chatAgent.generateWorkflowContext(
             session.chatHistory,
             message.prompt
           );
@@ -309,16 +246,8 @@ wss.on("connection", (ws: WebSocket) => {
             ws.send(JSON.stringify(workflowStartedMessage));
           }
 
-          // Create workflow execution record
-          const workflowExecution: WorkflowExecution = {
-            workflowId,
-            prompt: message.prompt,
-            executionContext: null, // Will be set during execution
-            status: "running",
-            startedAt: new Date(),
-          };
-
-          session.activeWorkflows.set(workflowId, workflowExecution);
+          // Add workflow to session
+          sessionManager.addWorkflow(clientId, workflowId, message.prompt);
 
           // Execute the workflow with context
           executeComplexTask(
@@ -330,18 +259,12 @@ wss.on("connection", (ws: WebSocket) => {
           )
             .then(() => {
               // Mark workflow as completed
-              const workflow = session.activeWorkflows.get(workflowId);
-              if (workflow) {
-                workflow.status = "completed";
-              }
+              sessionManager.updateWorkflowStatus(clientId, workflowId, "completed");
               console.log(`[Server] Workflow ${workflowId} completed successfully`);
             })
             .catch((error) => {
               // Mark workflow as failed
-              const workflow = session.activeWorkflows.get(workflowId);
-              if (workflow) {
-                workflow.status = "failed";
-              }
+              sessionManager.updateWorkflowStatus(clientId, workflowId, "failed");
               const errorMsg = error instanceof Error ? error.message : String(error);
               console.error(`[Server] Workflow ${workflowId} failed:`, error);
               messagePipe.send(
@@ -380,17 +303,13 @@ wss.on("connection", (ws: WebSocket) => {
   // Handle client disconnect
   ws.on("close", () => {
     console.log(`[Server] Client ${clientId} disconnected`);
-    const session = activeSessions.get(clientId);
-    if (session) {
-      session.messagePipe.close();
-      activeSessions.delete(clientId);
-    }
+    sessionManager.deleteSession(clientId);
   });
 
   // Handle errors
   ws.on("error", (error) => {
     console.error(`[Server] WebSocket error for client ${clientId}:`, error);
-    activeSessions.delete(clientId);
+    sessionManager.deleteSession(clientId);
   });
 });
 
@@ -403,12 +322,9 @@ console.log(`[Server] Waiting for client connections...`);
 process.on("SIGINT", () => {
   console.log("\n[Server] Shutting down...");
 
-  // Close all active sessions
-  for (const [clientId, session] of activeSessions.entries()) {
-    session.messagePipe.send("info", "Server shutting down", "Server");
-    session.messagePipe.close();
-  }
-  activeSessions.clear();
+  // Close all active sessions via SessionManager
+  // Note: SessionManager doesn't expose getAllSessions, so we'll close the server
+  // and let individual connection close handlers clean up sessions
 
   // Close the WebSocket server
   wss.close(() => {

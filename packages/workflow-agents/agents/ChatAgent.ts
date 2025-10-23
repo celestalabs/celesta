@@ -7,10 +7,23 @@ import { IMessagePipe } from "../io/IMessagePipe.js";
  * Schema for workflow intent detection
  */
 const WorkflowIntentSchema = z.object({
-  needsWorkflow: z.boolean().describe("Whether the user's message requires a complex workflow with tools"),
-  confidence: z.enum(["high", "medium", "low"]).describe("Confidence level of the assessment"),
-  reasoning: z.string().describe("Brief explanation of why this does or doesn't need a workflow"),
-  suggestedPrompt: z.string().optional().describe("If workflow is needed, a refined prompt optimized for workflow execution"),
+  needsWorkflow: z
+    .boolean()
+    .describe(
+      "Whether the user's message requires a complex workflow with tools"
+    ),
+  confidence: z
+    .enum(["high", "medium", "low"])
+    .describe("Confidence level of the assessment"),
+  reasoning: z
+    .string()
+    .describe("Brief explanation of why this does or doesn't need a workflow"),
+  suggestedPrompt: z
+    .string()
+    .optional()
+    .describe(
+      "If workflow is needed, a refined prompt optimized for workflow execution"
+    ),
 });
 
 export type WorkflowIntent = z.infer<typeof WorkflowIntentSchema>;
@@ -33,12 +46,15 @@ export class ChatAgent extends BaseAgent {
   protected agentName = "ChatAgent";
   private tools: ToolSet | undefined;
 
-  constructor(config: { messagePipe: IMessagePipe; modelName?: string; tools?: ToolSet }) {
+  constructor(config: {
+    messagePipe: IMessagePipe;
+    modelName?: string;
+    tools?: ToolSet;
+  }) {
     // ChatAgent doesn't need ExecutionContext, just messagePipe
     super({
       messagePipe: config.messagePipe,
       modelName: config.modelName,
-      
     });
     this.tools = config.tools;
   }
@@ -156,9 +172,10 @@ Be conversational and natural in your responses. Present tool results in a frien
     try {
       // Get recent context
       const recentHistory = chatHistory.slice(-5);
-      const contextStr = recentHistory.length > 0
-        ? `Recent conversation:\n${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\n`
-        : '';
+      const contextStr =
+        recentHistory.length > 0
+          ? `Recent conversation:\n${recentHistory.map((msg) => `${msg.role}: ${msg.content}`).join("\n")}\n\n`
+          : "";
 
       const prompt = `${contextStr}User message: "${userMessage}"
 
@@ -201,7 +218,7 @@ Respond with your analysis.`;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`[ChatAgent] Error detecting workflow intent: ${errorMsg}`);
-      
+
       // Default to no workflow on error
       return {
         needsWorkflow: false,
@@ -246,16 +263,21 @@ Extract and summarize only the relevant information from the conversation that w
       });
 
       const context = response.text.trim();
-      
+
       // Return empty string if no context is needed
-      if (context.toLowerCase().includes("no additional context") || context.length < 10) {
+      if (
+        context.toLowerCase().includes("no additional context") ||
+        context.length < 10
+      ) {
         return "";
       }
 
       return context;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[ChatAgent] Error generating workflow context: ${errorMsg}`);
+      console.error(
+        `[ChatAgent] Error generating workflow context: ${errorMsg}`
+      );
       return ""; // Return empty context on error
     }
   }

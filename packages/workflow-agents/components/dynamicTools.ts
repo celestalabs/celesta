@@ -4,6 +4,9 @@ import type { IntegrationName } from "@celesta/integrations-api/integrations/int
 import type { IntegrationMetadata } from "@celesta/integrations-api/integrations/integrationMetadata.js";
 import type { IMessagePipe } from "../io/IMessagePipe.js";
 
+// Constant for chat workflow ID
+export const CHAT_WORKFLOW_ID = "CHAT";
+
 export interface ToolMetadata {
   integrationName: IntegrationName;
   actionName: string;
@@ -297,8 +300,7 @@ export async function loadToolsFromAPI(
  */
 export async function loadChatToolsFromAPI(
   apiBaseUrl: string,
-  messagePipe: IMessagePipe,
-  workflowId?: string
+  messagePipe: IMessagePipe
 ): Promise<ToolSet> {
   const apiClient = createIntegrationApiClient(apiBaseUrl);
   const tools: ToolSet = {};
@@ -332,7 +334,7 @@ export async function loadChatToolsFromAPI(
               if (integration.requiresUserAuth) {
                 const accessToken = await messagePipe.requestCredentials(
                   integrationName as IntegrationName,
-                  workflowId
+                  CHAT_WORKFLOW_ID
                 );
                 auth = { access_token: accessToken };
               }
@@ -386,7 +388,7 @@ export async function loadChatToolsFromAPI(
           const answer = await messagePipe.ask(
             params.question,
             "ChatAgent",
-            workflowId
+            CHAT_WORKFLOW_ID
           );
           return {
             success: true,

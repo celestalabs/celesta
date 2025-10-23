@@ -37,7 +37,7 @@ const App = React.memo(function AppFn() {
       try {
         const accessToken = await handleOAuthFlow(integrationName);
         if (accessToken) {
-          provideCredentials(messageId, "", integrationName, accessToken);
+          provideCredentials(messageId, "CHAT", integrationName, accessToken);
         }
       } catch (error) {
         console.error("OAuth flow failed:", error);
@@ -52,7 +52,12 @@ const App = React.memo(function AppFn() {
       try {
         const accessToken = await handleOAuthFlow(integrationName);
         if (accessToken) {
-          provideCredentials(messageId, workflowId, integrationName, accessToken);
+          provideCredentials(
+            messageId,
+            workflowId,
+            integrationName,
+            accessToken
+          );
         }
       } catch (error) {
         console.error("OAuth flow failed:", error);

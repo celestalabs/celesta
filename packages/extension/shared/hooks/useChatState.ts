@@ -44,9 +44,12 @@ export function useChatState({ onSendMessage }: UseChatStateOptions) {
 
   const addMessage = useCallback((message: WSMessage) => {
     setMessages((prev) => [...prev, message]);
-    
+
     // Handle credential requests
-    if (message.type === "request_credentials" && "integrationName" in message) {
+    if (
+      message.type === "request_credentials" &&
+      "integrationName" in message
+    ) {
       setPendingCredentialRequest({
         messageId: message.id,
         integrationName: message.integrationName,

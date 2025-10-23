@@ -4,6 +4,9 @@ import { useChatState } from "./useChatState";
 import { useWebSocket, WSMessage } from "./useWebSocket";
 import { useWorkflowsState } from "./useWorkflowsState";
 
+// Constant for chat workflow ID (matches backend)
+const CHAT_WORKFLOW_ID = "CHAT";
+
 export interface UseAppStateOptions {
   websocketUrl: string;
 }
@@ -50,21 +53,23 @@ export function useAppState({ websocketUrl }: UseAppStateOptions) {
         return;
       }
 
-      // Handle tool invocation/result messages without workflowId (chat tools)
+      // Handle tool invocation/result messages for chat (workflowId="CHAT")
       if (
         (message.type === "tool_invocation" ||
           message.type === "tool_result") &&
-        !("workflowId" in message && message.workflowId)
+        "workflowId" in message &&
+        message.workflowId === CHAT_WORKFLOW_ID
       ) {
         chatStateRef.current.addMessage(message);
         return;
       }
 
-      // Handle credential requests without workflowId (chat tools)
+      // Handle credential requests for chat (workflowId="CHAT")
       if (
         (message.type === "request_credentials" ||
           message.type === "provide_credentials") &&
-        !("workflowId" in message && message.workflowId)
+        "workflowId" in message &&
+        message.workflowId === CHAT_WORKFLOW_ID
       ) {
         chatStateRef.current.addMessage(message);
         return;
@@ -210,7 +215,7 @@ export function useAppState({ websocketUrl }: UseAppStateOptions) {
         content: `Providing credentials for ${integrationName}`,
         sender: "user",
         timestamp: new Date().toISOString(),
-        ...(workflowId && { workflowId }), // Only include workflowId if not empty
+        workflowId, // Always include - use "CHAT" for chat
         integrationName,
         accessToken,
       };

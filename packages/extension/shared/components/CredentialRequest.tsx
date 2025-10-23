@@ -2,11 +2,11 @@ import React from "react";
 
 interface CredentialRequestProps {
   request: {
-    id: string;
+    messageId: string;
     integrationName: string;
   };
-  onApprove: (id: string, integrationName: string) => void;
-  onReject: (id: string, integrationName: string) => void;
+  onApprove: (messageId: string, integrationName: string) => void;
+  onReject: (messageId: string, integrationName: string) => void;
 }
 
 export const CredentialRequest: React.FC<CredentialRequestProps> = ({
@@ -73,7 +73,7 @@ export const CredentialRequest: React.FC<CredentialRequestProps> = ({
 
       <div style={{ display: "flex", gap: "8px" }}>
         <button
-          onClick={() => onApprove(request.id, request.integrationName)}
+          onClick={() => onApprove(request.messageId, request.integrationName)}
           style={{
             flex: 1,
             padding: "10px 16px",
@@ -96,7 +96,7 @@ export const CredentialRequest: React.FC<CredentialRequestProps> = ({
           🔓 Authorize Access
         </button>
         <button
-          onClick={() => onReject(request.id, request.integrationName)}
+          onClick={() => onReject(request.messageId, request.integrationName)}
           style={{
             padding: "10px 16px",
             background: "white",

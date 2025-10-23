@@ -163,6 +163,7 @@ export function useWebSocket({ url, onMessage }: UseWebSocketOptions) {
   const sendMessage = useCallback(
     (message: object) => {
       if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log("[Frontend] Sending message:", JSON.stringify(message, null, 2));
         ws.send(JSON.stringify(message));
       }
     },

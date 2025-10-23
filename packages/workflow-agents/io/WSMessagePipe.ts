@@ -165,6 +165,16 @@ export class WSMessagePipe implements IMessagePipe {
   }
 
   /**
+   * Helper method to send a WSMessage and log it
+   */
+  private sendWSMessage(wsMessage: WSMessage): void {
+    if (this.ws.readyState === WebSocket.OPEN) {
+      console.log("[Server] Sending message:", JSON.stringify(wsMessage, null, 2));
+      this.ws.send(JSON.stringify(wsMessage));
+    }
+  }
+
+  /**
    * Send a message through the WebSocket
    */
   send(type: MessageType, content: string, sender: string, workflowId?: string): void {
@@ -188,7 +198,7 @@ export class WSMessagePipe implements IMessagePipe {
         ...(workflowId && { workflowId }),
       } as WSMessage;
 
-      this.ws.send(JSON.stringify(wsMessage));
+      this.sendWSMessage(wsMessage);
     }
     // If connection is closed, message is still stored in history
     // for retrieval when client reconnects (autonomous workflow mode)
@@ -221,7 +231,7 @@ export class WSMessagePipe implements IMessagePipe {
     };
 
     // Send the question
-    this.ws.send(JSON.stringify(wsMessage));
+    this.sendWSMessage(wsMessage);
 
     // Return a promise that resolves when the answer arrives
     return new Promise<string>((resolve, reject) => {
@@ -276,7 +286,7 @@ export class WSMessagePipe implements IMessagePipe {
       ...(workflowId && { workflowId }),
     };
 
-    this.ws.send(JSON.stringify(wsMessage));
+    this.sendWSMessage(wsMessage);
 
     console.log(
       `[WSMessagePipe] Sent credential request for ${integrationName}`
@@ -339,7 +349,7 @@ export class WSMessagePipe implements IMessagePipe {
         toolArgs: args,
         ...(workflowId && { workflowId }),
       };
-      this.ws.send(JSON.stringify(wsMessage));
+      this.sendWSMessage(wsMessage);
     }
   }
 
@@ -368,7 +378,7 @@ export class WSMessagePipe implements IMessagePipe {
         toolResult: result,
         ...(workflowId && { workflowId }),
       };
-      this.ws.send(JSON.stringify(wsMessage));
+      this.sendWSMessage(wsMessage);
     }
   }
 
@@ -474,8 +484,11 @@ export class WSMessagePipe implements IMessagePipe {
         }
       }
       // Check if this is a credential response
-      else if (message.type === "provide_credentials" && message.id) {
-        const pending = this.pendingCredentialRequests.get(message.id);
+      else if (message.type === "provide_credentials") {
+        console.log(`[WSMessagePipe] Received provide_credentials. ID: ${message.id}, integrationName: ${message.integrationName}`);
+        console.log(`[WSMessagePipe] Pending requests:`, Array.from(this.pendingCredentialRequests.keys()));
+        
+        const pending = message.id ? this.pendingCredentialRequests.get(message.id) : null;
 
         if (pending && message.accessToken) {
           // Clear the timeout
@@ -504,9 +517,19 @@ export class WSMessagePipe implements IMessagePipe {
             )
           );
         } else {
-          console.warn(
-            `[WSMessagePipe] Received credentials for unknown request ID: ${message.id}`
-          );
+          if (!message.id) {
+            console.warn(
+              `[WSMessagePipe] Received credentials without message ID for integration: ${message.integrationName}`
+            );
+          } else if (!pending) {
+            console.warn(
+              `[WSMessagePipe] Received credentials for unknown request ID: ${message.id}, integration: ${message.integrationName}`
+            );
+          } else {
+            console.warn(
+              `[WSMessagePipe] Received credentials without accessToken for integration: ${message.integrationName}`
+            );
+          }
         }
       }
     } catch (error) {
