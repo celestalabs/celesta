@@ -16,13 +16,6 @@ export class ExecutionAgent extends BaseAgent {
   }
 
   /**
-   * Get executionContext with type assertion (guaranteed by constructor check)
-   */
-  private getExecutionContext() {
-    return this.executionContext!;
-  }
-
-  /**
    * Execute a task using the provided tools
    */
   async run({

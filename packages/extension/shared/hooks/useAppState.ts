@@ -42,6 +42,8 @@ export function useAppState({ websocketUrl }: UseAppStateOptions) {
   // Handle incoming WebSocket messages
   const handleMessage = useCallback(
     (message: WSMessage) => {
+      console.log("Received WS message:", message);
+
       // Handle chat-related messages first (no workflowId)
       if (message.type === "chat_response") {
         chatStateRef.current.addAssistantMessage(message.content, message.id);
@@ -176,7 +178,12 @@ export function useAppState({ websocketUrl }: UseAppStateOptions) {
 
   // Provide credentials
   const provideCredentials = useCallback(
-    (messageId: string, workflowId: string, integrationName: string, accessToken: string) => {
+    (
+      messageId: string,
+      workflowId: string,
+      integrationName: string,
+      accessToken: string
+    ) => {
       const message = {
         id: messageId,
         type: "provide_credentials",
