@@ -29,6 +29,10 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   messages,
   onNavigateToWorkflow,
 }) => {
+  // DEBUG: Log messages to inspect tool calls/results
+  // Remove this after debugging
+  // eslint-disable-next-line no-console
+  console.log("[MessagePanel] messages:", messages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -116,7 +120,11 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
         }
 
         // Render tool invocations with their results
-        if (msg.type === "tool_invocation" && "toolCallId" in msg && "toolName" in msg) {
+        if (
+          msg.type === "tool_invocation" &&
+          "toolCallId" in msg &&
+          "toolName" in msg
+        ) {
           const toolData = toolCallMap.get(msg.toolCallId);
           return (
             <ToolCallDisplay

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PendingIntent } from "../hooks/types";
-import { WSMessage } from "../hooks/useWebSocket";
+import { WSMessage } from "../hooks/websocketManager";
 import { CredentialRequest } from "./CredentialRequest";
 import { MessagePanel } from "./MessagePanel";
 import { WorkflowIntentPrompt } from "./WorkflowIntentPrompt";
@@ -39,11 +39,17 @@ export function ChatView({
     }
   };
 
+  // Filter out credential request/provide messages for display
+  const filteredMessages = messages.filter(
+    (msg) =>
+      msg.type !== "request_credentials" && msg.type !== "provide_credentials"
+  );
+
   return (
     <div className="flex flex-col h-full">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
-        <MessagePanel messages={messages} />
+        <MessagePanel messages={filteredMessages} />
 
         {/* Workflow Intent Prompt */}
         {pendingIntent && (
