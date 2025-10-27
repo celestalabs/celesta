@@ -3,6 +3,8 @@ import "dotenv/config";
 import { WebSocketServer } from "ws";
 import { logger } from "./utils/logger.js";
 import { generateId } from "./utils/generateId.js";
+import { handleIncomingMessage } from "./handlers/index.js";
+import { sessionManager } from "./components/sessionManager.js";
 
 const log = logger("server");
 
@@ -15,11 +17,14 @@ server.on("connection", (ws) => {
 
   log(`Client connected: ${clientId}`);
 
+  // register in session manager
+  sessionManager.registerClientId(clientId, ws);
+
   ws.on("message", (message) => {
-    log(`Received message from ${clientId}:`, message.toString());
+    log(`Received raw message from ${clientId}:`, message.toString());
 
     try {
-      const parsedMessage: object = JSON.parse(message.toString());
+      handleIncomingMessage(clientId, message);
     } catch (error) {
       log(`Error parsing message from ${clientId}:`, error);
     }
