@@ -7,7 +7,6 @@ import { IntegrationName } from "@celesta/integrations-api/integrations/integrat
 import {
   ClientId,
   ContextId,
-  IncomingWSMessage,
   IncomingWSResponseMessage,
   IncomingWSUserMessage,
   OutgoingWSMessage,
@@ -47,7 +46,7 @@ class SessionManager {
       this.credentials.set(clientId, new Map());
       this.pendingRequests.set(clientId, new Map());
       this.messageContexts.set(clientId, new Map());
-      
+
       // chat context
       this.messageContexts
         .get(clientId)

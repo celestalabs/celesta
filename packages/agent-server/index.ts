@@ -3,7 +3,7 @@ import "dotenv/config";
 import { WebSocketServer } from "ws";
 import { logger } from "./utils/logger.js";
 import { generateId } from "./utils/generateId.js";
-import { handleIncomingMessage } from "./handlers/index.js";
+import { handleIncomingMessage } from "./handler.js";
 import { sessionManager } from "./components/sessionManager.js";
 
 const log = logger("server");
