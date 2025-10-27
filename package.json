@@ -21,7 +21,7 @@
   "workspaces": [
     "packages/extension",
     "packages/integrations-api",
-    "packages/workflow-agents"
+    "packages/agent-server"
   ],
   "devDependencies": {
     "concurrently": "^9.2.1"
