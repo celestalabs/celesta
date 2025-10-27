@@ -1,23 +1,37 @@
+import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
 import {
   ClientId,
   ContextId,
   IncomingWSMessage,
   OutgoingWSMessage,
-  ToolCallId,
   WSMessage,
 } from "../types/index.js";
-import { sessionManager } from "./sessionManager.js";
-import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
 import { generateId } from "../utils/generateId.js";
+import { sessionManager } from "./sessionManager.js";
+
+type IncomingMessageHandler = (
+  message: IncomingWSMessage,
+  ctx: InternalMessageContext
+) => void;
+
+/**
+ * Internal implementation of MessageContext.
+ */
 
 class InternalMessageContext {
   private clientId: ClientId;
   private contextId: ContextId;
   private messages: WSMessage[] = [];
+  private onIncomingMessage: IncomingMessageHandler;
 
-  constructor(clientId: ClientId, contextId: ContextId) {
+  constructor(
+    clientId: ClientId,
+    contextId: ContextId,
+    onIncomingMessage: IncomingMessageHandler
+  ) {
     this.clientId = clientId;
     this.contextId = contextId;
+    this.onIncomingMessage = onIncomingMessage;
   }
 
   /**
@@ -25,6 +39,7 @@ class InternalMessageContext {
    */
   handleIncomingMessage(message: IncomingWSMessage) {
     this.messages.push(message);
+    this.onIncomingMessage(message, this);
   }
 
   /**
@@ -131,7 +146,8 @@ class InternalMessageContext {
 
 export const createMessageContext = (
   clientId: ClientId,
-  contextId: ContextId
-) => new InternalMessageContext(clientId, contextId);
+  contextId: ContextId,
+  onIncomingMessage: IncomingMessageHandler = () => {}
+) => new InternalMessageContext(clientId, contextId, onIncomingMessage);
 
 export type MessageContext = ReturnType<typeof createMessageContext>;

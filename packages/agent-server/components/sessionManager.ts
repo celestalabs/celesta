@@ -4,6 +4,7 @@
  */
 
 import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
+import { WebSocket } from "ws";
 import {
   ClientId,
   ContextId,
@@ -12,7 +13,6 @@ import {
   OutgoingWSMessage,
   RequestId,
 } from "../types/index.js";
-import { WebSocket } from "ws";
 import { logger } from "../utils/logger.js";
 import { createMessageContext, MessageContext } from "./messageContext.js";
 

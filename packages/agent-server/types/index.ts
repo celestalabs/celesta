@@ -2,7 +2,8 @@ export type XId<X extends string> = `${X}_${string}`;
 
 export type ClientId = XId<"CLIENT">;
 export type ToolCallId = XId<"TOOL">;
-export type ContextId = "CHAT" | XId<"WORKFLOW">;
+export type WorkflowId = XId<"WORKFLOW">;
+export type ContextId = "CHAT" | WorkflowId;
 export type RequestId = XId<"REQUEST">;
 
 export type IncomingWSUserMessage = {
@@ -23,6 +24,12 @@ export type IncomingWSResponseMessage =
       response: string;
       contextId: ContextId;
       requestId: RequestId;
+    }
+  | {
+      type: "PROVIDE_SHOULD_START_WORKFLOW";
+      contextId: ContextId;
+      requestId: RequestId;
+      yes: boolean;
     };
 
 export type IncomingWSMessage =
@@ -53,6 +60,12 @@ export type OutgoingWSMessage =
       question: string;
       contextId: ContextId;
       requestId: RequestId;
+    }
+  | {
+      type: "REQUEST_SHOULD_START_WORKFLOW";
+      contextId: ContextId;
+      requestId: RequestId;
+      prompt: string;
     };
 
 export type WSMessage = IncomingWSMessage | OutgoingWSMessage;

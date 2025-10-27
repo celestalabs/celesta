@@ -7,12 +7,10 @@
   "type": "module",
   "scripts": {
     "start": "tsx index.ts",
-    "start:console": "tsx console.ts",
     "dev": "tsx watch index.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.23",
-    "@ai-sdk/groq": "^2.0.24",
     "ai": "^5.0.76",
     "dotenv": "^16.4.5",
     "ws": "^8.18.3",

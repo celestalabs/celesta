@@ -23,6 +23,15 @@ export function isIncomingWSMessage(msg: any): msg is IncomingWSMessage {
         typeof msg.requestId === "string" &&
         msg.requestId.startsWith("REQUEST_")
       );
+    case "PROVIDE_SHOULD_START_WORKFLOW":
+      return (
+        msg.type === "PROVIDE_SHOULD_START_WORKFLOW" &&
+        typeof msg.contextId === "string" &&
+        (msg.contextId.startsWith("WORKFLOW_") || msg.contextId === "CHAT") &&
+        typeof msg.requestId === "string" &&
+        msg.requestId.startsWith("REQUEST_") &&
+        typeof msg.yes === "boolean"
+      );
     default:
       return false;
   }
