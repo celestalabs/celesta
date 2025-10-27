@@ -2,15 +2,22 @@ import { IntegrationName } from "@celesta/integrations-api/integrations/integrat
 import {
   ClientId,
   ContextId,
-  IncomingWSMessage,
+  IncomingWSUserMessage,
   OutgoingWSMessage,
   WSMessage,
 } from "../types/index.js";
 import { generateId } from "../utils/generateId.js";
+import { logger } from "../utils/logger.js";
 import { sessionManager } from "./sessionManager.js";
 
-type IncomingMessageHandler = (
-  message: IncomingWSMessage,
+const log = logger("messageContext");
+
+/**
+ * Handler type for incoming user messages within a message context.
+ */
+
+export type IncomingUserMessageHandler = (
+  message: IncomingWSUserMessage,
   ctx: InternalMessageContext
 ) => void;
 
@@ -19,15 +26,15 @@ type IncomingMessageHandler = (
  */
 
 class InternalMessageContext {
-  private clientId: ClientId;
-  private contextId: ContextId;
-  private messages: WSMessage[] = [];
-  private onIncomingMessage: IncomingMessageHandler;
+  clientId: ClientId;
+  contextId: ContextId;
+  messages: WSMessage[] = [];
+  private onIncomingMessage: IncomingUserMessageHandler;
 
   constructor(
     clientId: ClientId,
     contextId: ContextId,
-    onIncomingMessage: IncomingMessageHandler
+    onIncomingMessage: IncomingUserMessageHandler
   ) {
     this.clientId = clientId;
     this.contextId = contextId;
@@ -37,7 +44,10 @@ class InternalMessageContext {
   /**
    * Handle an incoming message for this context.
    */
-  handleIncomingMessage(message: IncomingWSMessage) {
+  handleIncomingMessage(message: IncomingWSUserMessage) {
+    log(
+      `Received message in context ${this.contextId} from client ${this.clientId}: ${message.content}`
+    );
     this.messages.push(message);
     this.onIncomingMessage(message, this);
   }
@@ -147,7 +157,7 @@ class InternalMessageContext {
 export const createMessageContext = (
   clientId: ClientId,
   contextId: ContextId,
-  onIncomingMessage: IncomingMessageHandler = () => {}
+  onIncomingMessage: IncomingUserMessageHandler = () => {}
 ) => new InternalMessageContext(clientId, contextId, onIncomingMessage);
 
 export type MessageContext = ReturnType<typeof createMessageContext>;

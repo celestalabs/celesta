@@ -5,6 +5,7 @@
 
 import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
 import { WebSocket } from "ws";
+import { handleIncomingChatMessage } from "../handlers/incomingChatMessage.js";
 import {
   ClientId,
   ContextId,
@@ -50,7 +51,10 @@ class SessionManager {
       // chat context
       this.messageContexts
         .get(clientId)
-        ?.set("CHAT", createMessageContext(clientId, "CHAT"));
+        ?.set(
+          "CHAT",
+          createMessageContext(clientId, "CHAT", handleIncomingChatMessage)
+        );
     } else {
       log(`Client ID ${clientId} is already registered.`);
     }
@@ -113,8 +117,12 @@ class SessionManager {
    * Route user incoming messages to the right message context
    */
   routeUserMessage(clientId: ClientId, message: IncomingWSUserMessage) {
-    const context = this.messageContexts.get(clientId)?.get(message.context);
-    context?.handleIncomingMessage(message);
+    const context = this.messageContexts.get(clientId)?.get(message.contextId);
+    if (context == null) {
+      log("no context to handle message");
+      return;
+    }
+    context.handleIncomingMessage(message);
   }
 }
 

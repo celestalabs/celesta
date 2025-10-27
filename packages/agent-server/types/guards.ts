@@ -5,7 +5,7 @@ export function isIncomingWSMessage(msg: any): msg is IncomingWSMessage {
     return false;
   switch (msg.type) {
     case "USER_MESSAGE":
-      return msg.context === "CHAT" && typeof msg.content === "string";
+      return msg.contextId === "CHAT" && typeof msg.content === "string";
     case "PROVIDE_CREDENTIALS":
       return (
         msg.type === "PROVIDE_CREDENTIALS" &&

@@ -8,7 +8,7 @@ export type RequestId = XId<"REQUEST">;
 
 export type IncomingWSUserMessage = {
   type: "USER_MESSAGE";
-  context: ContextId;
+  contextId: ContextId;
   content: string;
 };
 

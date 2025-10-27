@@ -1,11 +1,11 @@
-import { sessionManager } from "./components/sessionManager.js";
-import { isIncomingWSMessage } from "./types/guards.js";
-import { ClientId } from "./types/index.js";
-import { logger } from "./utils/logger.js";
+import { sessionManager } from "../components/sessionManager.js";
+import { isIncomingWSMessage } from "../types/guards.js";
+import { ClientId } from "../types/index.js";
+import { logger } from "../utils/logger.js";
 
-const log = logger("handler");
+const log = logger("incomingWSMessage");
 
-export function handleIncomingMessage(clientId: ClientId, rawMessage: any) {
+export function handleIncomingWSMessage(clientId: ClientId, rawMessage: any) {
   const message = JSON.parse(rawMessage.toString());
   // type guard to verify message structure
   if (!isIncomingWSMessage(message)) {
@@ -16,6 +16,7 @@ export function handleIncomingMessage(clientId: ClientId, rawMessage: any) {
   switch (message.type) {
     case "USER_MESSAGE": {
       log(`User message from ${clientId}: ${message.content}`);
+      sessionManager.routeUserMessage(clientId, message);
       break;
     }
 

@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import { WebSocketServer } from "ws";
 import { sessionManager } from "./components/sessionManager.js";
-import { handleIncomingMessage } from "./handler.js";
+import { handleIncomingWSMessage } from "./handlers/incomingWSMessage.js";
 import { generateId } from "./utils/generateId.js";
 import { logger } from "./utils/logger.js";
 
@@ -24,7 +24,7 @@ server.on("connection", (ws) => {
     log(`Received raw message from ${clientId}:`, message.toString());
 
     try {
-      handleIncomingMessage(clientId, message);
+      handleIncomingWSMessage(clientId, message);
     } catch (error) {
       log(`Error parsing message from ${clientId}:`, error);
     }
