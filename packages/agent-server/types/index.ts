@@ -5,6 +5,12 @@ export type ToolCallId = XId<"TOOL">;
 export type ContextId = "CHAT" | XId<"WORKFLOW">;
 export type RequestId = XId<"REQUEST">;
 
+export type IncomingWSUserMessage = {
+  type: "USER_MESSAGE";
+  context: ContextId;
+  content: string;
+};
+
 export type IncomingWSResponseMessage =
   | {
       type: "PROVIDE_CREDENTIALS";
@@ -20,7 +26,7 @@ export type IncomingWSResponseMessage =
     };
 
 export type IncomingWSMessage =
-  | { type: "USER_MESSAGE"; context: "CHAT"; content: string }
+  | IncomingWSUserMessage
   | IncomingWSResponseMessage;
 
 export type OutgoingWSMessage =

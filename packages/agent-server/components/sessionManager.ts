@@ -7,13 +7,15 @@ import { IntegrationName } from "@celesta/integrations-api/integrations/integrat
 import {
   ClientId,
   ContextId,
+  IncomingWSMessage,
   IncomingWSResponseMessage,
+  IncomingWSUserMessage,
   OutgoingWSMessage,
   RequestId,
 } from "../types/index.js";
 import { WebSocket } from "ws";
 import { logger } from "../utils/logger.js";
-import { generateId } from "../utils/generateId.js";
+import { createMessageContext, MessageContext } from "./messageContext.js";
 
 const log = logger("sessionManager");
 
@@ -22,24 +24,34 @@ const log = logger("sessionManager");
  */
 class SessionManager {
   // Maps client IDs to their credentials per integration
-  private credentials: Map<ClientId, Map<IntegrationName, string>> = new Map();
+  credentials: Map<ClientId, Map<IntegrationName, string>> = new Map();
 
   // Maps client IDs to their WebSocket connections
-  private sockets: Map<ClientId, WebSocket> = new Map();
+  sockets: Map<ClientId, WebSocket> = new Map();
 
   // Tracks pending requests awaiting responses per client
-  private pendingRequests: Map<
+  pendingRequests: Map<
     ClientId,
     Map<RequestId, (message: IncomingWSResponseMessage) => void>
   > = new Map();
+
+  // Tracks active message contexts per client
+  messageContexts: Map<ClientId, Map<ContextId, MessageContext>> = new Map();
 
   /**
    * Registers a new client with its WebSocket connection.
    */
   registerClientId(clientId: ClientId, ws: WebSocket) {
     if (!this.credentials.has(clientId)) {
-      this.credentials.set(clientId, new Map());
       this.sockets.set(clientId, ws);
+      this.credentials.set(clientId, new Map());
+      this.pendingRequests.set(clientId, new Map());
+      this.messageContexts.set(clientId, new Map());
+      
+      // chat context
+      this.messageContexts
+        .get(clientId)
+        ?.set("CHAT", createMessageContext(clientId, "CHAT"));
     } else {
       log(`Client ID ${clientId} is already registered.`);
     }
@@ -49,7 +61,7 @@ class SessionManager {
    * Sends a message to the specified client via WebSocket.
    * Returns true if successful, false otherwise.
    */
-  private sendMessage(clientId: ClientId, message: OutgoingWSMessage): boolean {
+  sendMessage(clientId: ClientId, message: OutgoingWSMessage): boolean {
     const ws = this.sockets.get(clientId);
     if (ws && ws.readyState === ws.OPEN) {
       ws.send(JSON.stringify(message));
@@ -64,7 +76,7 @@ class SessionManager {
    * Waits for a response to a specific request from a client.
    * Rejects if timeout occurs.
    */
-  private async expectResponse(
+  async expectResponse(
     clientId: ClientId,
     requestId: RequestId
   ): Promise<IncomingWSResponseMessage> {
@@ -88,86 +100,6 @@ class SessionManager {
   }
 
   /**
-   * Retrieves credentials for a client and integration.
-   * Requests credentials from client if not cached.
-   */
-  async retrieveCredentials(
-    clientId: ClientId,
-    integrationName: IntegrationName
-  ): Promise<string> {
-    const clientCredentials = this.credentials.get(clientId);
-    const token = clientCredentials?.get(integrationName);
-    if (typeof token === "string") {
-      return token;
-    } else {
-      const requestId = generateId("REQUEST");
-      return new Promise((resolve, reject) => {
-        this.expectResponse(clientId, requestId)
-          .then((message) => {
-            if (message.type === "PROVIDE_CREDENTIALS") {
-              resolve(message.accessToken);
-              clientCredentials?.set(integrationName, message.accessToken);
-            } else {
-              throw "message invalid";
-            }
-          })
-          .catch(reject);
-        this.sendMessage(clientId, {
-          type: "REQUEST_CREDENTIALS",
-          integrationName,
-          requestId,
-        });
-      });
-    }
-  }
-
-  /**
-   * Requests and retrieves a response to a question from the client.
-   */
-  async retrieveQuestionResponse(
-    clientId: ClientId,
-    contextId: ContextId,
-    question: string
-  ): Promise<string> {
-    const requestId = generateId("REQUEST");
-    return new Promise((resolve, reject) => {
-      // await response - auto cleanup handled
-      this.expectResponse(clientId, requestId)
-        .then((message) => {
-          if (message.type === "PROVIDE_QUESTION_RESPONSE") {
-            resolve(message.response);
-          } else {
-            throw "message invalid";
-          }
-        })
-        .catch(reject);
-
-      // send message to trigger response
-      this.sendMessage(clientId, {
-        type: "REQUEST_QUESTION_RESPONSE",
-        contextId,
-        question,
-        requestId,
-      });
-    });
-  }
-
-  /**
-   * Sends an agent message to the client in a specific context.
-   */
-  async sendAgentMessage(
-    clientId: ClientId,
-    contextId: ContextId,
-    content: string
-  ) {
-    this.sendMessage(clientId, {
-      type: "AGENT_MESSAGE",
-      contextId,
-      content,
-    });
-  }
-
-  /**
    * Handle receipt of any pending requests
    */
   async triggerRequestResponse(
@@ -176,6 +108,14 @@ class SessionManager {
     message: IncomingWSResponseMessage
   ) {
     this.pendingRequests.get(clientId)?.get(requestId)?.(message);
+  }
+
+  /**
+   * Route user incoming messages to the right message context
+   */
+  routeUserMessage(clientId: ClientId, message: IncomingWSUserMessage) {
+    const context = this.messageContexts.get(clientId)?.get(message.context);
+    context?.handleIncomingMessage(message);
   }
 }
 
