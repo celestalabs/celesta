@@ -16,15 +16,25 @@ import { WebSocket } from "ws";
 import { handleFrontendChatMessage } from "../handlers/frontendChatMessage.js";
 import { logger } from "../utils/logger.js";
 import { createMessageContext, MessageContext } from "./messageContext.js";
+import { integrationsClient } from "./integrationsClient.js";
 
 const log = logger("sessionManager");
 
 /**
  * Manages sessions, credentials, and WebSocket messaging for clients.
  */
+
+type Integrations = Extract<
+  Awaited<ReturnType<typeof integrationsClient.listIntegrations>>,
+  { success: true }
+>["integrations"];
+
 class SessionManager {
   // Maps client IDs to their credentials per integration
   credentials: Map<ClientId, Map<IntegrationName, string>> = new Map();
+
+  // Maps client IDs to the tools they have available
+  tools: Map<ClientId, Integrations> = new Map();
 
   // Maps client IDs to their WebSocket connections
   sockets: Map<ClientId, WebSocket> = new Map();
@@ -41,12 +51,22 @@ class SessionManager {
   /**
    * Registers a new client with its WebSocket connection.
    */
-  registerClientId(clientId: ClientId, ws: WebSocket) {
+  async registerClientId(clientId: ClientId, ws: WebSocket) {
     if (!this.credentials.has(clientId)) {
       this.sockets.set(clientId, ws);
       this.credentials.set(clientId, new Map());
       this.pendingRequests.set(clientId, new Map());
       this.messageContexts.set(clientId, new Map());
+
+      const toolResponse = await integrationsClient.listIntegrations({
+        params: { mode: "all" },
+      });
+
+      if (toolResponse.success) {
+        this.tools.set(clientId, toolResponse.integrations);
+      } else {
+        this.tools.set(clientId, {} as Integrations);
+      }
 
       // chat context
       this.messageContexts

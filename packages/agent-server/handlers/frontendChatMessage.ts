@@ -6,6 +6,10 @@ import {
 } from "../components/messageContext.js";
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
+import { sessionManager } from "../components/sessionManager.js";
+import { jsonSchema, Tool, tool } from "ai";
+import { integrationsClient } from "../components/integrationsClient.js";
+import { gatherTools } from "../utils/gatherTools.js";
 
 const log = logger("frontendChatMessage");
 
@@ -33,7 +37,7 @@ export const handleFrontendChatMessage: FrontendUserMessageHandler = async (
   try {
     const chatAgent = new ChatAgent({
       messageContext: ctx,
-      tools: {},
+      tools: gatherTools(clientId, ctx, "chat"),
     });
 
     let shouldSendChatResponse = true;

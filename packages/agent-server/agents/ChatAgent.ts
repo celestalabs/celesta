@@ -1,8 +1,17 @@
 import { ConversationWSMessage, WSMessage } from "@celesta/types";
-import { generateText, generateObject, streamText, ToolSet } from "ai";
+import {
+  generateText,
+  generateObject,
+  streamText,
+  ToolSet,
+  stepCountIs,
+} from "ai";
 import { z } from "zod";
 import { MessageContext } from "../components/messageContext.js";
 import { BaseAgent } from "./BaseAgent.js";
+import { logger } from "../utils/logger.js";
+
+const log = logger("ChatAgent");
 
 /**
  * Schema for workflow intent detection
@@ -107,7 +116,12 @@ USING TOOLS APPROPRIATELY:
 - ❌ "Find all emails from John and summarize them" → Requires workflow (multi-step)
 - ❌ "Schedule a meeting tomorrow" → Requires workflow (write operation)
 
-Be conversational and natural in your responses. Present tool results in a friendly, readable way.`,
+ALWAYS RESPOND WITH TEXT TO THE USER:
+- When you call a tool, always reply with a text response to the user, either by synthesizing the tool call information or discussing any errors that occurred.
+- Do not assume tool call errors are automatically surfaced to the user; if a tool call fails or returns an error, explain the issue in your reply.
+- Present tool results in a friendly, readable way, and always ensure the user receives a clear text response regardless of tool call outcome.
+
+Be conversational and natural in your responses.`,
         },
         // Add recent chat history (last 10 messages for context)
         ...chatHistory.slice(-10).map((msg) => ({
@@ -125,21 +139,18 @@ Be conversational and natural in your responses. Present tool results in a frien
 
       // If tools are available, use streamText for tool execution
       if (this.tools && Object.keys(this.tools).length > 0) {
-        const result = streamText({
+        const { textStream } = await streamText({
           model: this.model,
           tools: this.tools,
+          stopWhen: stepCountIs(4),
           messages,
         });
 
         // Consume the text stream
         let fullText = "";
-        for await (const chunk of result.textStream) {
+        for await (const chunk of textStream) {
           fullText += chunk;
         }
-
-        // Wait for all tool executions to complete
-        await result.toolCalls;
-        await result.toolResults;
 
         return fullText.trim() || "I've completed your request.";
       } else {

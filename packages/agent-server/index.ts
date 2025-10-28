@@ -12,13 +12,13 @@ const server = new WebSocketServer({
   port: Number(process.env.PORT) || 8081,
 });
 
-server.on("connection", (ws) => {
+server.on("connection", async (ws) => {
   const clientId = generateId("CLIENT");
 
   log(`Client connected: ${clientId}`);
 
   // register in session manager
-  sessionManager.registerClientId(clientId, ws);
+  await sessionManager.registerClientId(clientId, ws);
 
   ws.on("message", (message) => {
     log(`Received raw message from ${clientId}:`, message.toString());
