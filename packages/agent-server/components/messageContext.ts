@@ -15,16 +15,7 @@ import { BaseAgent } from "../agents/BaseAgent.js";
 
 const log = logger("messageContext");
 
-/**
- * Handler type for frontend user messages within a message context.
- */
-
-export type FrontendUserMessageHandler = (
-  message: FrontendWSUserMessage,
-  ctx: InternalMessageContext
-) => void;
-
-type HandlerAgentCreator = (ctx: InternalMessageContext) => BaseAgent;
+export type HandlerAgentCreator = (ctx: InternalMessageContext) => BaseAgent;
 
 /**
  * Internal implementation of MessageContext.
@@ -49,12 +40,12 @@ class InternalMessageContext {
   /**
    * Handle an frontend message for this context.
    */
-  handleFrontendMessage(message: FrontendWSUserMessage) {
+  handleFrontendUserMessage(message: FrontendWSUserMessage) {
     log(
       `Received message in context ${this.contextId} from client ${this.clientId}: ${message.content}`
     );
     this.messages.push(message);
-    this.handlerAgent.run();
+    this.handlerAgent.onUserMessage();
   }
 
   /**

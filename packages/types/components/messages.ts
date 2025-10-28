@@ -1,4 +1,4 @@
-import { ContextId, RequestId, ToolCallId } from "./Id.js";
+import { ContextId, RequestId, ToolCallId } from "./ids.js";
 
 export type FrontendWSUserMessage = {
   type: "USER_MESSAGE";

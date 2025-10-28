@@ -45,19 +45,11 @@ export type WorkflowIntent = z.infer<typeof WorkflowIntentSchema>;
  * and detect when a user's request requires a complex multi-step workflow.
  */
 export class ChatAgent extends BaseAgent {
-  protected agentName = "ChatAgent";
   private tools: ToolSet;
 
   constructor(messageContext: MessageContext) {
     super(messageContext);
     this.tools = gatherTools(messageContext, "chat");
-  }
-
-  /**
-   * Update the tools available to the chat agent
-   */
-  setTools(tools: ToolSet): void {
-    this.tools = tools;
   }
 
   /**
@@ -136,10 +128,7 @@ Be conversational and natural in your responses.`,
           fullText += chunk;
         }
 
-        this.messageContext.sendAgentMessage(
-          fullText.trim() || "I've completed your request.",
-          "chat"
-        );
+        this.sendChat(fullText.trim() || "I've completed your request.");
       } else {
         // No tools available, just generate text
         const response = await generateText({
@@ -147,14 +136,13 @@ Be conversational and natural in your responses.`,
           messages,
         });
 
-        this.messageContext.sendAgentMessage(response.text, "chat");
+        this.sendChat(response.text.trim() || "I've completed your request.");
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`[ChatAgent] Error generating response: ${errorMsg}`);
-      this.messageContext.sendAgentMessage(
-        "I apologize, but I encountered an error processing your message. Could you please try again?",
-        "chat"
+      this.sendError(
+        "I apologize, but I encountered an error processing your message. Could you please try again?"
       );
       return;
     }
@@ -281,7 +269,10 @@ Extract and summarize only the relevant information from the conversation that w
     }
   }
 
-  async run(): Promise<void> {
+  /**
+   * Chat agent executes onUserMessage because it needs to respond
+   */
+  async onUserMessage() {
     try {
       let shouldSendChatResponse = true;
 
@@ -325,10 +316,7 @@ Extract and summarize only the relevant information from the conversation that w
                 log(
                   `Client ${this.messageContext.clientId} approved starting workflow for context ${this.messageContext.contextId}`
                 );
-                this.messageContext.sendAgentMessage(
-                  "Starting a workflow for you in the background!",
-                  "chat"
-                );
+                this.sendChat("Starting a workflow for you in the background!");
                 // Here trigger the workflow start logic
                 return;
               }
@@ -367,9 +355,8 @@ Extract and summarize only the relevant information from the conversation that w
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       log(`Chat error for client ${this.messageContext.clientId}:`, error);
-      this.messageContext.sendAgentMessage(
-        "An error occurred while processing your message: " + errorMsg,
-        "error"
+      this.sendError(
+        "An error occurred while processing your message: " + errorMsg
       );
     }
   }

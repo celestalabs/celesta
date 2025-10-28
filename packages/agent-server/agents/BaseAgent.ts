@@ -9,11 +9,10 @@ import { MessageContext } from "../components/messageContext.js";
  */
 export abstract class BaseAgent {
   protected model: LanguageModel;
-  protected abstract agentName: string;
   protected messageContext: MessageContext;
 
-  // This is what is overriden and contains execution flow logic for this agent
-  abstract run(): Promise<void>;
+  // Logic inputs are constructor and user-message
+  abstract onUserMessage(): Promise<void>;
 
   constructor(messageContext: MessageContext) {
     this.messageContext = messageContext;

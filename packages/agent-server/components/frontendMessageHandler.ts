@@ -1,11 +1,11 @@
 import { ClientId } from "@celesta/types";
-import { sessionManager } from "../components/sessionManager.js";
+import { sessionManager } from "./sessionManager.js";
 import { isFrontendWSMessage } from "../types/guards.js";
 import { logger } from "../utils/logger.js";
 
-const log = logger("frontendWSMessage");
+const log = logger("frontendMessageHandler");
 
-export function handleFrontendWSMessage(clientId: ClientId, rawMessage: any) {
+export function frontendMessageHandler(clientId: ClientId, rawMessage: any) {
   const message = JSON.parse(rawMessage.toString());
   // type guard to verify message structure
   if (!isFrontendWSMessage(message)) {

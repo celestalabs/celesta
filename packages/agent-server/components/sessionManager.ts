@@ -14,7 +14,11 @@ import {
 } from "@celesta/types";
 import { WebSocket } from "ws";
 import { logger } from "../utils/logger.js";
-import { createMessageContext, MessageContext } from "./messageContext.js";
+import {
+  createMessageContext,
+  HandlerAgentCreator,
+  MessageContext,
+} from "./messageContext.js";
 import { integrationsClient } from "./integrationsClient.js";
 import { gatherTools } from "../utils/gatherTools.js";
 import { ChatAgent } from "../agents/ChatAgent.js";
@@ -50,6 +54,23 @@ class SessionManager {
   messageContexts: Map<ClientId, Map<ContextId, MessageContext>> = new Map();
 
   /**
+   * Creates a new message context for the specified client.
+   */
+  async createContext(
+    clientId: ClientId,
+    contextId: ContextId,
+    createHandlerAgent: HandlerAgentCreator
+  ) {
+    this.messageContexts
+      .get(clientId)
+      ?.set(
+        contextId,
+        createMessageContext(clientId, contextId, createHandlerAgent)
+      );
+    log(`Created context ${contextId} for client ${clientId}.`);
+  }
+
+  /**
    * Registers a new client with its WebSocket connection.
    */
   async registerClientId(clientId: ClientId, ws: WebSocket) {
@@ -70,10 +91,7 @@ class SessionManager {
       }
 
       // chat context
-      this.messageContexts.get(clientId)?.set(
-        "CHAT",
-        createMessageContext(clientId, "CHAT", (ctx) => new ChatAgent(ctx))
-      );
+      this.createContext(clientId, "CHAT", (ctx) => new ChatAgent(ctx));
     } else {
       log(`Client ID ${clientId} is already registered.`);
     }
@@ -141,7 +159,7 @@ class SessionManager {
       log("no context to handle message");
       return;
     }
-    context.handleFrontendMessage(message);
+    context.handleFrontendUserMessage(message);
   }
 }
 
