@@ -8,12 +8,12 @@ import {
   RequestId,
   ClientId,
   ContextId,
-  IncomingWSResponseMessage,
-  IncomingWSUserMessage,
-  OutgoingWSMessage,
+  FrontendWSResponseMessage,
+  FrontendWSUserMessage,
+  ServerWSMessage,
 } from "@celesta/types";
 import { WebSocket } from "ws";
-import { handleIncomingChatMessage } from "../handlers/incomingChatMessage.js";
+import { handleFrontendChatMessage } from "../handlers/frontendChatMessage.js";
 import { logger } from "../utils/logger.js";
 import { createMessageContext, MessageContext } from "./messageContext.js";
 
@@ -32,7 +32,7 @@ class SessionManager {
   // Tracks pending requests awaiting responses per client
   pendingRequests: Map<
     ClientId,
-    Map<RequestId, (message: IncomingWSResponseMessage) => void>
+    Map<RequestId, (message: FrontendWSResponseMessage) => void>
   > = new Map();
 
   // Tracks active message contexts per client
@@ -53,7 +53,7 @@ class SessionManager {
         .get(clientId)
         ?.set(
           "CHAT",
-          createMessageContext(clientId, "CHAT", handleIncomingChatMessage)
+          createMessageContext(clientId, "CHAT", handleFrontendChatMessage)
         );
     } else {
       log(`Client ID ${clientId} is already registered.`);
@@ -64,7 +64,7 @@ class SessionManager {
    * Sends a message to the specified client via WebSocket.
    * Returns true if successful, false otherwise.
    */
-  sendMessage(clientId: ClientId, message: OutgoingWSMessage): boolean {
+  sendMessage(clientId: ClientId, message: ServerWSMessage): boolean {
     const ws = this.sockets.get(clientId);
     if (ws && ws.readyState === ws.OPEN) {
       ws.send(JSON.stringify(message));
@@ -82,7 +82,7 @@ class SessionManager {
   async expectResponse(
     clientId: ClientId,
     requestId: RequestId
-  ): Promise<IncomingWSResponseMessage> {
+  ): Promise<FrontendWSResponseMessage> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(
         () => {
@@ -108,21 +108,21 @@ class SessionManager {
   async triggerRequestResponse(
     clientId: ClientId,
     requestId: RequestId,
-    message: IncomingWSResponseMessage
+    message: FrontendWSResponseMessage
   ) {
     this.pendingRequests.get(clientId)?.get(requestId)?.(message);
   }
 
   /**
-   * Route user incoming messages to the right message context
+   * Route user frontend messages to the right message context
    */
-  routeUserMessage(clientId: ClientId, message: IncomingWSUserMessage) {
+  routeUserMessage(clientId: ClientId, message: FrontendWSUserMessage) {
     const context = this.messageContexts.get(clientId)?.get(message.contextId);
     if (context == null) {
       log("no context to handle message");
       return;
     }
-    context.handleIncomingMessage(message);
+    context.handleFrontendMessage(message);
   }
 }
 

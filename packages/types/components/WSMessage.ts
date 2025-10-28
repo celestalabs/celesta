@@ -1,12 +1,12 @@
-import { ContextId, RequestId, ToolCallId } from "./src/Id.js";
+import { ContextId, RequestId, ToolCallId } from "./Id.js";
 
-export type IncomingWSUserMessage = {
+export type FrontendWSUserMessage = {
   type: "USER_MESSAGE";
   contextId: ContextId;
   content: string;
 };
 
-export type IncomingWSResponseMessage =
+export type FrontendWSResponseMessage =
   | {
       type: "PROVIDE_CREDENTIALS";
       integrationName: string;
@@ -26,21 +26,21 @@ export type IncomingWSResponseMessage =
       yes: boolean;
     };
 
-export type IncomingWSMessage =
-  | IncomingWSUserMessage
-  | IncomingWSResponseMessage;
+export type FrontendWSMessage =
+  | FrontendWSUserMessage
+  | FrontendWSResponseMessage;
 
 export type AgentMessageType = "error" | "final" | "chat";
 
-export type OutgoingWSAgentMessage = {
+export type ServerWSAgentMessage = {
   type: "AGENT_MESSAGE";
   messageType: AgentMessageType;
   contextId: ContextId;
   content: string;
 };
 
-export type OutgoingWSMessage =
-  | OutgoingWSAgentMessage
+export type ServerWSMessage =
+  | ServerWSAgentMessage
   | {
       type: "TOOL_INVOCATION";
       toolCallId: ToolCallId;
@@ -71,7 +71,7 @@ export type OutgoingWSMessage =
     };
 
 export type ConversationWSMessage =
-  | OutgoingWSAgentMessage
-  | IncomingWSUserMessage;
+  | ServerWSAgentMessage
+  | FrontendWSUserMessage;
 
-export type WSMessage = IncomingWSMessage | OutgoingWSMessage;
+export type WSMessage = FrontendWSMessage | ServerWSMessage;

@@ -1,26 +1,34 @@
 import useWebSocket from "react-use-websocket";
-import { IncomingWSMessage, OutgoingWSMessage } from "@celesta/types";
+import {
+  FrontendWSMessage,
+  ServerWSMessage,
+  WSMessage,
+} from "@celesta/types";
 
-// Map each OutgoingWSMessage type to its specific message shape
-type OutgoingWSMessageByType = {
-  [K in OutgoingWSMessage["type"]]: Extract<OutgoingWSMessage, { type: K }>;
+// Map each ServerWSMessage type to its specific message shape
+type ServerWSMessageByType = {
+  [K in ServerWSMessage["type"]]: Extract<ServerWSMessage, { type: K }>;
 };
 
-export function useAgentServer(
-  handlerByType: {
-    [K in keyof OutgoingWSMessageByType]: (message: OutgoingWSMessageByType[K]) => void;
-  }
-) {
+export function useAgentServer(handlerByType: {
+  [K in keyof ServerWSMessageByType]: (
+    message: ServerWSMessageByType[K]
+  ) => void;
+}) {
+  const [messages, setMessages] = useState<WSMessage[]>([]);
+
   const handleOpen = useCallback(() => {
     console.log("WebSocket connection opened");
   }, []);
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {
-      const message: OutgoingWSMessage = JSON.parse(event.data);
-      const handler = handlerByType[message.type as keyof OutgoingWSMessageByType];
+      const message: ServerWSMessage = JSON.parse(event.data);
+      const handler =
+        handlerByType[message.type as keyof ServerWSMessageByType];
       if (handler) {
         // TypeScript can't fully narrow here, so cast for safety
+        setMessages((prev) => [...prev, message]);
         handler(message as any);
       } else {
         console.warn(`No handler for message type: ${message.type}`);
@@ -38,7 +46,8 @@ export function useAgentServer(
   );
 
   const sendMessage = useCallback(
-    (message: IncomingWSMessage) => {
+    (message: FrontendWSMessage) => {
+      setMessages((prev) => [...prev, message]);
       sendJsonMessage(message);
     },
     [sendJsonMessage]
@@ -46,5 +55,6 @@ export function useAgentServer(
 
   return {
     sendMessage,
+    messages,
   };
 }

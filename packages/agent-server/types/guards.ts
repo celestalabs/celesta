@@ -1,6 +1,6 @@
-import { IncomingWSMessage } from "@celesta/types";
+import { FrontendWSMessage } from "@celesta/types";
 
-export function isIncomingWSMessage(msg: any): msg is IncomingWSMessage {
+export function isFrontendWSMessage(msg: any): msg is FrontendWSMessage {
   if (!msg || typeof msg !== "object" || typeof msg.type !== "string")
     return false;
   switch (msg.type) {

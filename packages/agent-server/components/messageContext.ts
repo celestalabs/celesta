@@ -5,8 +5,8 @@ import {
   ContextId,
   AgentMessageType,
   ConversationWSMessage,
-  IncomingWSUserMessage,
-  OutgoingWSMessage,
+  FrontendWSUserMessage,
+  ServerWSMessage,
 } from "@celesta/types";
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
@@ -15,11 +15,11 @@ import { sessionManager } from "./sessionManager.js";
 const log = logger("messageContext");
 
 /**
- * Handler type for incoming user messages within a message context.
+ * Handler type for frontend user messages within a message context.
  */
 
-export type IncomingUserMessageHandler = (
-  message: IncomingWSUserMessage,
+export type FrontendUserMessageHandler = (
+  message: FrontendWSUserMessage,
   ctx: InternalMessageContext
 ) => void;
 
@@ -31,27 +31,27 @@ class InternalMessageContext {
   clientId: ClientId;
   contextId: ContextId;
   messages: ConversationWSMessage[] = [];
-  private onIncomingMessage: IncomingUserMessageHandler;
+  private onFrontendMessage: FrontendUserMessageHandler;
 
   constructor(
     clientId: ClientId,
     contextId: ContextId,
-    onIncomingMessage: IncomingUserMessageHandler
+    onFrontendMessage: FrontendUserMessageHandler
   ) {
     this.clientId = clientId;
     this.contextId = contextId;
-    this.onIncomingMessage = onIncomingMessage;
+    this.onFrontendMessage = onFrontendMessage;
   }
 
   /**
-   * Handle an incoming message for this context.
+   * Handle an frontend message for this context.
    */
-  handleIncomingMessage(message: IncomingWSUserMessage) {
+  handleFrontendMessage(message: FrontendWSUserMessage) {
     log(
       `Received message in context ${this.contextId} from client ${this.clientId}: ${message.content}`
     );
     this.messages.push(message);
-    this.onIncomingMessage(message, this);
+    this.onFrontendMessage(message, this);
   }
 
   /**
@@ -124,7 +124,7 @@ class InternalMessageContext {
   /**
    * General message sending method.
    */
-  async generalSendMessage(message: OutgoingWSMessage) {
+  async generalSendMessage(message: ServerWSMessage) {
     sessionManager.sendMessage(this.clientId, message);
   }
 
@@ -137,7 +137,7 @@ class InternalMessageContext {
       contextId: this.contextId,
       content,
       messageType: type,
-    } satisfies OutgoingWSMessage;
+    } satisfies ServerWSMessage;
 
     this.messages.push(message);
     sessionManager.sendMessage(this.clientId, message);
@@ -174,7 +174,7 @@ class InternalMessageContext {
 export const createMessageContext = (
   clientId: ClientId,
   contextId: ContextId,
-  onIncomingMessage: IncomingUserMessageHandler = () => {}
-) => new InternalMessageContext(clientId, contextId, onIncomingMessage);
+  onFrontendMessage: FrontendUserMessageHandler = () => {}
+) => new InternalMessageContext(clientId, contextId, onFrontendMessage);
 
 export type MessageContext = ReturnType<typeof createMessageContext>;

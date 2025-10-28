@@ -54,12 +54,12 @@ wss.on("connection", (ws: WebSocket) => {
     "Server"
   );
 
-  // Handle incoming messages
+  // Handle frontend messages
   ws.on("message", async (data) => {
     try {
       const message = JSON.parse(data.toString());
       
-      // Log all incoming messages
+      // Log all frontend messages
       console.log("[Server] Raw message received:", JSON.stringify(message, null, 2));
 
       // Handle workflow execution request

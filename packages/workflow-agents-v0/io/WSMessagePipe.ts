@@ -145,8 +145,8 @@ export class WSMessagePipe implements IMessagePipe {
       this.askTimeout = askTimeout;
     }
 
-    // Set up message listener for incoming responses
-    this.messageHandler = this.handleIncomingMessage.bind(this);
+    // Set up message listener for frontend responses
+    this.messageHandler = this.handleFrontendMessage.bind(this);
     this.ws.on("message", this.messageHandler);
 
     // Handle connection close
@@ -415,7 +415,7 @@ export class WSMessagePipe implements IMessagePipe {
 
     // Set up new WebSocket
     this.ws = newWs;
-    this.messageHandler = this.handleIncomingMessage.bind(this);
+    this.messageHandler = this.handleFrontendMessage.bind(this);
     this.ws.on("message", this.messageHandler);
 
     // Handle connection close
@@ -457,9 +457,9 @@ export class WSMessagePipe implements IMessagePipe {
   }
 
   /**
-   * Handle incoming WebSocket messages
+   * Handle frontend WebSocket messages
    */
-  private handleIncomingMessage(data: RawData): void {
+  private handleFrontendMessage(data: RawData): void {
     try {
       const rawMessage = data.toString();
       const message = JSON.parse(rawMessage) as WSMessage;
@@ -533,7 +533,7 @@ export class WSMessagePipe implements IMessagePipe {
         }
       }
     } catch (error) {
-      console.error("[WSMessagePipe] Failed to parse incoming message:", error);
+      console.error("[WSMessagePipe] Failed to parse frontend message:", error);
     }
   }
 

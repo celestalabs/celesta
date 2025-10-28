@@ -1,17 +1,17 @@
-import { IncomingWSUserMessage } from "@celesta/types";
+import { FrontendWSUserMessage } from "@celesta/types";
 import { ChatAgent } from "../agents/ChatAgent.js";
 import {
-  IncomingUserMessageHandler,
+  FrontendUserMessageHandler,
   MessageContext,
 } from "../components/messageContext.js";
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
 
-const log = logger("incomingChatMessage");
+const log = logger("frontendChatMessage");
 
 async function sendChatResponse(
   chatAgent: ChatAgent,
-  message: IncomingWSUserMessage,
+  message: FrontendWSUserMessage,
   ctx: MessageContext
 ) {
   // Generate response
@@ -21,13 +21,13 @@ async function sendChatResponse(
   ctx.sendAgentMessage(response, "chat");
 }
 
-export const handleIncomingChatMessage: IncomingUserMessageHandler = async (
+export const handleFrontendChatMessage: FrontendUserMessageHandler = async (
   message,
   ctx
 ) => {
   const { clientId, contextId } = ctx;
 
-  // For now, just log the incoming chat message
+  // For now, just log the frontend chat message
   log("Received message in", [clientId, contextId], message.content);
 
   try {
