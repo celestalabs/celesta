@@ -12,7 +12,7 @@ export abstract class BaseAgent {
   protected messageContext: MessageContext;
 
   // Logic inputs are initialize and user-message
-  abstract onInitialize(): Promise<unknown>;
+  abstract onInitialize(): Promise<any>;
   abstract onUserMessage(): Promise<void>;
 
   constructor(messageContext: MessageContext) {

@@ -9,6 +9,10 @@ import {
   ToolMetadata,
 } from "../../utils/toolMetadata.js";
 import { WorkflowStatus, WorkflowTask } from "@celesta/types";
+import { ExecutionAgent } from "./ExecutionAgent.js";
+import { logger } from "../../utils/logger.js";
+
+const log = logger("CoordinationAgent");
 
 type CoordinationAgentConfig = {
   prompt: string;
@@ -69,6 +73,11 @@ export class CoordinationAgent extends BaseAgent {
   }
 
   async onInitialize() {
+    log("Starting workflow loop for task", this.prompt, [
+      this.messageContext.clientId,
+      this.messageContext.contextId,
+    ]);
+
     try {
       while (this.workflowStatus === "running") {
         await this.launchNewTask();
@@ -115,7 +124,7 @@ export class CoordinationAgent extends BaseAgent {
   /**
    * Determine the next task to execute based on current context
    */
-  async launchNewTask() {
+  private async launchNewTask() {
     const detailedContextSummary = this.getDetailedContext();
     const now = new Date();
     const dateString = now.toLocaleDateString("en-US", {
@@ -194,13 +203,33 @@ If all necessary tasks have been completed, set shouldContinue to false.`,
     });
   }
 
-  async executeTask(task: WorkflowTask) {
+  private async executeTask(task: WorkflowTask) {
     task.status = "in-progress";
     this.processedTasks.push(task);
+
+    const tools: ToolSet = Object.fromEntries(
+      task.tools.map((toolName) => [toolName, this.tools[toolName]])
+    );
+
+    const executionAgent = new ExecutionAgent({
+      messageContext: this.messageContext,
+      tools,
+      task,
+    });
+
+    const result = await executionAgent.onInitialize();
+
+    if (result.success) {
+      task.status = "completed";
+      this.sendChat(`Task [${task.slug}] completed successfully.`);
+    } else {
+      task.status = "failed";
+      this.sendError(
+        `Task [${task.slug}] failed: ${result.error || "Unknown error"}`
+      );
+    }
   }
 
   // stub we dont rly need this
-  async onUserMessage() {
-    return;
-  }
+  async onUserMessage() {}
 }
