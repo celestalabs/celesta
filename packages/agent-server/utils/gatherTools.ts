@@ -1,14 +1,13 @@
-import { jsonSchema, tool, Tool } from "ai";
+import { jsonSchema, tool, Tool, ToolSet } from "ai";
 import { sessionManager } from "../components/sessionManager.js";
 import { MessageContext } from "../components/messageContext.js";
-import { ClientId } from "@celesta/types";
 import { integrationsClient } from "../components/integrationsClient.js";
-import { isIntegrationName } from "@celesta/integrations-api/integrations/integrationMetadata.js";
+import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
 
 export function gatherTools(
   messageContext: MessageContext,
   mode: "workflow" | "chat"
-) {
+): ToolSet {
   const integrations = Object.fromEntries(
     Object.entries(
       sessionManager.tools.get(messageContext.clientId) || {}
@@ -16,10 +15,6 @@ export function gatherTools(
       integrationMetadata.actions
         .filter((a) => a.mode === mode || a.mode === "all")
         .map((action) => {
-          if (!isIntegrationName(integrationName)) {
-            return [];
-          }
-
           const toolName = `${integrationName}__${action.name}`;
           return [
             toolName,
@@ -42,7 +37,7 @@ export function gatherTools(
                         ? {
                             access_token:
                               await messageContext.retrieveCredentials(
-                                integrationName
+                                integrationName as IntegrationName
                               ),
                           }
                         : undefined,

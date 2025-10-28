@@ -3,15 +3,6 @@ import { LanguageModel } from "ai";
 import { MessageContext } from "../components/messageContext.js";
 
 /**
- * Base configuration for all agents
- */
-export interface BaseAgentConfig {
-  messageContext: MessageContext;
-  modelName?: string;
-  workflowId?: string;
-}
-
-/**
  * Base class for all AI agents in the workflow system.
  * Provides common functionality like model initialization, message pipe access,
  * and standardized error handling.
@@ -19,19 +10,17 @@ export interface BaseAgentConfig {
 export abstract class BaseAgent {
   protected model: LanguageModel;
   protected abstract agentName: string;
-  protected workflowId?: string;
   protected messageContext: MessageContext;
 
   // This is what is overriden and contains execution flow logic for this agent
   abstract run(): Promise<void>;
 
-  constructor(config: BaseAgentConfig) {
-    this.workflowId = config.workflowId;
-    this.messageContext = config.messageContext;
+  constructor(messageContext: MessageContext) {
+    this.messageContext = messageContext;
 
     this.model = createGoogleGenerativeAI({
       apiKey: process.env.GEMINI_API_KEY,
-    })(config.modelName || "gemini-2.5-flash");
+    })("gemini-2.5-flash");
   }
 
   /**

@@ -72,15 +72,7 @@ class SessionManager {
       // chat context
       this.messageContexts.get(clientId)?.set(
         "CHAT",
-        createMessageContext(
-          clientId,
-          "CHAT",
-          (ctx) =>
-            new ChatAgent({
-              messageContext: ctx,
-              tools: gatherTools(ctx, "chat"),
-            })
-        )
+        createMessageContext(clientId, "CHAT", (ctx) => new ChatAgent(ctx))
       );
     } else {
       log(`Client ID ${clientId} is already registered.`);

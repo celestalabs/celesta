@@ -11,6 +11,7 @@ import { MessageContext } from "../components/messageContext.js";
 import { BaseAgent } from "./BaseAgent.js";
 import { logger } from "../utils/logger.js";
 import { generateId } from "../utils/generateId.js";
+import { gatherTools } from "../utils/gatherTools.js";
 
 const log = logger("ChatAgent");
 
@@ -45,22 +46,11 @@ export type WorkflowIntent = z.infer<typeof WorkflowIntentSchema>;
  */
 export class ChatAgent extends BaseAgent {
   protected agentName = "ChatAgent";
-  private tools: ToolSet | undefined;
+  private tools: ToolSet;
 
-  constructor({
-    messageContext,
-    modelName,
-    tools,
-  }: {
-    messageContext: MessageContext;
-    modelName?: string;
-    tools?: ToolSet;
-  }) {
-    super({
-      messageContext: messageContext,
-      modelName: modelName,
-    });
-    this.tools = tools;
+  constructor(messageContext: MessageContext) {
+    super(messageContext);
+    this.tools = gatherTools(messageContext, "chat");
   }
 
   /**
