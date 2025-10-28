@@ -41,24 +41,35 @@ const App = React.memo(() => {
     REQUEST_SHOULD_START_WORKFLOW: (message) => {},
   });
 
-  const handleSendMessage = useCallback(() => {
-    if (!chatInput.trim()) return;
+  const handleSendMessage = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
 
-    sendMessage({
-      type: "USER_MESSAGE",
-      content: chatInput.trim(),
-      contextId: "CHAT",
-    });
+      if (!chatInput.trim()) return;
 
-    setChatInput("");
-  }, [sendMessage, chatInput]);
+      sendMessage({
+        type: "USER_MESSAGE",
+        content: chatInput.trim(),
+        contextId: "CHAT",
+      });
+
+      setChatInput("");
+    },
+    [sendMessage, chatInput]
+  );
+
+  const chatMessages = useMemo(
+    () =>
+      messages.filter((msg) => "contextId" in msg && msg.contextId === "CHAT"),
+    [messages]
+  );
 
   return (
     <div className="h-full p-4 flex flex-col gap-4">
       <h1 className="text-xl text-center">How's it going?</h1>
 
       <div className="flex-auto flex flex-col gap-4 overflow-y-auto">
-        {messages.map((msg, index) => (
+        {chatMessages.map((msg, index) => (
           <Card key={index}>
             <CardContent>
               <pre className="wrap-break-word whitespace-pre-wrap">
@@ -69,14 +80,14 @@ const App = React.memo(() => {
         ))}
       </div>
 
-      <div className="flex gap-2">
+      <form className="flex gap-2" onSubmit={handleSendMessage}>
         <Input
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
           placeholder="Type a message..."
         />
-        <Button onClick={handleSendMessage}>Send</Button>
-      </div>
+        <Button type="submit">Send</Button>
+      </form>
     </div>
   );
 });

@@ -139,7 +139,7 @@ Be conversational and natural in your responses.`,
 
       // If tools are available, use streamText for tool execution
       if (this.tools && Object.keys(this.tools).length > 0) {
-        const { textStream } = await streamText({
+        const { textStream } = streamText({
           model: this.model,
           tools: this.tools,
           stopWhen: stepCountIs(4),
