@@ -8,7 +8,11 @@ import {
   getMetadataFromToolSet,
   ToolMetadata,
 } from "../../utils/toolMetadata.js";
-import { WorkflowStatus, WorkflowTask } from "@celesta/types";
+import {
+  WorkflowStatus,
+  WorkflowTask,
+  WorkflowTaskResult,
+} from "@celesta/types";
 import { ExecutionAgent } from "./ExecutionAgent.js";
 import { logger } from "../../utils/logger.js";
 
@@ -21,7 +25,7 @@ type CoordinationAgentConfig = {
 
 const NextTaskSchema = z.discriminatedUnion("shouldContinue", [
   z.object({
-    shouldContinue: z.literal(true),
+    shouldContinue: z.literal("continue"),
     reasoning: z
       .string()
       .describe("Reasoning for the decision to continue or stop"),
@@ -34,26 +38,17 @@ const NextTaskSchema = z.discriminatedUnion("shouldContinue", [
           ),
         description: z.string().describe("Clear description of the task"),
         goal: z.string().describe("What this task aims to achieve"),
+        tools: z
+          .array(z.string())
+          .describe("List of tool names to use for this task"),
       })
-      .describe("The next task to execute, if shouldContinue is true"),
-    selectedTools: z
-      .array(
-        z.object({
-          toolId: z.string().describe("The ID of the selected tool"),
-          reason: z.string().describe("Why this tool is relevant for the task"),
-        })
-      )
-      .describe("List of selected tools with reasoning"),
+      .describe("The next task to execute, if shouldContinue is 'continue'"),
   }),
   z.object({
-    shouldContinue: z.literal(false),
+    shouldContinue: z.literal("stop"),
     reasoning: z
       .string()
       .describe("Reasoning for the decision to continue or stop"),
-    task: z
-      .undefined()
-      .optional()
-      .describe("No task if shouldContinue is false"),
   }),
 ]);
 
@@ -64,6 +59,7 @@ export class CoordinationAgent extends BaseAgent {
   private workflowStatus: WorkflowStatus = "running";
   private upcomingTaskQueue: WorkflowTask[] = [];
   private processedTasks: WorkflowTask[] = [];
+  private processedTaskResults: WorkflowTaskResult[] = [];
 
   constructor({ prompt, messageContext }: CoordinationAgentConfig) {
     super(messageContext);
@@ -187,8 +183,9 @@ Be specific and actionable in task descriptions.
 If all necessary tasks have been completed, set shouldContinue to false.`,
     });
 
-    if (response.shouldContinue === false) {
+    if (response.shouldContinue === "stop") {
       this.workflowStatus = "completed";
+      this.sendChat(`Workflow completed: ${response.reasoning}`);
       return;
     }
 
@@ -196,14 +193,17 @@ If all necessary tasks have been completed, set shouldContinue to false.`,
       slug: response.task.slug,
       description: response.task.description,
       goal: response.task.goal,
-      tools: response.selectedTools
-        .map((t) => t.toolId)
-        .filter((toolId) => toolId in this.tools),
+      tools: response.task.tools.filter((toolId) => toolId in this.tools),
       status: "pending",
     });
   }
 
   private async executeTask(task: WorkflowTask) {
+    log("Executing task", task.slug, [
+      this.messageContext.clientId,
+      this.messageContext.contextId,
+    ]);
+
     task.status = "in-progress";
     this.processedTasks.push(task);
 
@@ -215,13 +215,17 @@ If all necessary tasks have been completed, set shouldContinue to false.`,
       messageContext: this.messageContext,
       tools,
       task,
+      taskResults: this.processedTaskResults,
     });
 
     const result = await executionAgent.onInitialize();
+    this.processedTaskResults.push(result);
 
     if (result.success) {
       task.status = "completed";
-      this.sendChat(`Task [${task.slug}] completed successfully.`);
+      this.sendChat(
+        `Task [${task.slug}] completed successfully.\n\n${result.finalResult}`
+      );
     } else {
       task.status = "failed";
       this.sendError(

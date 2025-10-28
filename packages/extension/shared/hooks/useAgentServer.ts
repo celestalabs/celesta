@@ -24,6 +24,7 @@ export function useAgentServer(handlerByType: {
       const send = (ms: FrontendWSMessage) => ws.send(JSON.stringify(ms));
 
       const message: ServerWSMessage = JSON.parse(event.data);
+      console.log(message);
       const handler =
         handlerByType[message.type as keyof ServerWSMessageByType];
       if (handler) {
