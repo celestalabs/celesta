@@ -1,9 +1,9 @@
-import { getActiveTabId } from "~/old/utils/getActiveTabId";
+import { getActiveTabId } from "~/shared/utils/getActiveTabId.js";
 import {
   isCheckActiveTabMessage,
   isMessageResponseIdTuple,
   ResponseMessage,
-} from "~/old/utils/messages";
+} from "~/shared/utils/messages.js";
 
 export default defineBackground(() => {
   // keep alive so it doesnt go inactive
