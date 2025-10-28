@@ -11,7 +11,8 @@ export abstract class BaseAgent {
   protected model: LanguageModel;
   protected messageContext: MessageContext;
 
-  // Logic inputs are constructor and user-message
+  // Logic inputs are initialize and user-message
+  abstract onInitialize(): Promise<unknown>;
   abstract onUserMessage(): Promise<void>;
 
   constructor(messageContext: MessageContext) {

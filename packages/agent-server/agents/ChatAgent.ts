@@ -271,6 +271,11 @@ Extract and summarize only the relevant information from the conversation that w
     }
   }
 
+  // No initialization needed for ChatAgent
+  async onInitialize() {
+    return;
+  }
+
   /**
    * Chat agent executes onUserMessage because it needs to respond
    */

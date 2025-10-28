@@ -35,6 +35,8 @@ class InternalMessageContext {
     this.clientId = clientId;
     this.contextId = contextId;
     this.handlerAgent = createHandlerAgent(this);
+
+    this.handlerAgent.onInitialize();
   }
 
   /**

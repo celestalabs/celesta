@@ -66,11 +66,9 @@ export class CoordinationAgent extends BaseAgent {
     this.prompt = prompt;
     this.tools = gatherTools(messageContext, "workflow");
     this.toolMetadata = getMetadataFromToolSet(this.tools);
-
-    this.startAgentLoop();
   }
 
-  async startAgentLoop() {
+  async onInitialize() {
     try {
       while (this.workflowStatus === "running") {
         await this.launchNewTask();
@@ -202,7 +200,7 @@ If all necessary tasks have been completed, set shouldContinue to false.`,
   }
 
   // stub we dont rly need this
-  onUserMessage(): Promise<void> {
-    return Promise.resolve();
+  async onUserMessage() {
+    return;
   }
 }
