@@ -1,9 +1,25 @@
 import { ChatAgent } from "../agents/ChatAgent.js";
-import { IncomingUserMessageHandler } from "../components/messageContext.js";
+import {
+  IncomingUserMessageHandler,
+  MessageContext,
+} from "../components/messageContext.js";
+import { IncomingWSUserMessage } from "../types/index.js";
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
 
 const log = logger("incomingChatMessage");
+
+async function sendChatResponse(
+  chatAgent: ChatAgent,
+  message: IncomingWSUserMessage,
+  ctx: MessageContext
+) {
+  // Generate response
+  const response = await chatAgent.handleMessage(message.content, ctx.messages);
+
+  // Add assistant response to chat history
+  ctx.sendAgentMessage(response, "chat");
+}
 
 export const handleIncomingChatMessage: IncomingUserMessageHandler = async (
   message,
@@ -20,10 +36,11 @@ export const handleIncomingChatMessage: IncomingUserMessageHandler = async (
       tools: {},
     });
 
-    // Check if message is substantial enough for intent detection FIRST
     let shouldSendChatResponse = true;
 
+    // Check if message is substantial enough for intent detection FIRST
     if (message.content.length >= 20) {
+      shouldSendChatResponse = false;
       log(`Detecting workflow intent for message: "${message.content}"`);
 
       const intent = await chatAgent.detectWorkflowIntent(
@@ -37,8 +54,6 @@ export const handleIncomingChatMessage: IncomingUserMessageHandler = async (
 
       // If workflow is detected with high/medium confidence, skip chat response
       if (intent.needsWorkflow && intent.confidence !== "low") {
-        shouldSendChatResponse = false;
-
         const workflowRequestId = generateId("REQUEST");
 
         ctx
@@ -53,12 +68,15 @@ export const handleIncomingChatMessage: IncomingUserMessageHandler = async (
               );
               // Here trigger the workflow start logic
             }
+
+            throw "negative or invalid response";
           })
           .catch(() => {
             // Failure = timeout / dont start workflow
             log(
-              `No (or negative) response from client ${clientId} on workflow start request.`
+              `No (or negative) response from client ${clientId} on workflow start request. Continuing chat.`
             );
+            sendChatResponse(chatAgent, message, ctx);
           });
 
         ctx.generalSendMessage({
@@ -72,19 +90,13 @@ export const handleIncomingChatMessage: IncomingUserMessageHandler = async (
         });
 
         log(`Sent workflow intent detection to client ${clientId}`);
+      } else {
+        shouldSendChatResponse = true;
       }
     }
 
-    // Only generate and send chat response if no workflow was detected
     if (shouldSendChatResponse) {
-      // Generate response
-      const response = await chatAgent.handleMessage(
-        message.content,
-        ctx.messages
-      );
-
-      // Add assistant response to chat history
-      ctx.sendAgentMessage(response, "chat");
+      sendChatResponse(chatAgent, message, ctx);
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
