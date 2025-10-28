@@ -6,56 +6,56 @@ import { integrationsClient } from "../components/integrationsClient.js";
 import { isIntegrationName } from "@celesta/integrations-api/integrations/integrationMetadata.js";
 
 export function gatherTools(
-  clientId: ClientId,
   messageContext: MessageContext,
   mode: "workflow" | "chat"
 ) {
   const integrations = Object.fromEntries(
-    Object.entries(sessionManager.tools.get(clientId) || {}).flatMap(
-      ([integrationName, integrationMetadata]) =>
-        integrationMetadata.actions
-          .filter((a) => a.mode === mode || a.mode === "all")
-          .map((action) => {
-            if (!isIntegrationName(integrationName)) {
-              return [];
-            }
+    Object.entries(
+      sessionManager.tools.get(messageContext.clientId) || {}
+    ).flatMap(([integrationName, integrationMetadata]) =>
+      integrationMetadata.actions
+        .filter((a) => a.mode === mode || a.mode === "all")
+        .map((action) => {
+          if (!isIntegrationName(integrationName)) {
+            return [];
+          }
 
-            const toolName = `${integrationName}__${action.name}`;
-            return [
-              toolName,
-              tool({
-                name: toolName,
-                description:
-                  integrationMetadata.description + " - " + action.description,
-                inputSchema: jsonSchema(action.props),
-                async execute(input) {
-                  const handleToolResponse =
-                    messageContext.sendToolInvocationMessage(toolName, input);
+          const toolName = `${integrationName}__${action.name}`;
+          return [
+            toolName,
+            tool({
+              name: toolName,
+              description:
+                integrationMetadata.description + " - " + action.description,
+              inputSchema: jsonSchema(action.props),
+              async execute(input) {
+                const handleToolResponse =
+                  messageContext.sendToolInvocationMessage(toolName, input);
 
-                  const toolResponse =
-                    await integrationsClient.executeIntegration({
-                      body: {
-                        integrationName,
-                        actionName: action.name,
-                        props: input as Record<string, unknown>,
-                        auth: integrationMetadata.requiresUserAuth
-                          ? {
-                              access_token:
-                                await messageContext.retrieveCredentials(
-                                  integrationName
-                                ),
-                            }
-                          : undefined,
-                      },
-                    });
+                const toolResponse =
+                  await integrationsClient.executeIntegration({
+                    body: {
+                      integrationName,
+                      actionName: action.name,
+                      props: input as Record<string, unknown>,
+                      auth: integrationMetadata.requiresUserAuth
+                        ? {
+                            access_token:
+                              await messageContext.retrieveCredentials(
+                                integrationName
+                              ),
+                          }
+                        : undefined,
+                    },
+                  });
 
-                  handleToolResponse(toolResponse);
+                handleToolResponse(toolResponse);
 
-                  return toolResponse;
-                },
-              }),
-            ] as [string, Tool];
-          })
+                return toolResponse;
+              },
+            }),
+          ] as [string, Tool];
+        })
     )
   );
 

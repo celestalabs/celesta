@@ -10,6 +10,7 @@ import { z } from "zod";
 import { MessageContext } from "../components/messageContext.js";
 import { BaseAgent } from "./BaseAgent.js";
 import { logger } from "../utils/logger.js";
+import { generateId } from "../utils/generateId.js";
 
 const log = logger("ChatAgent");
 
@@ -72,10 +73,7 @@ export class ChatAgent extends BaseAgent {
   /**
    * Handle a chat message with optional tool execution for simple operations
    */
-  async handleMessage(
-    userMessage: string,
-    chatHistory: ConversationWSMessage[]
-  ): Promise<string> {
+  private async handleMessage(userMessage: string) {
     try {
       const now = new Date();
       const dateString = now.toLocaleDateString("en-US", {
@@ -124,7 +122,7 @@ ALWAYS RESPOND WITH TEXT TO THE USER:
 Be conversational and natural in your responses.`,
         },
         // Add recent chat history (last 10 messages for context)
-        ...chatHistory.slice(-10).map((msg) => ({
+        ...this.messageContext.messages.slice(-10).map((msg) => ({
           role:
             msg.type === "USER_MESSAGE"
               ? ("user" as const)
@@ -152,7 +150,10 @@ Be conversational and natural in your responses.`,
           fullText += chunk;
         }
 
-        return fullText.trim() || "I've completed your request.";
+        this.messageContext.sendAgentMessage(
+          fullText.trim() || "I've completed your request.",
+          "chat"
+        );
       } else {
         // No tools available, just generate text
         const response = await generateText({
@@ -160,12 +161,16 @@ Be conversational and natural in your responses.`,
           messages,
         });
 
-        return response.text;
+        this.messageContext.sendAgentMessage(response.text, "chat");
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`[ChatAgent] Error generating response: ${errorMsg}`);
-      return "I apologize, but I encountered an error processing your message. Could you please try again?";
+      this.messageContext.sendAgentMessage(
+        "I apologize, but I encountered an error processing your message. Could you please try again?",
+        "chat"
+      );
+      return;
     }
   }
 
@@ -173,7 +178,7 @@ Be conversational and natural in your responses.`,
    * Detect if a user message requires a complex workflow
    * Only called for messages with length >= 20 characters
    */
-  async detectWorkflowIntent(
+  private async detectWorkflowIntent(
     userMessage: string,
     chatHistory: WSMessage[]
   ): Promise<WorkflowIntent> {
@@ -290,6 +295,82 @@ Extract and summarize only the relevant information from the conversation that w
         `[ChatAgent] Error generating workflow context: ${errorMsg}`
       );
       return ""; // Return empty context on error
+    }
+  }
+
+  async run(message: string): Promise<void> {
+    try {
+      let shouldSendChatResponse = true;
+
+      // Check if message is substantial enough for intent detection FIRST
+      if (message.length >= 20) {
+        shouldSendChatResponse = false;
+        log(`Detecting workflow intent for message: "${message}"`);
+
+        const intent = await this.detectWorkflowIntent(
+          message,
+          this.messageContext.messages
+        );
+
+        log(
+          `Intent detection result: needsWorkflow=${intent.needsWorkflow}, confidence=${intent.confidence}`
+        );
+
+        // If workflow is detected with high/medium confidence, skip chat response
+        if (intent.needsWorkflow && intent.confidence !== "low") {
+          const workflowRequestId = generateId("REQUEST");
+
+          this.messageContext
+            .generalExpectResponse(workflowRequestId)
+            .then((response) => {
+              if (
+                response.type === "PROVIDE_SHOULD_START_WORKFLOW" &&
+                response.yes
+              ) {
+                log(
+                  `Client ${this.messageContext.clientId} approved starting workflow for context ${this.messageContext.contextId}`
+                );
+                // Here trigger the workflow start logic
+              }
+
+              throw "negative or invalid response";
+            })
+            .catch(() => {
+              // Failure = timeout / dont start workflow
+              log(
+                `No (or negative) response from client ${this.messageContext.clientId} on workflow start request. Continuing chat.`
+              );
+              this.handleMessage(message);
+            });
+
+          this.messageContext.generalSendMessage({
+            type: "REQUEST_SHOULD_START_WORKFLOW",
+            contextId: this.messageContext.contextId,
+            requestId: workflowRequestId,
+            content: `I can help you with that using a workflow. ${intent.reasoning}`,
+            suggestedPrompt: intent.suggestedPrompt || message,
+            confidence: intent.confidence,
+            reasoning: intent.reasoning,
+          });
+
+          log(
+            `Sent workflow intent detection to client ${this.messageContext.clientId}`
+          );
+        } else {
+          shouldSendChatResponse = true;
+        }
+      }
+
+      if (shouldSendChatResponse) {
+        this.handleMessage(message);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      log(`Chat error for client ${this.messageContext.clientId}:`, error);
+      this.messageContext.sendAgentMessage(
+        "An error occurred while processing your message: " + errorMsg,
+        "error"
+      );
     }
   }
 }
