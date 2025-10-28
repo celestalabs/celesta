@@ -16,7 +16,7 @@
     "dev:extension": "cd packages/extension && npm run dev",
     "dev:integrations-api": "cd packages/integrations-api && npm run dev",
     "dev:agent-server": "cd packages/agent-server && npm run dev",
-    "dev": "concurrently \"npm run dev:extension\" \"npm run dev:integrations-api\" \"npm run dev:agent-server\""
+    "dev": "concurrently npm:dev:*"
   },
   "workspaces": [
     "packages/extension",

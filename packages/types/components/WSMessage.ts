@@ -48,7 +48,12 @@ export type ServerWSMessage =
       toolName: string;
       input: string;
     }
-  | { type: "TOOL_RESULT"; toolCallId: ToolCallId; output: string }
+  | {
+      type: "TOOL_RESULT";
+      toolCallId: ToolCallId;
+      contextId: ContextId;
+      output: string;
+    }
   | {
       type: "REQUEST_CREDENTIALS";
       integrationName: string;

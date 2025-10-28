@@ -4,15 +4,15 @@ import "./styles/globals.css";
 import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
 import { useAgentServer } from "./hooks/useAgentServer";
-import {
-  Card,
-  CardContent,
-} from "./components/ui/card";
+import { Card, CardContent } from "./components/ui/card";
 import { useOAuth } from "./hooks/useOAuth";
+import { ButtonGroup } from "./components/ui/button-group";
+import { ContextId } from "@celesta/types";
+import { AssistantView } from "./views/AssistantView";
+import { WorkflowListView } from "./views/WorkflowListView";
+import { WorkflowView } from "./views/WorkflowView";
 
 const App = React.memo(() => {
-  const [chatInput, setChatInput] = useState("");
-
   const { handleOAuthFlow } = useOAuth();
 
   const { sendMessage, messages } = useAgentServer({
@@ -37,53 +37,36 @@ const App = React.memo(() => {
     REQUEST_SHOULD_START_WORKFLOW: (message) => {},
   });
 
-  const handleSendMessage = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-
-      if (!chatInput.trim()) return;
-
-      sendMessage({
-        type: "USER_MESSAGE",
-        content: chatInput.trim(),
-        contextId: "CHAT",
-      });
-
-      setChatInput("");
-    },
-    [sendMessage, chatInput]
-  );
-
-  const chatMessages = useMemo(
-    () =>
-      messages.filter((msg) => "contextId" in msg && msg.contextId === "CHAT"),
-    [messages]
+  const [currentTab, setCurrentTab] = useState<ContextId | "WORKFLOW_LIST">(
+    "CHAT"
   );
 
   return (
-    <div className="h-full p-4 flex flex-col gap-4">
-      <h1 className="text-xl text-center">How's it going?</h1>
-
-      <div className="flex-auto flex flex-col gap-4 overflow-y-auto">
-        {messages.map((msg, index) => (
-          <Card key={index}>
-            <CardContent>
-              <pre className="wrap-break-word whitespace-pre-wrap">
-                {JSON.stringify(msg, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <form className="flex gap-2" onSubmit={handleSendMessage}>
-        <Input
-          value={chatInput}
-          onChange={(e) => setChatInput(e.target.value)}
-          placeholder="Type a message..."
-        />
-        <Button type="submit">Send</Button>
-      </form>
+    <div className="h-full py-4 flex flex-col gap-5">
+      <ButtonGroup className="flex w-full px-4">
+        <Button
+          className="flex-auto"
+          variant={currentTab === "CHAT" ? "default" : "secondary"}
+          onClick={() => setCurrentTab("CHAT")}
+        >
+          Assistant
+        </Button>
+        <Button
+          className="flex-auto"
+          variant={currentTab !== "CHAT" ? "default" : "secondary"}
+          onClick={() => setCurrentTab("WORKFLOW_LIST")}
+        >
+          Workflows
+        </Button>
+      </ButtonGroup>
+ 
+      {currentTab === "CHAT" ? (
+        <AssistantView sendMessage={sendMessage} messages={messages} />
+      ) : currentTab === "WORKFLOW_LIST" ? (
+        <WorkflowListView />
+      ) : (
+        <WorkflowView />
+      )}
     </div>
   );
 });

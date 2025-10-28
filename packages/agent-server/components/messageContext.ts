@@ -166,6 +166,7 @@ class InternalMessageContext {
         type: "TOOL_RESULT",
         toolCallId,
         output: JSON.stringify(output),
+        contextId: this.contextId,
       });
     };
   }

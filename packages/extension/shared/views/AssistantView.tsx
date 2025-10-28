@@ -1,0 +1,90 @@
+import { FrontendWSMessage, ToolCallId, WSMessage } from "@celesta/types";
+import React from "react";
+import { Card, CardContent } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { UIMessageRepr } from "../types";
+import { MessageCard } from "../components/MessageCard";
+
+type Props = {
+  sendMessage: (message: FrontendWSMessage) => void;
+  messages: WSMessage[];
+};
+
+export const AssistantView = React.memo(({ sendMessage, messages }: Props) => {
+  const [chatInput, setChatInput] = useState("");
+
+  const handleSendMessage = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (!chatInput.trim()) return;
+
+      sendMessage({
+        type: "USER_MESSAGE",
+        content: chatInput.trim(),
+        contextId: "CHAT",
+      });
+
+      setChatInput("");
+    },
+    [sendMessage, chatInput]
+  );
+
+  const chatMessages = useMemo(() => {
+    const result: UIMessageRepr[] = [];
+    const resultIndexByToolCallId: Record<ToolCallId, number> = {};
+
+    for (const msg of messages) {
+      if (!("contextId" in msg) || msg.contextId !== "CHAT") {
+        continue;
+      }
+
+      if (msg.type === "USER_MESSAGE") {
+        result.push({ type: "user", content: msg.content });
+      } else if (msg.type === "AGENT_MESSAGE") {
+        result.push({ type: "agent", content: msg.content });
+      } else if (msg.type === "TOOL_INVOCATION") {
+        resultIndexByToolCallId[msg.toolCallId] = result.length;
+
+        result.push({
+          type: "tool",
+          toolName: msg.toolName,
+          input: msg.input,
+          output: null,
+        });
+      } else if (msg.type === "TOOL_RESULT") {
+        // Find the corresponding tool invocation to update its output
+        const index = resultIndexByToolCallId[msg.toolCallId];
+        if (index != null && result[index].type === "tool") {
+          result[index].output = msg.output;
+        }
+      }
+    }
+
+    return result;
+  }, [messages]);
+
+  return (
+    <>
+      <div className="flex-auto flex flex-col gap-4 overflow-y-auto px-4">
+        {chatMessages.length === 0 && (
+          <h1 className="text-xl text-center">How's it going?</h1>
+        )}
+
+        {chatMessages.map((msg, index) => (
+          <MessageCard key={index} message={msg} />
+        ))}
+      </div>
+
+      <form className="flex gap-2 px-4" onSubmit={handleSendMessage}>
+        <Input
+          value={chatInput}
+          onChange={(e) => setChatInput(e.target.value)}
+          placeholder="Type a message..."
+        />
+        <Button type="submit">Send</Button>
+      </form>
+    </>
+  );
+});
