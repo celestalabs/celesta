@@ -14,7 +14,7 @@ type Props = {
 export const AssistantView = React.memo(({ sendMessage, messages }: Props) => {
   const [chatInput, setChatInput] = useState("");
 
-  const handleSendMessage = useCallback(
+  const handleSendUserMessage = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
 
@@ -62,6 +62,16 @@ export const AssistantView = React.memo(({ sendMessage, messages }: Props) => {
       }
     }
 
+    const lastMessage = messages.at(-1);
+
+    if (lastMessage?.type === "REQUEST_SHOULD_START_WORKFLOW") {
+      result.push({
+        type: "workflow-request",
+        prompt: lastMessage.content,
+        requestId: lastMessage.requestId,
+      });
+    }
+
     return result;
   }, [messages]);
 
@@ -73,11 +83,11 @@ export const AssistantView = React.memo(({ sendMessage, messages }: Props) => {
         )}
 
         {chatMessages.map((msg, index) => (
-          <MessageCard key={index} message={msg} />
+          <MessageCard key={index} message={msg} sendMessage={sendMessage} />
         ))}
       </div>
 
-      <form className="flex gap-2 px-4" onSubmit={handleSendMessage}>
+      <form className="flex gap-2 px-4" onSubmit={handleSendUserMessage}>
         <Input
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}

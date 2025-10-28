@@ -329,7 +329,12 @@ Extract and summarize only the relevant information from the conversation that w
                 log(
                   `Client ${this.messageContext.clientId} approved starting workflow for context ${this.messageContext.contextId}`
                 );
+                this.messageContext.sendAgentMessage(
+                  "Starting a workflow for you in the background!",
+                  "chat"
+                );
                 // Here trigger the workflow start logic
+                return;
               }
 
               throw "negative or invalid response";
