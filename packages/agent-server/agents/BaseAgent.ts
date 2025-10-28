@@ -23,7 +23,7 @@ export abstract class BaseAgent {
   protected messageContext: MessageContext;
 
   // This is what is overriden and contains execution flow logic for this agent
-  protected abstract run(): Promise<void>;
+  abstract run(): Promise<void>;
 
   constructor(config: BaseAgentConfig) {
     this.workflowId = config.workflowId;

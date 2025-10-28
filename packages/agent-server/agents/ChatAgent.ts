@@ -304,6 +304,12 @@ Extract and summarize only the relevant information from the conversation that w
         return;
       }
 
+      log(
+        "Received message in",
+        [this.messageContext.clientId, this.messageContext.contextId],
+        latestMessage
+      );
+
       // Check if message is substantial enough for intent detection FIRST
       if (latestMessage.length >= 20) {
         shouldSendChatResponse = false;

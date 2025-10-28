@@ -13,10 +13,11 @@ import {
   ServerWSMessage,
 } from "@celesta/types";
 import { WebSocket } from "ws";
-import { handleFrontendChatMessage } from "../handlers/frontendChatMessage.js";
 import { logger } from "../utils/logger.js";
 import { createMessageContext, MessageContext } from "./messageContext.js";
 import { integrationsClient } from "./integrationsClient.js";
+import { gatherTools } from "../utils/gatherTools.js";
+import { ChatAgent } from "../agents/ChatAgent.js";
 
 const log = logger("sessionManager");
 
@@ -69,12 +70,18 @@ class SessionManager {
       }
 
       // chat context
-      this.messageContexts
-        .get(clientId)
-        ?.set(
+      this.messageContexts.get(clientId)?.set(
+        "CHAT",
+        createMessageContext(
+          clientId,
           "CHAT",
-          createMessageContext(clientId, "CHAT", handleFrontendChatMessage)
-        );
+          (ctx) =>
+            new ChatAgent({
+              messageContext: ctx,
+              tools: gatherTools(ctx, "chat"),
+            })
+        )
+      );
     } else {
       log(`Client ID ${clientId} is already registered.`);
     }

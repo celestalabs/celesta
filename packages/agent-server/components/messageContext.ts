@@ -11,6 +11,7 @@ import {
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
 import { sessionManager } from "./sessionManager.js";
+import { BaseAgent } from "../agents/BaseAgent.js";
 
 const log = logger("messageContext");
 
@@ -23,6 +24,8 @@ export type FrontendUserMessageHandler = (
   ctx: InternalMessageContext
 ) => void;
 
+type HandlerAgentCreator = (ctx: InternalMessageContext) => BaseAgent;
+
 /**
  * Internal implementation of MessageContext.
  */
@@ -31,16 +34,16 @@ class InternalMessageContext {
   clientId: ClientId;
   contextId: ContextId;
   messages: ConversationWSMessage[] = [];
-  private onFrontendMessage: FrontendUserMessageHandler;
+  private handlerAgent: BaseAgent;
 
   constructor(
     clientId: ClientId,
     contextId: ContextId,
-    onFrontendMessage: FrontendUserMessageHandler
+    createHandlerAgent: HandlerAgentCreator
   ) {
     this.clientId = clientId;
     this.contextId = contextId;
-    this.onFrontendMessage = onFrontendMessage;
+    this.handlerAgent = createHandlerAgent(this);
   }
 
   /**
@@ -51,7 +54,7 @@ class InternalMessageContext {
       `Received message in context ${this.contextId} from client ${this.clientId}: ${message.content}`
     );
     this.messages.push(message);
-    this.onFrontendMessage(message, this);
+    this.handlerAgent.run();
   }
 
   /**
@@ -175,7 +178,7 @@ class InternalMessageContext {
 export const createMessageContext = (
   clientId: ClientId,
   contextId: ContextId,
-  onFrontendMessage: FrontendUserMessageHandler = () => {}
-) => new InternalMessageContext(clientId, contextId, onFrontendMessage);
+  createHandlerAgent: (ctx: InternalMessageContext) => BaseAgent
+) => new InternalMessageContext(clientId, contextId, createHandlerAgent);
 
 export type MessageContext = ReturnType<typeof createMessageContext>;
