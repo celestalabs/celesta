@@ -11,16 +11,11 @@ export const handleFrontendChatMessage: FrontendUserMessageHandler = async (
   message,
   ctx
 ) => {
-  new ChatAgent({
-    messageContext: ctx,
-    tools: gatherTools(ctx, "chat"),
-  });
-
   const { clientId, contextId } = ctx;
   log("Received message in", [clientId, contextId], message.content);
 
   new ChatAgent({
     messageContext: ctx,
     tools: gatherTools(ctx, "chat"),
-  }).run(message.content);
+  }).run();
 };

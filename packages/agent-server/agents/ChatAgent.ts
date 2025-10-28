@@ -73,7 +73,7 @@ export class ChatAgent extends BaseAgent {
   /**
    * Handle a chat message with optional tool execution for simple operations
    */
-  private async handleMessage(userMessage: string) {
+  private async handleMessage() {
     try {
       const now = new Date();
       const dateString = now.toLocaleDateString("en-US", {
@@ -121,18 +121,14 @@ ALWAYS RESPOND WITH TEXT TO THE USER:
 
 Be conversational and natural in your responses.`,
         },
-        // Add recent chat history (last 10 messages for context)
-        ...this.messageContext.messages.slice(-10).map((msg) => ({
+        // Add recent chat history
+        ...this.messageContext.messages.map((msg) => ({
           role:
             msg.type === "USER_MESSAGE"
               ? ("user" as const)
               : ("assistant" as const),
           content: msg.content,
         })),
-        {
-          role: "user" as const,
-          content: userMessage,
-        },
       ];
 
       // If tools are available, use streamText for tool execution
@@ -178,19 +174,16 @@ Be conversational and natural in your responses.`,
    * Detect if a user message requires a complex workflow
    * Only called for messages with length >= 20 characters
    */
-  private async detectWorkflowIntent(
-    userMessage: string,
-    chatHistory: WSMessage[]
-  ): Promise<WorkflowIntent> {
+  private async detectWorkflowIntent(): Promise<WorkflowIntent> {
     try {
-      // Get recent context
-      const recentHistory = chatHistory.slice(-5);
+      // Get recent context, excluding current message
+      const recentHistory = this.messageContext.messages.slice(-5, -1);
       const contextStr =
         recentHistory.length > 0
           ? `Recent conversation:\n${recentHistory.map((msg) => `${msg.type === "USER_MESSAGE" ? "user" : "assistant"}: ${msg.type}`).join("\n")}\n\n`
           : "";
 
-      const prompt = `${contextStr}User message: "${userMessage}"
+      const prompt = `${contextStr}User message: "${this.messageContext.messages.at(-1)?.content}"
 
 Analyze if this message requires a COMPLEX MULTI-STEP WORKFLOW or if it's a SIMPLE OPERATION that can be handled with a single tool call or conversation.
 
@@ -298,19 +291,25 @@ Extract and summarize only the relevant information from the conversation that w
     }
   }
 
-  async run(message: string): Promise<void> {
+  async run(): Promise<void> {
     try {
       let shouldSendChatResponse = true;
 
-      // Check if message is substantial enough for intent detection FIRST
-      if (message.length >= 20) {
-        shouldSendChatResponse = false;
-        log(`Detecting workflow intent for message: "${message}"`);
+      let latestMessage = this.messageContext.messages.at(-1)?.content;
 
-        const intent = await this.detectWorkflowIntent(
-          message,
-          this.messageContext.messages
+      if (!latestMessage) {
+        log(
+          `No latest message found for client ${this.messageContext.clientId}`
         );
+        return;
+      }
+
+      // Check if message is substantial enough for intent detection FIRST
+      if (latestMessage.length >= 20) {
+        shouldSendChatResponse = false;
+        log(`Detecting workflow intent for message: "${latestMessage}"`);
+
+        const intent = await this.detectWorkflowIntent();
 
         log(
           `Intent detection result: needsWorkflow=${intent.needsWorkflow}, confidence=${intent.confidence}`
@@ -340,7 +339,7 @@ Extract and summarize only the relevant information from the conversation that w
               log(
                 `No (or negative) response from client ${this.messageContext.clientId} on workflow start request. Continuing chat.`
               );
-              this.handleMessage(message);
+              this.handleMessage();
             });
 
           this.messageContext.generalSendMessage({
@@ -348,7 +347,7 @@ Extract and summarize only the relevant information from the conversation that w
             contextId: this.messageContext.contextId,
             requestId: workflowRequestId,
             content: `I can help you with that using a workflow. ${intent.reasoning}`,
-            suggestedPrompt: intent.suggestedPrompt || message,
+            suggestedPrompt: intent.suggestedPrompt || latestMessage,
             confidence: intent.confidence,
             reasoning: intent.reasoning,
           });
@@ -362,7 +361,7 @@ Extract and summarize only the relevant information from the conversation that w
       }
 
       if (shouldSendChatResponse) {
-        this.handleMessage(message);
+        this.handleMessage();
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
