@@ -1,4 +1,4 @@
-import { IncomingWSMessage } from "./index.js";
+import { IncomingWSMessage } from "@celesta/types";
 
 export function isIncomingWSMessage(msg: any): msg is IncomingWSMessage {
   if (!msg || typeof msg !== "object" || typeof msg.type !== "string")

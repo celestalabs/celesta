@@ -1,9 +1,9 @@
+import { IncomingWSUserMessage } from "@celesta/types";
 import { ChatAgent } from "../agents/ChatAgent.js";
 import {
   IncomingUserMessageHandler,
   MessageContext,
 } from "../components/messageContext.js";
-import { IncomingWSUserMessage } from "../types/index.js";
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
 

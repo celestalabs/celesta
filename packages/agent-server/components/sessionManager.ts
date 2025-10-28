@@ -4,16 +4,16 @@
  */
 
 import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
-import { WebSocket } from "ws";
-import { handleIncomingChatMessage } from "../handlers/incomingChatMessage.js";
 import {
+  RequestId,
   ClientId,
   ContextId,
   IncomingWSResponseMessage,
   IncomingWSUserMessage,
   OutgoingWSMessage,
-  RequestId,
-} from "../types/index.js";
+} from "@celesta/types";
+import { WebSocket } from "ws";
+import { handleIncomingChatMessage } from "../handlers/incomingChatMessage.js";
 import { logger } from "../utils/logger.js";
 import { createMessageContext, MessageContext } from "./messageContext.js";
 

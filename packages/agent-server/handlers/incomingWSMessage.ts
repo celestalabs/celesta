@@ -1,6 +1,6 @@
+import { ClientId } from "@celesta/types";
 import { sessionManager } from "../components/sessionManager.js";
 import { isIncomingWSMessage } from "../types/guards.js";
-import { ClientId } from "../types/index.js";
 import { logger } from "../utils/logger.js";
 
 const log = logger("incomingWSMessage");

@@ -1,7 +1,7 @@
+import { ConversationWSMessage, WSMessage } from "@celesta/types";
 import { generateText, generateObject, streamText, ToolSet } from "ai";
 import { z } from "zod";
 import { MessageContext } from "../components/messageContext.js";
-import { ConversationWSMessage, WSMessage } from "../types/index.js";
 import { BaseAgent } from "./BaseAgent.js";
 
 /**

@@ -1,13 +1,13 @@
 import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
 import {
-  AgentMessageType,
+  RequestId,
   ClientId,
   ContextId,
+  AgentMessageType,
   ConversationWSMessage,
   IncomingWSUserMessage,
   OutgoingWSMessage,
-  RequestId,
-} from "../types/index.js";
+} from "@celesta/types";
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
 import { sessionManager } from "./sessionManager.js";

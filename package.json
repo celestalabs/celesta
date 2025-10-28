@@ -21,7 +21,8 @@
   "workspaces": [
     "packages/extension",
     "packages/integrations-api",
-    "packages/agent-server"
+    "packages/agent-server",
+    "packages/types"
   ],
   "devDependencies": {
     "concurrently": "^9.2.1"
