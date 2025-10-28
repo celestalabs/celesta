@@ -69,7 +69,7 @@ const App = React.memo(() => {
       <h1 className="text-xl text-center">How's it going?</h1>
 
       <div className="flex-auto flex flex-col gap-4 overflow-y-auto">
-        {chatMessages.map((msg, index) => (
+        {messages.map((msg, index) => (
           <Card key={index}>
             <CardContent>
               <pre className="wrap-break-word whitespace-pre-wrap">

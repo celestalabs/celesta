@@ -140,7 +140,7 @@ class InternalMessageContext {
     } satisfies ServerWSMessage;
 
     this.messages.push(message);
-    sessionManager.sendMessage(this.clientId, message);
+    this.generalSendMessage(message);
   }
 
   /**
@@ -153,7 +153,7 @@ class InternalMessageContext {
   ): (output: object) => void {
     const toolCallId = generateId("TOOL_CALL");
 
-    sessionManager.sendMessage(this.clientId, {
+    this.generalSendMessage({
       type: "TOOL_INVOCATION",
       contextId: this.contextId,
       toolName,
@@ -162,7 +162,7 @@ class InternalMessageContext {
     });
 
     return (output: object) => {
-      sessionManager.sendMessage(this.clientId, {
+      this.generalSendMessage({
         type: "TOOL_RESULT",
         toolCallId,
         output: JSON.stringify(output),
