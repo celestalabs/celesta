@@ -1,5 +1,6 @@
 import useWebSocket from "react-use-websocket";
 import { FrontendWSMessage, ServerWSMessage, WSMessage } from "@celesta/types";
+import { useStore } from "../store";
 
 // Map each ServerWSMessage type to its specific message shape
 type ServerWSMessageByType = {
@@ -12,7 +13,7 @@ export function useAgentServer(handlerByType: {
     send: (message: FrontendWSMessage) => void
   ) => void;
 }) {
-  const [messages, setMessages] = useState<WSMessage[]>([]);
+  const store = useStore((store) => store);
 
   const handleOpen = useCallback(() => {
     console.log("WebSocket connection opened");
@@ -25,11 +26,16 @@ export function useAgentServer(handlerByType: {
 
       const message: ServerWSMessage = JSON.parse(event.data);
       console.log(message);
+
+      if (message.type === "CONTEXT_CREATED") {
+        store.addContext(message.contextId);
+      } else if ("contextId" in message) {
+        store.addMessageToContext(message);
+      }
+
       const handler =
         handlerByType[message.type as keyof ServerWSMessageByType];
       if (handler) {
-        // TypeScript can't fully narrow here, so cast for safety
-        setMessages((prev) => [...prev, message]);
         handler(message as any, send);
       } else {
         console.warn(`No handler for message type: ${message.type}`);
@@ -48,14 +54,15 @@ export function useAgentServer(handlerByType: {
 
   const sendMessage = useCallback(
     (message: FrontendWSMessage) => {
-      setMessages((prev) => [...prev, message]);
       sendJsonMessage(message);
+      if ("contextId" in message) {
+        store.addMessageToContext(message);
+      }
     },
     [sendJsonMessage]
   );
 
   return {
     sendMessage,
-    messages,
   };
 }

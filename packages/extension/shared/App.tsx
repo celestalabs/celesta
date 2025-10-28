@@ -15,7 +15,7 @@ import { WorkflowView } from "./views/WorkflowView";
 const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
 
-  const { sendMessage, messages } = useAgentServer({
+  const { sendMessage } = useAgentServer({
     AGENT_MESSAGE: (message) => {},
     TOOL_INVOCATION: (message) => {},
     TOOL_RESULT: (message) => {},
@@ -62,7 +62,7 @@ const App = React.memo(() => {
       </ButtonGroup>
 
       {currentTab === "CHAT" ? (
-        <AssistantView sendMessage={sendMessage} messages={messages} />
+        <AssistantView sendMessage={sendMessage} />
       ) : currentTab === "WORKFLOW_LIST" ? (
         <WorkflowListView />
       ) : (

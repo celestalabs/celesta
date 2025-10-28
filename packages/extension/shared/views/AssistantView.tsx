@@ -5,14 +5,15 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { UIMessageRepr } from "../types";
 import { MessageCard } from "../components/MessageCard";
+import { useStore } from "../store";
 
 type Props = {
   sendMessage: (message: FrontendWSMessage) => void;
-  messages: WSMessage[];
 };
 
-export const AssistantView = React.memo(({ sendMessage, messages }: Props) => {
+export const AssistantView = React.memo(({ sendMessage }: Props) => {
   const [chatInput, setChatInput] = useState("");
+  const messagesByContext = useStore((store) => store.messagesByContext);
 
   const handleSendUserMessage = useCallback(
     (e: React.FormEvent) => {
@@ -35,11 +36,7 @@ export const AssistantView = React.memo(({ sendMessage, messages }: Props) => {
     const result: UIMessageRepr[] = [];
     const resultIndexByToolCallId: Record<ToolCallId, number> = {};
 
-    for (const msg of messages) {
-      if (!("contextId" in msg) || msg.contextId !== "CHAT") {
-        continue;
-      }
-
+    for (const msg of messagesByContext["CHAT"] ?? []) {
       if (msg.type === "USER_MESSAGE") {
         result.push({ type: "user", content: msg.content });
       } else if (msg.type === "AGENT_MESSAGE") {
@@ -62,7 +59,7 @@ export const AssistantView = React.memo(({ sendMessage, messages }: Props) => {
       }
     }
 
-    const lastMessage = messages.at(-1);
+    const lastMessage = messagesByContext["CHAT"]?.at(-1);
 
     if (lastMessage?.type === "REQUEST_SHOULD_START_WORKFLOW") {
       result.push({
@@ -73,7 +70,7 @@ export const AssistantView = React.memo(({ sendMessage, messages }: Props) => {
     }
 
     return result;
-  }, [messages]);
+  }, [messagesByContext["CHAT"]]);
 
   return (
     <>
