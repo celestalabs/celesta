@@ -7,12 +7,8 @@ import { useAgentServer } from "./hooks/useAgentServer";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "./components/ui/card";
 import { useOAuth } from "./hooks/useOAuth";
-import { RequestId } from "@celesta/types";
 
 const App = React.memo(() => {
   const [chatInput, setChatInput] = useState("");
