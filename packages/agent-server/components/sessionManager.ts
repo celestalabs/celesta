@@ -68,6 +68,11 @@ class SessionManager {
         createMessageContext(clientId, contextId, createHandlerAgent)
       );
     log(`Created context ${contextId} for client ${clientId}.`);
+
+    this.sendMessage(clientId, {
+      type: "CONTEXT_CREATED",
+      contextId,
+    });
   }
 
   /**

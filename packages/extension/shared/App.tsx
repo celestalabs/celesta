@@ -35,6 +35,7 @@ const App = React.memo(() => {
     ),
     REQUEST_QUESTION_RESPONSE: (message) => {},
     REQUEST_SHOULD_START_WORKFLOW: (message) => {},
+    CONTEXT_CREATED: (message) => {},
   });
 
   const [currentTab, setCurrentTab] = useState<ContextId | "WORKFLOW_LIST">(
@@ -59,7 +60,7 @@ const App = React.memo(() => {
           Workflows
         </Button>
       </ButtonGroup>
- 
+
       {currentTab === "CHAT" ? (
         <AssistantView sendMessage={sendMessage} messages={messages} />
       ) : currentTab === "WORKFLOW_LIST" ? (

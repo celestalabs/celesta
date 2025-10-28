@@ -12,6 +12,8 @@ import { BaseAgent } from "./BaseAgent.js";
 import { logger } from "../utils/logger.js";
 import { generateId } from "../utils/generateId.js";
 import { gatherTools } from "../utils/gatherTools.js";
+import { sessionManager } from "../components/sessionManager.js";
+import { CoordinationAgent } from "./workflow/CoordinationAgent.js";
 
 const log = logger("ChatAgent");
 
@@ -305,6 +307,7 @@ Extract and summarize only the relevant information from the conversation that w
         // If workflow is detected with high/medium confidence, skip chat response
         if (intent.needsWorkflow && intent.confidence !== "low") {
           const workflowRequestId = generateId("REQUEST");
+          const prompt = intent.suggestedPrompt || latestMessage;
 
           this.messageContext
             .generalExpectResponse(workflowRequestId)
@@ -317,7 +320,18 @@ Extract and summarize only the relevant information from the conversation that w
                   `Client ${this.messageContext.clientId} approved starting workflow for context ${this.messageContext.contextId}`
                 );
                 this.sendChat("Starting a workflow for you in the background!");
-                // Here trigger the workflow start logic
+
+                const contextId = generateId("WORKFLOW");
+                sessionManager.createContext(
+                  this.messageContext.clientId,
+                  contextId,
+                  (messageContext) =>
+                    new CoordinationAgent({
+                      messageContext,
+                      prompt,
+                    })
+                );
+
                 return;
               }
 
@@ -336,7 +350,7 @@ Extract and summarize only the relevant information from the conversation that w
             contextId: this.messageContext.contextId,
             requestId: workflowRequestId,
             content: `I can help you with that using a workflow. ${intent.reasoning}`,
-            suggestedPrompt: intent.suggestedPrompt || latestMessage,
+            suggestedPrompt: prompt,
             confidence: intent.confidence,
             reasoning: intent.reasoning,
           });

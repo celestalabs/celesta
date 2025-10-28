@@ -73,7 +73,11 @@ export type ServerWSMessage =
       suggestedPrompt: string;
       confidence: "low" | "medium" | "high";
       reasoning: string;
-    };
+    }
+  | {
+    type: "CONTEXT_CREATED";
+    contextId: ContextId;
+  };
 
 export type ConversationWSMessage =
   | ServerWSAgentMessage
