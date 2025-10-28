@@ -1,10 +1,10 @@
+import useWebSocket from "react-use-websocket";
 import { IncomingWSMessage, OutgoingWSMessage } from "@celesta/types";
 
 // Map each OutgoingWSMessage type to its specific message shape
 type OutgoingWSMessageByType = {
   [K in OutgoingWSMessage["type"]]: Extract<OutgoingWSMessage, { type: K }>;
 };
-import useWebSocket from "react-use-websocket";
 
 export function useAgentServer(
   handlerByType: {
