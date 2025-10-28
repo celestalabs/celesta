@@ -41,5 +41,21 @@ export function handleIncomingWSMessage(clientId: ClientId, rawMessage: any) {
       );
       break;
     }
+
+    case "PROVIDE_SHOULD_START_WORKFLOW": {
+      log(
+        `Workflow start decision from ${clientId}: ${message.yes ? "yes" : "no"}`
+      );
+      sessionManager.triggerRequestResponse(
+        clientId,
+        message.requestId,
+        message
+      );
+      break;
+    }
+
+    default: {
+      log(`Unhandled message type from ${clientId}:`, message);
+    }
   }
 }

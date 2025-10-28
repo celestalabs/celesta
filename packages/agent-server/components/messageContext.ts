@@ -1,10 +1,12 @@
 import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
 import {
+  AgentMessageType,
   ClientId,
   ContextId,
+  ConversationWSMessage,
   IncomingWSUserMessage,
   OutgoingWSMessage,
-  WSMessage,
+  RequestId,
 } from "../types/index.js";
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
@@ -28,7 +30,7 @@ export type IncomingUserMessageHandler = (
 class InternalMessageContext {
   clientId: ClientId;
   contextId: ContextId;
-  messages: WSMessage[] = [];
+  messages: ConversationWSMessage[] = [];
   private onIncomingMessage: IncomingUserMessageHandler;
 
   constructor(
@@ -113,13 +115,28 @@ class InternalMessageContext {
   }
 
   /**
+   * General message receipt awaiting method.
+   */
+  async generalExpectResponse(requestId: RequestId) {
+    return sessionManager.expectResponse(this.clientId, requestId);
+  }
+
+  /**
+   * General message sending method.
+   */
+  async generalSendMessage(message: OutgoingWSMessage) {
+    sessionManager.sendMessage(this.clientId, message);
+  }
+
+  /**
    * Sends an agent message to the client in a specific context.
    */
-  async sendAgentMessage(content: string) {
+  async sendAgentMessage(content: string, type: AgentMessageType) {
     const message = {
       type: "AGENT_MESSAGE",
       contextId: this.contextId,
       content,
+      messageType: type,
     } satisfies OutgoingWSMessage;
 
     this.messages.push(message);

@@ -36,12 +36,17 @@ export type IncomingWSMessage =
   | IncomingWSUserMessage
   | IncomingWSResponseMessage;
 
+export type AgentMessageType = "error" | "final" | "chat";
+
+export type OutgoingWSAgentMessage = {
+  type: "AGENT_MESSAGE";
+  messageType: AgentMessageType;
+  contextId: ContextId;
+  content: string;
+};
+
 export type OutgoingWSMessage =
-  | {
-      type: "AGENT_MESSAGE";
-      contextId: ContextId;
-      content: string;
-    }
+  | OutgoingWSAgentMessage
   | {
       type: "TOOL_INVOCATION";
       toolCallId: ToolCallId;
@@ -65,7 +70,14 @@ export type OutgoingWSMessage =
       type: "REQUEST_SHOULD_START_WORKFLOW";
       contextId: ContextId;
       requestId: RequestId;
-      prompt: string;
+      content: string;
+      suggestedPrompt: string;
+      confidence: "low" | "medium" | "high";
+      reasoning: string;
     };
+
+export type ConversationWSMessage =
+  | OutgoingWSAgentMessage
+  | IncomingWSUserMessage;
 
 export type WSMessage = IncomingWSMessage | OutgoingWSMessage;
