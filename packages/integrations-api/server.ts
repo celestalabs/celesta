@@ -1,10 +1,10 @@
-import express from "express";
 import cors from "cors";
+import express from "express";
 import { ExecuteIntegrationHandler } from "./routes/executeIntegration.ts";
-import { GenerateOAuthRedirectUrlHandler } from "./routes/generateOAuthRedirectUrl.ts";
 import { GenerateOAuthAccessTokenHandler } from "./routes/generateOAuthAccessToken.ts";
-import { WrappedRouter } from "./utils/wrappedRouter.ts";
+import { GenerateOAuthRedirectUrlHandler } from "./routes/generateOAuthRedirectUrl.ts";
 import { ListIntegrationsHandler } from "./routes/listIntegrations.ts";
+import { WrappedRouter } from "./utils/wrappedRouter.ts";
 
 const app = express();
 

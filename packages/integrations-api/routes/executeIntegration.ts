@@ -1,10 +1,14 @@
+import { executeCustomIntegration } from "../integrations/executeCustomIntegration.ts";
+import { readIntegrationMetadata } from "../integrations/integrationMetadata.ts";
+import {
+  isIntegrationName,
+  isNonPieceIntegrationName,
+  type IntegrationName,
+} from "../integrations/integrationName.ts";
+import { executePieceAction } from "../pieces/executePieceAction.ts";
 import { isPieceName } from "../pieces/pieceName.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/wrappedRouter.ts";
-import { isIntegrationName, isNonPieceIntegrationName, type IntegrationName } from "../integrations/integrationName.ts";
-import { executePieceAction } from "../pieces/executePieceAction.ts";
-import { executeCustomIntegration } from "../integrations/executeCustomIntegration.ts";
-import { readIntegrationMetadata } from "../integrations/integrationMetadata.ts";
 
 /**
  * Get server-side API key for integrations that don't require user auth
@@ -12,11 +16,11 @@ import { readIntegrationMetadata } from "../integrations/integrationMetadata.ts"
 function getServerApiKey(integrationName: IntegrationName): string | null {
   const envKeyMap: Partial<Record<IntegrationName, string>> = {
     // Server-authenticated integrations
-    'web_search': 'EXA_API_KEY',
+    web_search: "EXA_API_KEY",
   };
-  
+
   const envKey = envKeyMap[integrationName];
-  return envKey ? (process.env[envKey] || null) : null;
+  return envKey ? process.env[envKey] || null : null;
 }
 
 export type ExecuteIntegrationHandler = TypedFetcher<
@@ -92,7 +96,7 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
         error: "Server configuration error: missing credentials",
       };
     }
-    
+
     const response = await executePieceAction(
       integrationName,
       actionName,

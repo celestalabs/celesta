@@ -1,5 +1,5 @@
-import { google } from 'googleapis';
-import type { GmailAuth } from './gmailIntegration.ts';
+import { google } from "googleapis";
+import type { GmailAuth } from "./gmailIntegration.ts";
 
 export class GmailClient {
   private gmail;
@@ -14,7 +14,7 @@ export class GmailClient {
 
     // Initialize Gmail API client
     this.gmail = google.gmail({
-      version: 'v1',
+      version: "v1",
       auth: this.auth,
     });
   }
@@ -38,15 +38,17 @@ export class GmailClient {
     bcc?: string | string[];
     from?: string;
   }): string {
-    const toAddresses = Array.isArray(params.to) ? params.to.join(', ') : params.to;
+    const toAddresses = Array.isArray(params.to)
+      ? params.to.join(", ")
+      : params.to;
     const ccAddresses = params.cc
       ? Array.isArray(params.cc)
-        ? params.cc.join(', ')
+        ? params.cc.join(", ")
         : params.cc
       : undefined;
     const bccAddresses = params.bcc
       ? Array.isArray(params.bcc)
-        ? params.bcc.join(', ')
+        ? params.bcc.join(", ")
         : params.bcc
       : undefined;
 
@@ -56,12 +58,14 @@ export class GmailClient {
       ccAddresses ? `Cc: ${ccAddresses}` : undefined,
       bccAddresses ? `Bcc: ${bccAddresses}` : undefined,
       `Subject: ${params.subject}`,
-      params.isHtml ? 'Content-Type: text/html; charset=utf-8' : 'Content-Type: text/plain; charset=utf-8',
-      '',
+      params.isHtml
+        ? "Content-Type: text/html; charset=utf-8"
+        : "Content-Type: text/plain; charset=utf-8",
+      "",
       params.body,
     ].filter(Boolean);
 
-    return messageParts.join('\r\n');
+    return messageParts.join("\r\n");
   }
 
   /**
@@ -69,25 +73,30 @@ export class GmailClient {
    */
   encodeMessage(message: string): string {
     return Buffer.from(message)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
   }
 
   /**
    * Decode base64url message from Gmail API
    */
   decodeMessage(encodedMessage: string): string {
-    const base64 = encodedMessage.replace(/-/g, '+').replace(/_/g, '/');
-    return Buffer.from(base64, 'base64').toString('utf-8');
+    const base64 = encodedMessage.replace(/-/g, "+").replace(/_/g, "/");
+    return Buffer.from(base64, "base64").toString("utf-8");
   }
 
   /**
    * Extract header value from Gmail message headers
    */
-  getHeader(headers: Array<{ name: string; value: string }>, name: string): string | undefined {
-    const header = headers.find((h) => h.name.toLowerCase() === name.toLowerCase());
+  getHeader(
+    headers: Array<{ name: string; value: string }>,
+    name: string
+  ): string | undefined {
+    const header = headers.find(
+      (h) => h.name.toLowerCase() === name.toLowerCase()
+    );
     return header?.value;
   }
 }

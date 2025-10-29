@@ -1,5 +1,9 @@
-import { CalendarClient, createCalendarClient } from '../calendarClient.ts';
-import type { CalendarAuth, GetEventParams, CalendarEvent } from '../calendarIntegration.ts';
+import { createCalendarClient } from "../calendarClient.ts";
+import type {
+  CalendarAuth,
+  GetEventParams,
+  CalendarEvent,
+} from "../calendarIntegration.ts";
 
 export async function getEvent(
   params: GetEventParams,
@@ -9,7 +13,7 @@ export async function getEvent(
   const calendar = client.getCalendarApi();
 
   const response = await calendar.events.get({
-    calendarId: params.calendarId || 'primary',
+    calendarId: params.calendarId || "primary",
     eventId: params.eventId,
   });
 

@@ -1,12 +1,12 @@
-import { createGmailClient } from '../gmailClient.ts';
-import type { GmailAuth, GmailMessage } from '../gmailIntegration.ts';
+import { createGmailClient } from "../gmailClient.ts";
+import type { GmailAuth, GmailMessage } from "../gmailIntegration.ts";
 
 export interface ListAndRetrieveMessagesParams {
   maxResults?: number;
   pageToken?: string;
   labelIds?: string[];
   includeSpamTrash?: boolean;
-  format?: 'full' | 'metadata' | 'minimal';
+  format?: "full" | "metadata" | "minimal";
 }
 
 /**
@@ -15,29 +15,30 @@ export interface ListAndRetrieveMessagesParams {
  */
 function formatMessageAsMarkdown(message: GmailMessage): string {
   const headers = message.payload?.headers || [];
-  const getHeader = (name: string) => headers.find(h => h.name === name)?.value || '';
+  const getHeader = (name: string) =>
+    headers.find((h) => h.name === name)?.value || "";
 
-  const from = getHeader('From');
-  const to = getHeader('To');
-  const cc = getHeader('Cc');
-  const subject = getHeader('Subject');
-  const date = getHeader('Date');
-  
+  const from = getHeader("From");
+  const to = getHeader("To");
+  const cc = getHeader("Cc");
+  const subject = getHeader("Subject");
+  const date = getHeader("Date");
+
   // Extract body content
-  let body = message.snippet || '';
+  let body = message.snippet || "";
   if (message.payload?.body?.data) {
     try {
-      body = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
+      body = Buffer.from(message.payload.body.data, "base64").toString("utf-8");
     } catch {
-      body = message.snippet || '';
+      body = message.snippet || "";
     }
   } else if (message.payload?.parts) {
     // Find text/plain or text/html part
     const findTextPart = (parts: any[]): string => {
       for (const part of parts) {
-        if (part.mimeType === 'text/plain' && part.body?.data) {
+        if (part.mimeType === "text/plain" && part.body?.data) {
           try {
-            return Buffer.from(part.body.data, 'base64').toString('utf-8');
+            return Buffer.from(part.body.data, "base64").toString("utf-8");
           } catch {}
         }
         if (part.parts) {
@@ -45,9 +46,9 @@ function formatMessageAsMarkdown(message: GmailMessage): string {
           if (text) return text;
         }
       }
-      return '';
+      return "";
     };
-    body = findTextPart(message.payload.parts) || message.snippet || '';
+    body = findTextPart(message.payload.parts) || message.snippet || "";
   }
 
   // Format as natural language markdown
@@ -72,7 +73,7 @@ export interface ListAndRetrieveMessagesResponse {
 /**
  * Combined action that lists messages AND retrieves their full content.
  * This prevents the LLM from needing to make 200+ separate getMessage calls.
- * 
+ *
  * Limits:
  * - Default maxResults: 10
  * - Maximum maxResults: 50 (to prevent excessive API calls)
@@ -89,14 +90,16 @@ export async function listAndRetrieveMessages(
 
   // Step 1: List message IDs
   const listResponse = await gmail.users.messages.list({
-    userId: 'me',
+    userId: "me",
     maxResults,
     ...(params.pageToken && { pageToken: params.pageToken }),
     ...(params.labelIds && { labelIds: params.labelIds }),
-    ...(params.includeSpamTrash !== undefined && { includeSpamTrash: params.includeSpamTrash }),
+    ...(params.includeSpamTrash !== undefined && {
+      includeSpamTrash: params.includeSpamTrash,
+    }),
   });
 
-  const messageIds = (listResponse.data.messages || []).map(msg => msg.id!);
+  const messageIds = (listResponse.data.messages || []).map((msg) => msg.id!);
 
   // Step 2: Retrieve content for all messages in parallel
   // Default to 'metadata' format to prevent token overflow (full email bodies can be huge)
@@ -104,16 +107,18 @@ export async function listAndRetrieveMessages(
   const messages = await Promise.all(
     messageIds.map(async (messageId) => {
       const messageResponse = await gmail.users.messages.get({
-        userId: 'me',
+        userId: "me",
         id: messageId,
-        format: params.format || 'metadata',
+        format: params.format || "metadata",
       });
       return messageResponse.data as GmailMessage;
     })
   );
 
   // Convert all messages to natural language markdown
-  const markdownOutput = messages.map(msg => formatMessageAsMarkdown(msg)).join('');
+  const markdownOutput = messages
+    .map((msg) => formatMessageAsMarkdown(msg))
+    .join("");
 
   return {
     messages: markdownOutput,

@@ -3,12 +3,12 @@ import {
   readIntegrationMetadata,
   type IntegrationMetadata,
 } from "../integrations/integrationMetadata.ts";
-import { PieceName } from "../pieces/pieceName.ts";
-import type { TypedFetcher } from "../utils/wrappedRouter.ts";
 import {
   NonPieceIntegrationName,
   type IntegrationName,
 } from "../integrations/integrationName.ts";
+import { PieceName } from "../pieces/pieceName.ts";
+import type { TypedFetcher } from "../utils/wrappedRouter.ts";
 
 type ResponseMetadata = Omit<IntegrationMetadata, "actions"> & {
   actions: {

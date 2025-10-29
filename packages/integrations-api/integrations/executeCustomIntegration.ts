@@ -1,7 +1,7 @@
-import { executeGmailAction } from './gmail/gmailIntegration.ts';
-import { executeCalendarAction } from './google-calendar/calendarIntegration.ts';
-import { executeWebSearchAction } from './web-search/webSearchIntegration.ts';
-import { NonPieceIntegrationName } from './integrationName.ts';
+import { executeGmailAction } from "./gmail/gmailIntegration.ts";
+import { executeCalendarAction } from "./google-calendar/calendarIntegration.ts";
+import { NonPieceIntegrationName } from "./integrationName.ts";
+import { executeWebSearchAction } from "./web-search/webSearchIntegration.ts";
 
 export async function executeCustomIntegration(
   integrationName: NonPieceIntegrationName,
@@ -15,29 +15,37 @@ export async function executeCustomIntegration(
     switch (integrationName) {
       case NonPieceIntegrationName.GMAIL:
         if (!auth) {
-          return { success: false, error: 'Gmail requires authentication' };
+          return { success: false, error: "Gmail requires authentication" };
         }
         result = await executeGmailAction(actionName, props, auth);
         break;
-      
+
       case NonPieceIntegrationName.GOOGLE_CALENDAR:
         if (!auth) {
-          return { success: false, error: 'Google Calendar requires authentication' };
+          return {
+            success: false,
+            error: "Google Calendar requires authentication",
+          };
         }
         result = await executeCalendarAction(actionName, props, auth);
         break;
-      
+
       case NonPieceIntegrationName.WEB_SEARCH:
         if (!auth) {
-          return { success: false, error: 'Exa Web Search requires authentication. This is an internal issue with the server.' };
+          return {
+            success: false,
+            error:
+              "Exa Web Search requires authentication. This is an internal issue with the server.",
+          };
         }
         result = await executeWebSearchAction(actionName, props, auth);
         break;
-      
+
       case NonPieceIntegrationName.BROWSER_USE:
         return {
           success: false,
-          error: 'Browser Use integration is not yet implemented in custom executor',
+          error:
+            "Browser Use integration is not yet implemented in custom executor",
         };
 
       default:
@@ -49,7 +57,8 @@ export async function executeCustomIntegration(
 
     return { success: true, data: result };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
     console.error(`Error executing ${integrationName}.${actionName}:`, error);
     return {
       success: false,

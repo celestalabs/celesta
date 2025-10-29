@@ -2,9 +2,12 @@ import z, { ZodObject, ZodOptional } from "zod";
 import { pieceByName } from "../pieces/pieceData.ts";
 import { isPieceName } from "../pieces/pieceName.ts";
 import type { SuccessResponse } from "../utils/responseType.ts";
-import { isIntegrationName, NonPieceIntegrationName } from "./integrationName.ts";
 import { gmailIntegration } from "./gmail/gmailIntegration.ts";
 import { calendarIntegration } from "./google-calendar/calendarIntegration.ts";
+import {
+  isIntegrationName,
+  NonPieceIntegrationName,
+} from "./integrationName.ts";
 import { webSearchIntegration } from "./web-search/webSearchIntegration.ts";
 
 export type IntegrationMetadata = {
@@ -12,11 +15,11 @@ export type IntegrationMetadata = {
   description: string;
   logoUrl: string | null;
   requiresUserAuth: boolean;
-  actions: { 
-    name: string; 
-    description: string; 
+  actions: {
+    name: string;
+    description: string;
     props: ZodObject;
-    mode: 'chat' | 'workflow' | 'all';
+    mode: "chat" | "workflow" | "all";
   }[];
 };
 
@@ -46,7 +49,7 @@ const nonPieceIntegrationMetadata: Record<
               "What information do you want me to return to you? Describe in detail."
             ),
         }),
-        mode: 'workflow' as const, // Browser use is complex, workflow-only
+        mode: "workflow" as const, // Browser use is complex, workflow-only
       },
     ],
   },
@@ -147,7 +150,7 @@ export function readIntegrationMetadata(
         name: action.name,
         description: action.description,
         props: zodProps,
-        mode: 'workflow' as const, // Default all piece actions to workflow-only
+        mode: "workflow" as const, // Default all piece actions to workflow-only
       });
     }
 
@@ -165,4 +168,3 @@ export function readIntegrationMetadata(
   return { success: true, ...nonPieceIntegrationMetadata[integrationName] };
 }
 export { isIntegrationName };
-

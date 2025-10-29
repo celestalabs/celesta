@@ -1,7 +1,7 @@
-import { getOAuthConfig } from "../utils/oAuth.ts";
 import axios from "axios";
-import type { TypedFetcher } from "../utils/wrappedRouter.ts";
 import { isIntegrationName } from "../integrations/integrationName.ts";
+import { getOAuthConfig } from "../utils/oAuth.ts";
+import type { TypedFetcher } from "../utils/wrappedRouter.ts";
 
 export type GenerateOAuthAccessTokenHandler = TypedFetcher<
   /* Response */ {

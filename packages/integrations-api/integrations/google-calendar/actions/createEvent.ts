@@ -1,4 +1,4 @@
-import { CalendarClient, createCalendarClient } from "../calendarClient.ts";
+import { createCalendarClient } from "../calendarClient.ts";
 import type {
   CalendarAuth,
   CreateEventParams,
@@ -21,12 +21,13 @@ export async function createEvent(
         location: params.location ?? null,
         start: params.start,
         end: params.end,
-        attendees: params.attendees?.map(a => ({
-          email: a.email,
-          displayName: a.displayName ?? null,
-          optional: a.optional ?? null,
-          responseStatus: a.responseStatus ?? null,
-        })) ?? [],
+        attendees:
+          params.attendees?.map((a) => ({
+            email: a.email,
+            displayName: a.displayName ?? null,
+            optional: a.optional ?? null,
+            responseStatus: a.responseStatus ?? null,
+          })) ?? [],
         reminders: {
           useDefault: params.reminders?.useDefault ?? true,
           overrides: params.reminders?.overrides ?? [],

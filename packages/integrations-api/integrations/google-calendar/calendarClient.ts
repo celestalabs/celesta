@@ -1,5 +1,5 @@
-import { google } from 'googleapis';
-import type { CalendarAuth } from './calendarIntegration.ts';
+import { google } from "googleapis";
+import type { CalendarAuth } from "./calendarIntegration.ts";
 
 export class CalendarClient {
   private calendar;
@@ -14,7 +14,7 @@ export class CalendarClient {
 
     // Initialize Calendar API client
     this.calendar = google.calendar({
-      version: 'v3',
+      version: "v3",
       auth: this.auth,
     });
   }

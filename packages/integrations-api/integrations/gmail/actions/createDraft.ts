@@ -1,6 +1,10 @@
-import { createGmailClient } from '../gmailClient.ts';
-import { convertMarkdownToHtmlIfNeeded } from '../utils.ts';
-import type { GmailAuth, CreateDraftParams, GmailDraft } from '../gmailIntegration.ts';
+import { createGmailClient } from "../gmailClient.ts";
+import type {
+  GmailAuth,
+  CreateDraftParams,
+  GmailDraft,
+} from "../gmailIntegration.ts";
+import { convertMarkdownToHtmlIfNeeded } from "../utils.ts";
 
 export async function createDraft(
   params: CreateDraftParams,
@@ -30,7 +34,7 @@ export async function createDraft(
 
   // Create the draft
   const response = await gmail.users.drafts.create({
-    userId: 'me',
+    userId: "me",
     requestBody: {
       message: {
         raw: encodedMessage,

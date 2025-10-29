@@ -1,5 +1,9 @@
-import { CalendarClient, createCalendarClient } from '../calendarClient.ts';
-import type { CalendarAuth, QuickAddEventParams, CalendarEvent } from '../calendarIntegration.ts';
+import { createCalendarClient } from "../calendarClient.ts";
+import type {
+  CalendarAuth,
+  QuickAddEventParams,
+  CalendarEvent,
+} from "../calendarIntegration.ts";
 
 export async function quickAddEvent(
   params: QuickAddEventParams,
@@ -9,7 +13,7 @@ export async function quickAddEvent(
   const calendar = client.getCalendarApi();
 
   const response = await calendar.events.quickAdd({
-    calendarId: params.calendarId || 'primary',
+    calendarId: params.calendarId || "primary",
     text: params.text,
   });
 

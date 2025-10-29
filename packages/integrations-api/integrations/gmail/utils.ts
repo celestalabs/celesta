@@ -1,4 +1,4 @@
-import { marked } from 'marked';
+import { marked } from "marked";
 
 /**
  * Detect if a string contains markdown formatting
@@ -6,20 +6,20 @@ import { marked } from 'marked';
 export function hasMarkdownFormatting(text: string): boolean {
   // Check for common markdown patterns
   const markdownPatterns = [
-    /\*\*[^*]+\*\*/,           // Bold: **text**
-    /\*[^*]+\*/,               // Italic: *text*
-    /__[^_]+__/,               // Bold: __text__
-    /_[^_]+_/,                 // Italic: _text_
-    /\[.+\]\(.+\)/,            // Links: [text](url)
-    /^#{1,6}\s/m,              // Headers: # Header
-    /^[-*+]\s/m,               // Unordered lists: - item
-    /^\d+\.\s/m,               // Ordered lists: 1. item
-    /^>\s/m,                   // Blockquotes: > quote
-    /```[\s\S]*?```/,          // Code blocks: ```code```
-    /`[^`]+`/,                 // Inline code: `code`
+    /\*\*[^*]+\*\*/, // Bold: **text**
+    /\*[^*]+\*/, // Italic: *text*
+    /__[^_]+__/, // Bold: __text__
+    /_[^_]+_/, // Italic: _text_
+    /\[.+\]\(.+\)/, // Links: [text](url)
+    /^#{1,6}\s/m, // Headers: # Header
+    /^[-*+]\s/m, // Unordered lists: - item
+    /^\d+\.\s/m, // Ordered lists: 1. item
+    /^>\s/m, // Blockquotes: > quote
+    /```[\s\S]*?```/, // Code blocks: ```code```
+    /`[^`]+`/, // Inline code: `code`
   ];
-  
-  return markdownPatterns.some(pattern => pattern.test(text));
+
+  return markdownPatterns.some((pattern) => pattern.test(text));
 }
 
 /**
@@ -35,12 +35,12 @@ export async function convertMarkdownToHtmlIfNeeded(
   // If isHtml is not explicitly set and the body has markdown formatting
   if (isHtml === undefined && hasMarkdownFormatting(body)) {
     const convertedBody = await marked(body, {
-      gfm: true,           // GitHub Flavored Markdown
-      breaks: true,        // Convert line breaks to <br>
+      gfm: true, // GitHub Flavored Markdown
+      breaks: true, // Convert line breaks to <br>
     });
     return { body: convertedBody, isHtml: true };
-  } 
-  
+  }
+
   // If explicitly set to HTML but might be markdown, convert it
   if (isHtml && hasMarkdownFormatting(body)) {
     const convertedBody = await marked(body, {
@@ -49,7 +49,7 @@ export async function convertMarkdownToHtmlIfNeeded(
     });
     return { body: convertedBody, isHtml: true };
   }
-  
+
   // No conversion needed
   return { body, isHtml };
 }

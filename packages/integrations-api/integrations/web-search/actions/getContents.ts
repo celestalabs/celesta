@@ -1,5 +1,9 @@
-import { createWebSearchClient } from '../webSearchClient.ts';
-import type { WebSearchAuth, GetContentsParams, SearchResponse } from '../webSearchIntegration.ts';
+import { createWebSearchClient } from "../webSearchClient.ts";
+import type {
+  WebSearchAuth,
+  GetContentsParams,
+  SearchResponse,
+} from "../webSearchIntegration.ts";
 
 export async function getContents(
   params: GetContentsParams,
@@ -10,7 +14,7 @@ export async function getContents(
 
   // Build options object for Exa
   const options: any = {};
-  
+
   // Default to getting text if nothing specified
   if (params.text !== undefined) {
     options.text = params.text;
@@ -19,7 +23,7 @@ export async function getContents(
   } else {
     options.text = true; // Default behavior
   }
-  
+
   // If highlights are specifically requested, add them
   if (params.highlights !== undefined) {
     options.highlights = params.highlights;

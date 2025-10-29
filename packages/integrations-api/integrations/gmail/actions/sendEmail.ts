@@ -1,6 +1,10 @@
-import { createGmailClient } from '../gmailClient.ts';
-import { convertMarkdownToHtmlIfNeeded } from '../utils.ts';
-import type { GmailAuth, SendEmailParams, SendEmailResponse } from '../gmailIntegration.ts';
+import { createGmailClient } from "../gmailClient.ts";
+import type {
+  GmailAuth,
+  SendEmailParams,
+  SendEmailResponse,
+} from "../gmailIntegration.ts";
+import { convertMarkdownToHtmlIfNeeded } from "../utils.ts";
 
 export async function sendEmail(
   params: SendEmailParams,
@@ -31,7 +35,7 @@ export async function sendEmail(
 
   // Send the message
   const response = await gmail.users.messages.send({
-    userId: 'me',
+    userId: "me",
     requestBody: {
       raw: encodedMessage,
     },

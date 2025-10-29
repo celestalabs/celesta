@@ -1,5 +1,10 @@
-import { CalendarClient, createCalendarClient } from '../calendarClient.ts';
-import type { CalendarAuth, ListEventsParams, CalendarEventList, CalendarEvent } from '../calendarIntegration.ts';
+import { createCalendarClient } from "../calendarClient.ts";
+import type {
+  CalendarAuth,
+  ListEventsParams,
+  CalendarEventList,
+  CalendarEvent,
+} from "../calendarIntegration.ts";
 
 export async function listEvents(
   params: ListEventsParams,
@@ -9,7 +14,7 @@ export async function listEvents(
   const calendar = client.getCalendarApi();
 
   const response = await calendar.events.list({
-    calendarId: params.calendarId || 'primary',
+    calendarId: params.calendarId || "primary",
     ...(params.timeMin && { timeMin: params.timeMin }),
     ...(params.timeMax && { timeMax: params.timeMax }),
     maxResults: params.maxResults || 10,
@@ -22,7 +27,7 @@ export async function listEvents(
   return {
     items: (response.data.items || []) as CalendarEvent[],
     nextPageToken: response.data.nextPageToken ?? undefined,
-    summary: response.data.summary || 'Calendar',
-    timeZone: response.data.timeZone || 'UTC',
+    summary: response.data.summary || "Calendar",
+    timeZone: response.data.timeZone || "UTC",
   };
 }

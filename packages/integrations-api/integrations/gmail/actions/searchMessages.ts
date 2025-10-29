@@ -1,5 +1,9 @@
-import { createGmailClient } from '../gmailClient.ts';
-import type { GmailAuth, SearchMessagesParams, GmailMessageListResponse } from '../gmailIntegration.ts';
+import { createGmailClient } from "../gmailClient.ts";
+import type {
+  GmailAuth,
+  SearchMessagesParams,
+  GmailMessageListResponse,
+} from "../gmailIntegration.ts";
 
 export async function searchMessages(
   params: SearchMessagesParams,
@@ -9,7 +13,7 @@ export async function searchMessages(
   const gmail = client.getGmailApi();
 
   const response = await gmail.users.messages.list({
-    userId: 'me',
+    userId: "me",
     q: params.query,
     maxResults: params.maxResults || 10,
     ...(params.pageToken && { pageToken: params.pageToken }),
@@ -17,7 +21,7 @@ export async function searchMessages(
   });
 
   return {
-    messages: (response.data.messages || []).map(msg => ({
+    messages: (response.data.messages || []).map((msg) => ({
       id: msg.id!,
       threadId: msg.threadId!,
     })),

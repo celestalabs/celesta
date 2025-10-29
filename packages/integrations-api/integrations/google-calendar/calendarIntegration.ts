@@ -1,11 +1,11 @@
-import z from 'zod';
-import type { IntegrationMetadata } from '../integrationMetadata.ts';
-import { createEvent } from './actions/createEvent.ts';
-import { listEvents } from './actions/listEvents.ts';
-import { getEvent } from './actions/getEvent.ts';
-import { updateEvent } from './actions/updateEvent.ts';
-import { deleteEvent } from './actions/deleteEvent.ts';
-import { quickAddEvent } from './actions/quickAddEvent.ts';
+import z from "zod";
+import type { IntegrationMetadata } from "../integrationMetadata.ts";
+import { createEvent } from "./actions/createEvent.ts";
+import { deleteEvent } from "./actions/deleteEvent.ts";
+import { getEvent } from "./actions/getEvent.ts";
+import { listEvents } from "./actions/listEvents.ts";
+import { quickAddEvent } from "./actions/quickAddEvent.ts";
+import { updateEvent } from "./actions/updateEvent.ts";
 
 // ============================================================================
 // TYPE DEFINITIONS (Manual - for response types that don't have Zod schemas)
@@ -19,7 +19,7 @@ export interface EventAttendee {
   email: string;
   displayName?: string;
   optional?: boolean;
-  responseStatus?: 'needsAction' | 'declined' | 'tentative' | 'accepted';
+  responseStatus?: "needsAction" | "declined" | "tentative" | "accepted";
 }
 
 export interface EventDateTime {
@@ -29,7 +29,7 @@ export interface EventDateTime {
 }
 
 export interface EventReminder {
-  method: 'email' | 'popup';
+  method: "email" | "popup";
   minutes: number;
 }
 
@@ -49,7 +49,7 @@ export interface CalendarEvent {
     email: string;
     displayName?: string;
   };
-  status?: 'confirmed' | 'tentative' | 'cancelled';
+  status?: "confirmed" | "tentative" | "cancelled";
   htmlLink?: string;
   created?: string;
   updated?: string;
@@ -69,80 +69,144 @@ export interface CalendarEventList {
 
 // Define Zod schemas for each action's input
 const eventDateTimeSchema = z.object({
-  dateTime: z.string().nullable().describe('RFC3339 timestamp (e.g., "2024-01-15T10:00:00-07:00")'),
-  date: z.string().nullable().describe('Date only for all-day events (e.g., "2024-01-15")'),
-  timeZone: z.string().nullable().describe('Time zone (e.g., "America/Los_Angeles")'),
+  dateTime: z
+    .string()
+    .nullable()
+    .describe('RFC3339 timestamp (e.g., "2024-01-15T10:00:00-07:00")'),
+  date: z
+    .string()
+    .nullable()
+    .describe('Date only for all-day events (e.g., "2024-01-15")'),
+  timeZone: z
+    .string()
+    .nullable()
+    .describe('Time zone (e.g., "America/Los_Angeles")'),
 });
 
 const eventAttendeeSchema = z.object({
-  email: z.string().describe('Attendee email address'),
-  displayName: z.string().nullable().describe('Attendee display name'),
-  optional: z.boolean().nullable().describe('Whether attendance is optional'),
-  responseStatus: z.enum(['needsAction', 'declined', 'tentative', 'accepted']).nullable(),
+  email: z.string().describe("Attendee email address"),
+  displayName: z.string().nullable().describe("Attendee display name"),
+  optional: z.boolean().nullable().describe("Whether attendance is optional"),
+  responseStatus: z
+    .enum(["needsAction", "declined", "tentative", "accepted"])
+    .nullable(),
 });
 
 const eventReminderSchema = z.object({
-  method: z.enum(['email', 'popup']).describe('Reminder method'),
-  minutes: z.number().describe('Minutes before event to trigger reminder'),
+  method: z.enum(["email", "popup"]).describe("Reminder method"),
+  minutes: z.number().describe("Minutes before event to trigger reminder"),
 });
 
 const createEventSchema = z.object({
-  summary: z.string().describe('Event title'),
-  description: z.string().optional().describe('Event description'),
-  location: z.string().optional().describe('Event location'),
-  start: eventDateTimeSchema.describe('Event start date/time'),
-  end: eventDateTimeSchema.describe('Event end date/time'),
-  attendees: z.array(eventAttendeeSchema).optional().describe('List of attendees'),
-  reminders: z.object({
-    useDefault: z.boolean().optional().describe('Use default reminders'),
-    overrides: z.array(eventReminderSchema).optional().describe('Custom reminders'),
-  }).optional(),
-  calendarId: z.string().optional().describe('Calendar ID (default: "primary")'),
-  colorId: z.string().optional().describe('Event color ID (1-11)'),
-  timeZone: z.string().optional().describe('Event time zone'),
+  summary: z.string().describe("Event title"),
+  description: z.string().optional().describe("Event description"),
+  location: z.string().optional().describe("Event location"),
+  start: eventDateTimeSchema.describe("Event start date/time"),
+  end: eventDateTimeSchema.describe("Event end date/time"),
+  attendees: z
+    .array(eventAttendeeSchema)
+    .optional()
+    .describe("List of attendees"),
+  reminders: z
+    .object({
+      useDefault: z.boolean().optional().describe("Use default reminders"),
+      overrides: z
+        .array(eventReminderSchema)
+        .optional()
+        .describe("Custom reminders"),
+    })
+    .optional(),
+  calendarId: z
+    .string()
+    .optional()
+    .describe('Calendar ID (default: "primary")'),
+  colorId: z.string().optional().describe("Event color ID (1-11)"),
+  timeZone: z.string().optional().describe("Event time zone"),
 });
 
 const listEventsSchema = z.object({
-  calendarId: z.string().optional().describe('Calendar ID (default: "primary")'),
-  timeMin: z.string().optional().describe('Lower bound for event start time (RFC3339)'),
-  timeMax: z.string().optional().describe('Upper bound for event start time (RFC3339)'),
-  maxResults: z.number().optional().describe('Maximum number of events (default: 10)'),
-  pageToken: z.string().optional().describe('Page token for pagination'),
-  q: z.string().optional().describe('Free text search query'),
-  singleEvents: z.boolean().optional().describe('Expand recurring events (default: true)'),
-  orderBy: z.enum(['startTime', 'updated']).optional().describe('Order results by field'),
+  calendarId: z
+    .string()
+    .optional()
+    .describe('Calendar ID (default: "primary")'),
+  timeMin: z
+    .string()
+    .optional()
+    .describe("Lower bound for event start time (RFC3339)"),
+  timeMax: z
+    .string()
+    .optional()
+    .describe("Upper bound for event start time (RFC3339)"),
+  maxResults: z
+    .number()
+    .optional()
+    .describe("Maximum number of events (default: 10)"),
+  pageToken: z.string().optional().describe("Page token for pagination"),
+  q: z.string().optional().describe("Free text search query"),
+  singleEvents: z
+    .boolean()
+    .optional()
+    .describe("Expand recurring events (default: true)"),
+  orderBy: z
+    .enum(["startTime", "updated"])
+    .optional()
+    .describe("Order results by field"),
 });
 
 const getEventSchema = z.object({
-  eventId: z.string().describe('Event ID'),
-  calendarId: z.string().optional().describe('Calendar ID (default: "primary")'),
+  eventId: z.string().describe("Event ID"),
+  calendarId: z
+    .string()
+    .optional()
+    .describe('Calendar ID (default: "primary")'),
 });
 
 const updateEventSchema = z.object({
-  eventId: z.string().describe('Event ID to update'),
-  calendarId: z.string().optional().describe('Calendar ID (default: "primary")'),
-  summary: z.string().optional().describe('New event title'),
-  description: z.string().optional().describe('New event description'),
-  location: z.string().optional().describe('New event location'),
-  start: eventDateTimeSchema.optional().describe('New event start date/time'),
-  end: eventDateTimeSchema.optional().describe('New event end date/time'),
-  attendees: z.array(eventAttendeeSchema).optional().describe('New list of attendees'),
-  reminders: z.object({
-    useDefault: z.boolean().optional(),
-    overrides: z.array(eventReminderSchema).optional(),
-  }).optional(),
-  colorId: z.string().optional().describe('New event color ID'),
+  eventId: z.string().describe("Event ID to update"),
+  calendarId: z
+    .string()
+    .optional()
+    .describe('Calendar ID (default: "primary")'),
+  summary: z.string().optional().describe("New event title"),
+  description: z.string().optional().describe("New event description"),
+  location: z.string().optional().describe("New event location"),
+  start: eventDateTimeSchema.optional().describe("New event start date/time"),
+  end: eventDateTimeSchema.optional().describe("New event end date/time"),
+  attendees: z
+    .array(eventAttendeeSchema)
+    .optional()
+    .describe("New list of attendees"),
+  reminders: z
+    .object({
+      useDefault: z.boolean().optional(),
+      overrides: z.array(eventReminderSchema).optional(),
+    })
+    .optional(),
+  colorId: z.string().optional().describe("New event color ID"),
 });
 
 const deleteEventSchema = z.object({
-  eventId: z.string().describe('Event ID to delete'),
-  calendarId: z.string().optional().describe('Calendar ID (default: "primary")'),
-  sendUpdates: z.enum(['all', 'externalOnly', 'none']).optional().describe('Send cancellation notifications'),
+  eventId: z.string().describe("Event ID to delete"),
+  calendarId: z
+    .string()
+    .optional()
+    .describe('Calendar ID (default: "primary")'),
+  sendUpdates: z
+    .enum(["all", "externalOnly", "none"])
+    .optional()
+    .describe("Send cancellation notifications"),
 });
 
 const quickAddEventSchema = z.object({
-  text: z.string().describe('Natural language event description (e.g., "Dinner with John tomorrow at 7pm")'),
-  calendarId: z.string().optional().describe('Calendar ID (default: "primary")'),
+  text: z
+    .string()
+    .describe(
+      'Natural language event description (e.g., "Dinner with John tomorrow at 7pm")'
+    ),
+  calendarId: z
+    .string()
+    .optional()
+    .describe('Calendar ID (default: "primary")'),
 });
 
 // ============================================================================
@@ -158,46 +222,47 @@ export type QuickAddEventParams = z.infer<typeof quickAddEventSchema>;
 
 // Define the Google Calendar integration
 export const calendarIntegration: IntegrationMetadata = {
-  name: 'Google Calendar',
-  description: 'Manage calendar events and schedules',
-  logoUrl: 'https://www.google.com/calendar/about/images/calendar-icon.png',
+  name: "Google Calendar",
+  description: "Manage calendar events and schedules",
+  logoUrl: "https://www.google.com/calendar/about/images/calendar-icon.png",
   requiresUserAuth: true,
   actions: [
     {
-      name: 'create_event',
-      description: 'Create a new calendar event',
+      name: "create_event",
+      description: "Create a new calendar event",
       props: createEventSchema,
-      mode: 'all' as const, // Write operation - workflow only
+      mode: "all" as const, // Write operation - workflow only
     },
     {
-      name: 'list_events',
-      description: 'List calendar events with optional filtering',
+      name: "list_events",
+      description: "List calendar events with optional filtering",
       props: listEventsSchema,
-      mode: 'all' as const, // Read operation - available in both chat and workflow
+      mode: "all" as const, // Read operation - available in both chat and workflow
     },
     {
-      name: 'get_event',
-      description: 'Get details of a specific calendar event',
+      name: "get_event",
+      description: "Get details of a specific calendar event",
       props: getEventSchema,
-      mode: 'all' as const, // Read operation - available in both chat and workflow
+      mode: "all" as const, // Read operation - available in both chat and workflow
     },
     {
-      name: 'update_event',
-      description: 'Update an existing calendar event',
+      name: "update_event",
+      description: "Update an existing calendar event",
       props: updateEventSchema,
-      mode: 'workflow' as const, // Write operation - workflow only
+      mode: "workflow" as const, // Write operation - workflow only
     },
     {
-      name: 'delete_event',
-      description: 'Delete a calendar event',
+      name: "delete_event",
+      description: "Delete a calendar event",
       props: deleteEventSchema,
-      mode: 'workflow' as const, // Write operation - workflow only
+      mode: "workflow" as const, // Write operation - workflow only
     },
     {
-      name: 'quick_add_event',
-      description: 'Create an event using natural language (e.g., "Lunch tomorrow at noon")',
+      name: "quick_add_event",
+      description:
+        'Create an event using natural language (e.g., "Lunch tomorrow at noon")',
       props: quickAddEventSchema,
-      mode: 'workflow' as const, // Write operation - workflow only
+      mode: "workflow" as const, // Write operation - workflow only
     },
   ],
 };

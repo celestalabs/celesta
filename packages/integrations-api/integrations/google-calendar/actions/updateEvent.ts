@@ -1,4 +1,4 @@
-import { CalendarClient, createCalendarClient } from "../calendarClient.ts";
+import { createCalendarClient } from "../calendarClient.ts";
 import type {
   CalendarAuth,
   UpdateEventParams,
