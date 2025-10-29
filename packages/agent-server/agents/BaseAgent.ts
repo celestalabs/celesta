@@ -24,7 +24,7 @@ export abstract class BaseAgent {
   }
 
   /**
-   * Send a status message through the message pipe
+   * Send a chat message through the message pipe
    */
   protected sendChat(message: string): void {
     this.messageContext.sendAgentMessage(message, "chat");

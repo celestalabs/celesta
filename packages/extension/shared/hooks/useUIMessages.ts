@@ -37,7 +37,7 @@ export function useUIMessages(contextId: ContextId) {
     if (lastMessage?.type === "REQUEST_SHOULD_START_WORKFLOW") {
       result.push({
         type: "workflow-request",
-        prompt: lastMessage.content,
+        prompt: lastMessage.suggestedPrompt,
         requestId: lastMessage.requestId,
       });
     }

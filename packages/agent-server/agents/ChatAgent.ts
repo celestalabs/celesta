@@ -130,7 +130,7 @@ Be conversational, natural, and supportive in all responses.`,
   private async detectWorkflowIntent(): Promise<WorkflowIntent> {
     try {
       // Get recent context, excluding current message
-      const recentHistory = this.messageContext.messages.slice(-5, -1);
+      const recentHistory = this.messageContext.messages.slice(-10);
       const contextStr =
         recentHistory.length > 0
           ? `Recent conversation:\n${recentHistory.map((msg) => `${msg.type === "USER_MESSAGE" ? "user" : "assistant"}: ${msg.type}`).join("\n")}\n\n`
@@ -176,6 +176,8 @@ Be conversational, natural, and supportive in all responses.`,
         schema: WorkflowIntentSchema,
       });
 
+      console.log("Workflow detection prompt.");
+
       return response.object;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -187,67 +189,6 @@ Be conversational, natural, and supportive in all responses.`,
         confidence: "low",
         reasoning: "Error occurred during intent detection",
       };
-    }
-  }
-
-  /**
-   * Generate relevant context from chat history for workflow execution
-   * This helps the workflow agents understand the user's needs better
-   */
-  async generateWorkflowContext(
-    chatHistory: ConversationWSMessage[],
-    workflowPrompt: string
-  ): Promise<string> {
-    try {
-      // If no chat history, return empty context
-      if (chatHistory.length === 0) {
-        return "";
-      }
-
-      // Get recent relevant messages (last 15)
-      const recentMessages = chatHistory.slice(-15);
-      const historyStr = recentMessages
-        .map(
-          (msg) =>
-            `${msg.type === "USER_MESSAGE" ? "user" : "assistant"}: ${msg.content}`
-        )
-        .join("\n");
-
-      const prompt = `Act as a context extraction agent for workflow execution. Reason step-by-step to identify and summarize only the most relevant information from the conversation history that would help execute the workflow task.
-
-    Conversation history:
-    ${historyStr}
-
-    Workflow task: "${workflowPrompt}"
-
-    Your objectives:
-    - Use chain-of-thought reasoning to extract concise, actionable context.
-    - Reference only information that is directly useful for the workflow.
-    - If no relevant context exists, respond with "No additional context needed."
-    - Self-evaluate completeness and relevance before replying.`;
-
-      const response = await generateText({
-        model: this.model,
-        prompt,
-      });
-
-      const context = response.text.trim();
-
-      // Return empty string if no context is needed
-      if (
-        context.toLowerCase().includes("no additional context") ||
-        context.length < 10
-      ) {
-        return "";
-      }
-
-      return context;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(
-        `[ChatAgent] Error generating workflow context: ${errorMsg}`
-      );
-      return ""; // Return empty context on error
     }
   }
 

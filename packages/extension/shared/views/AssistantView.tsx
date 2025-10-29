@@ -45,7 +45,7 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
         )}
 
         {chatMessages.map((msg, index) => (
-          <MessageCard key={index} message={msg} sendMessage={sendMessage} />
+          <MessageCard contextId="CHAT" key={index} message={msg} sendMessage={sendMessage} />
         ))}
       </div>
 

@@ -9,7 +9,7 @@ import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
 import { useStore } from "./store";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 
 const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
@@ -43,7 +43,44 @@ const App = React.memo(() => {
     },
     REQUEST_SHOULD_START_WORKFLOW: (message) => {},
     CONTEXT_CREATED: (message) => {},
-    WORKFLOW_STATUS_CHANGED: (message) => {},
+    
+    // Show toast for workflow status changes
+    WORKFLOW_STATUS_CHANGED: (message) => {
+      // Don't show if user is already viewing the workflow
+      if (currentView === message.workflowId) return;
+
+      const toastConfig = {
+        action: {
+          label: "View",
+          onClick: () => routeToView(message.workflowId),
+        },
+        position: "top-center",
+      } as const;
+
+      switch (message.status) {
+        case "failed": {
+          toast.error("Workflow failed! :(", {
+            ...toastConfig,
+            description: "Something went wrong during execution.",
+          });
+          break;
+        }
+        case "completed": {
+          toast.success(`Workflow completed!`, {
+            description: "Take a peek at what happened.",
+            ...toastConfig,
+          });
+          break;
+        }
+        case "running": {
+          toast.info("Workflow created!", {
+            description: `It's running as we speak.`,
+            ...toastConfig,
+          });
+          break;
+        }
+      }
+    },
     WORKFLOW_TASK_STATUS_CHANGED: (message) => {},
   });
 

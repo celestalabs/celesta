@@ -308,12 +308,12 @@ If all necessary tasks are complete, set shouldContinue to false.`,
     if (result.success) {
       task.status = "completed";
       this.sendChat(
-        `Task [${task.slug}] completed successfully.\n\n${result.finalResult}`
+        `*Task \`${task.slug}\` completed successfully.*\n\n${result.finalResult}`
       );
     } else {
       task.status = "failed";
       this.sendError(
-        `Task [${task.slug}] failed: ${result.error || "Unknown error"}`
+        `*Task \`${task.slug}\` failed.*\n\n${result.error || "Unknown error"}`
       );
     }
   }

@@ -26,7 +26,7 @@ export const WorkflowView = React.memo(({ sendMessage }: Props) => {
       </div>
       <div ref={scrollRef} className="flex-auto flex flex-col gap-4 overflow-y-auto px-4">
         {workflowMessages.map((msg, index) => (
-          <MessageCard key={index} message={msg} sendMessage={sendMessage} />
+          <MessageCard contextId={currentView} key={index} message={msg} sendMessage={sendMessage} />
         ))}
       </div>
     </>

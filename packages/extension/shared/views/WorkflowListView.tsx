@@ -1,4 +1,4 @@
-import { ContextId, WorkflowId } from "@celesta/types";
+import { ContextId, WorkflowId, WorkflowStatus } from "@celesta/types";
 import React from "react";
 import { useStore } from "../store";
 import { WorkflowListCard } from "../components/WorkflowListCard";
@@ -17,13 +17,24 @@ export const WorkflowListView = React.memo((/*{}: Props*/) => {
     [messagesByContext, workflowMetadata]
   );
 
-  const inProgressWorkflowIds = workflowIds.filter(
-    (id) => workflowMetadata[id]!.status === "running"
-  );
+  const [inProgressWorkflowIds, pastWorkflowIds] = useMemo(() => {
+    const inProgressWorkflowIds: WorkflowId[] = [];
+    const pastWorkflowIds: WorkflowId[] = [];
 
-  const pastWorkflowIds = workflowIds.filter(
-    (id) => workflowMetadata[id]!.status !== "running"
-  );
+    for (const id of workflowIds) {
+      if (
+        (["running", "finishing"] as WorkflowStatus[]).includes(
+          workflowMetadata[id]!.status
+        )
+      ) {
+        inProgressWorkflowIds.push(id);
+      } else {
+        pastWorkflowIds.push(id);
+      }
+    }
+
+    return [inProgressWorkflowIds, pastWorkflowIds];
+  }, [workflowIds, workflowMetadata]);
 
   return (
     <>
