@@ -335,6 +335,13 @@ Extract and summarize only the relevant information from the conversation that w
                     })
                 );
 
+                this.messageContext.generalSendMessage({
+                  type: "WORKFLOW_STATUS_CHANGED",
+                  workflowId: contextId,
+                  prompt,
+                  status: "running",
+                });
+
                 return;
               }
 

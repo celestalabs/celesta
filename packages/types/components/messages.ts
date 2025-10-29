@@ -1,4 +1,5 @@
-import { ContextId, RequestId, ToolCallId } from "./ids.js";
+import { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
+import { WorkflowMetadata } from "./workflow.js";
 
 export type FrontendWSUserMessage = {
   type: "USER_MESSAGE";
@@ -75,9 +76,12 @@ export type ServerWSMessage =
       reasoning: string;
     }
   | {
-    type: "CONTEXT_CREATED";
-    contextId: ContextId;
-  };
+      type: "CONTEXT_CREATED";
+      contextId: ContextId;
+    }
+  | ({
+      type: "WORKFLOW_STATUS_CHANGED";
+    } & WorkflowMetadata);
 
 export type ConversationWSMessage =
   | ServerWSAgentMessage

@@ -1,5 +1,5 @@
 import useWebSocket from "react-use-websocket";
-import { FrontendWSMessage, ServerWSMessage, WSMessage } from "@celesta/types";
+import { FrontendWSMessage, ServerWSMessage } from "@celesta/types";
 import { useStore } from "../store";
 
 // Map each ServerWSMessage type to its specific message shape
@@ -13,7 +13,9 @@ export function useAgentServer(handlerByType: {
     send: (message: FrontendWSMessage) => void
   ) => void;
 }) {
-  const store = useStore((store) => store);
+  const addContext = useStore((store) => store.addContext);
+  const addMessageToContext = useStore((store) => store.addMessageToContext);
+  const upsertWorkflow = useStore((store) => store.upsertWorkflow);
 
   const handleOpen = useCallback(() => {
     console.log("WebSocket connection opened");
@@ -28,9 +30,15 @@ export function useAgentServer(handlerByType: {
       console.log(message);
 
       if (message.type === "CONTEXT_CREATED") {
-        store.addContext(message.contextId);
+        addContext(message.contextId);
+      } else if (message.type === "WORKFLOW_STATUS_CHANGED") {
+        upsertWorkflow({
+          workflowId: message.workflowId,
+          prompt: message.prompt,
+          status: message.status,
+        });
       } else if ("contextId" in message) {
-        store.addMessageToContext(message);
+        addMessageToContext(message);
       }
 
       const handler =
@@ -56,7 +64,7 @@ export function useAgentServer(handlerByType: {
     (message: FrontendWSMessage) => {
       sendJsonMessage(message);
       if ("contextId" in message) {
-        store.addMessageToContext(message);
+        addMessageToContext(message);
       }
     },
     [sendJsonMessage]

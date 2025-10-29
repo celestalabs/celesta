@@ -1,4 +1,12 @@
+import { WorkflowId } from "./ids.js";
+
 export type WorkflowStatus = "running" | "completed" | "failed";
+
+export interface WorkflowMetadata {
+  workflowId: WorkflowId;
+  prompt: string;
+  status: WorkflowStatus;
+}
 
 export interface WorkflowTask {
   slug: string; // Human-readable identifier like "email-query-1"

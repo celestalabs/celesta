@@ -1,6 +1,8 @@
-import { RequestId } from "@celesta/types";
+import { ContextId, RequestId } from "@celesta/types";
 
 export type UIMessageRepr =
   | { type: "user" | "agent"; content: string }
   | { type: "tool"; toolName: string; input: string; output: string | null }
   | { type: "workflow-request"; prompt: string; requestId: RequestId };
+
+export type ViewId = ContextId | "WORKFLOW_LIST";

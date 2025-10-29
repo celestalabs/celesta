@@ -1,16 +1,14 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
-import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
 import { useAgentServer } from "./hooks/useAgentServer";
-import { Card, CardContent } from "./components/ui/card";
 import { useOAuth } from "./hooks/useOAuth";
 import { ButtonGroup } from "./components/ui/button-group";
-import { ContextId } from "@celesta/types";
 import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
+import { ViewId } from "./types";
 
 const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
@@ -36,9 +34,10 @@ const App = React.memo(() => {
     REQUEST_QUESTION_RESPONSE: (message) => {},
     REQUEST_SHOULD_START_WORKFLOW: (message) => {},
     CONTEXT_CREATED: (message) => {},
+    WORKFLOW_STATUS_CHANGED: (message) => {},
   });
 
-  const [currentTab, setCurrentTab] = useState<ContextId | "WORKFLOW_LIST">(
+  const [currentTab, setCurrentTab] = useState<ViewId>(
     "CHAT"
   );
 
