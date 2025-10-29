@@ -6,15 +6,16 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx server.ts",
-    "dev": "tsx watch server.ts"
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts"
   },
   "dependencies": {
-    "@ai-sdk/google": "^2.0.23",
-    "ai": "^5.0.76",
+    "@celesta/agents": "workspace:*",
+    "@celesta/common": "workspace:*",
+    "@celesta/session": "workspace:*",
+    "@celesta/integrations": "workspace:*",
     "dotenv": "^16.4.5",
     "ws": "^8.18.3",
-    "zod": "^4.1.12",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "cors": "^2.8.5",
@@ -22,12 +23,15 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
     "@types/ws": "^8.18.1",
     "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.4.0",
+    "prettier": "^3.6.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.46.2"

@@ -22,13 +22,15 @@ export function isOAuth2PropertyValue(
 }
 
 // OAuth configuration for custom integrations
-const customIntegrationOAuthConfig: Record<
-  NonPieceIntegrationName,
-  {
-    authUrl: string;
-    tokenUrl: string;
-    scope: string[];
-  } | null
+const customIntegrationOAuthConfig: Partial<
+  Record<
+    NonPieceIntegrationName,
+    {
+      authUrl: string;
+      tokenUrl: string;
+      scope: string[];
+    } | null
+  >
 > = {
   [NonPieceIntegrationName.GMAIL]: {
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",

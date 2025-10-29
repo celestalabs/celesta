@@ -1,5 +1,4 @@
-import { isIntegrationName } from "@celesta/integrations/integrations/integrationName";
-import { PieceName } from "@celesta/integrations/pieces/pieceName.js";
+import { IntegrationName, isIntegrationName } from "@celesta/integrations";
 import { integrationsClient } from "../utils/integrationsClient";
 
 export function useOAuth() {
@@ -20,7 +19,7 @@ export function useOAuth() {
         const responseUrlRes =
           await integrationsClient.generateOAuthRedirectUrl({
             params: {
-              pieceName: integrationName as PieceName,
+              pieceName: integrationName as IntegrationName,
               redirectUrl,
               state,
             },

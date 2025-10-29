@@ -16,7 +16,7 @@ import {
   formatToolMetadataForPrompt,
   getMetadataFromToolSet,
   ToolMetadata,
-} from "../../../server/utils/toolMetadata.js";
+} from "../utils/toolMetadata.js";
 import { ExecutionAgent } from "./ExecutionAgent.js";
 import { SynthesisAgent } from "./SynthesisAgent.js";
 

@@ -3,4 +3,5 @@ export { GenerateOAuthAccessTokenHandler } from "./routes/generateOAuthAccessTok
 export { GenerateOAuthRedirectUrlHandler } from "./routes/generateOAuthRedirectUrl.js";
 export { ListIntegrationsHandler } from "./routes/listIntegrations.js";
 export { type TypedFetcher } from "./utils/TypedFetcher.js";
-export { type IntegrationName } from "./integrations/integrationName.js";
+export { isIntegrationName } from "./integrations/integrationName.js";
+export type { IntegrationName } from "./integrations/integrationName.js";

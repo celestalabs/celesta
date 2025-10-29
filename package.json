@@ -27,10 +27,5 @@
   ],
   "devDependencies": {
     "concurrently": "^9.2.1"
-  },
-  "overrides": {
-    "wxt": "0.20.11",
-    "@wxt-dev/browser": "0.1.4",
-    "@wxt-dev/storage": "1.2.5"
   }
 }

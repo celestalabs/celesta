@@ -1,6 +1,8 @@
 import { logger } from "@celesta/common";
-import { ExecuteIntegrationHandler } from "@celesta/integrations";
-import { IntegrationName } from "@celesta/integrations/integrations/integrationName.js";
+import {
+  ExecuteIntegrationHandler,
+  IntegrationName,
+} from "@celesta/integrations";
 import { sessionManager, MessageContext } from "@celesta/session";
 import { jsonSchema, tool, Tool, ToolSet } from "ai";
 

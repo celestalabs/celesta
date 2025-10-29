@@ -13,9 +13,8 @@ import { sessionManager } from "@celesta/session";
 import cors from "cors";
 import express from "express";
 import { WebSocketServer } from "ws";
-import { frontendMessageHandler } from "./components/frontendMessageHandler.js";
-import {} from "@celesta/common";
-import { WrappedRouter } from "./utils/wrappedRouter.js";
+import { frontendMessageHandler } from "./frontendMessageHandler.js";
+import { WrappedRouter } from "./wrappedRouter.js";
 
 const integrationsServer = express();
 
