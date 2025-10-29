@@ -28,7 +28,7 @@ export class ExecutionAgent extends BaseAgent {
     this.sendStatus(`Executing task: ${task.description}`);
 
     // Update task status
-    this.executionContext!.updateTaskStatus(task.id, "in-progress");
+    this.executionContext!.updateTaskStatus(task.id, "running");
 
     // Wrap all tools to automatically collect their results for DataRegistry
     // Exclude system__ tools to avoid recursion (they retrieve data, don't generate it)
@@ -43,7 +43,7 @@ export class ExecutionAgent extends BaseAgent {
       }
 
       // Check if this is the getTaskData tool (retrieval only, not new data)
-      const isRetrievalTool = toolName === "system__getTaskData";
+      const isRetrievalTool = toolName === "system__getPreviousTaskResults";
 
       wrappedTools[toolName] = {
         ...tool,
@@ -51,7 +51,7 @@ export class ExecutionAgent extends BaseAgent {
           const result = await tool.execute?.(args, options);
 
           // Only capture non-retrieval tool results to avoid recursion
-          // system__getTaskData retrieves existing data, not new data
+          // system__getPreviousTaskResults retrieves existing data, not new data
           // system__askQuestion generates NEW data (user's answer) so we DO capture it
           if (!isRetrievalTool) {
             toolCallResults.push({ toolName, result });
@@ -107,15 +107,15 @@ Goal: ${task.goal}${contextSection}
 You have access to various tools to help complete this task.
 
 ACCESSING DATA FROM PREVIOUS TASKS:
-- Use system__getTaskData(taskIdentifier: "task-slug-name") to retrieve detailed data from completed tasks
+- Use system__getPreviousTaskResults(taskIdentifier: "task-slug-name") to retrieve detailed data from completed tasks
 - The task slug is shown in the "PREVIOUS TASKS" section above (e.g., "search-interview-emails")
 - This gives you the FULL RAW tool outputs (e.g., all 200 email IDs, complete responses)
-- The "Result" shown above is just a summary - use system__getTaskData for complete data
+- The "Result" shown above is just a summary - use system__getPreviousTaskResults for complete data
 
 DATA PERSISTENCE:
 - All your tool call results are AUTOMATICALLY saved and will be available to future tasks
 - You do NOT need to repeat data in your final output - just summarize key findings
-- Future tasks can retrieve your raw tool data using system__getTaskData
+- Future tasks can retrieve your raw tool data using system__getPreviousTaskResults
 - Focus your response on analysis and insights, not regurgitating raw data
 
 DECISION FRAMEWORK FOR CLARIFYING QUESTIONS:
@@ -140,7 +140,7 @@ BE AUTONOMOUS (no questions) when:
 General principle: "Better to ask one question than to send the wrong email"
 
 CRITICAL WORKFLOW:
-1. Check if you need data from previous tasks → use system__getTaskData("task-slug") to get full details
+1. Check if you need data from previous tasks → use system__getPreviousTaskResults("task-slug") to get full details
 2. If you need NEW information, call the appropriate tools WITH COMPREHENSIVE PARAMETERS
 3. Make multiple tool calls if needed to gather complete information
 4. Continue calling tools and analyzing results until you have all the information needed

@@ -9,12 +9,14 @@ import {
   ToolMetadata,
 } from "../../utils/toolMetadata.js";
 import {
+  WorkflowId,
   WorkflowStatus,
   WorkflowTask,
   WorkflowTaskResult,
 } from "@celesta/types";
 import { ExecutionAgent } from "./ExecutionAgent.js";
 import { logger } from "../../utils/logger.js";
+import { SynthesisAgent } from "./SynthesisAgent.js";
 
 const log = logger("CoordinationAgent");
 
@@ -56,7 +58,7 @@ export class CoordinationAgent extends BaseAgent {
   private prompt: string;
   private tools: ToolSet;
   private toolMetadata: ToolMetadata[];
-  private workflowStatus: WorkflowStatus = "running";
+  private _workflowStatus: WorkflowStatus = "running";
   private upcomingTaskQueue: WorkflowTask[] = [];
   private processedTasks: WorkflowTask[] = [];
   private processedTaskResults: WorkflowTaskResult[] = [];
@@ -68,6 +70,24 @@ export class CoordinationAgent extends BaseAgent {
     this.toolMetadata = getMetadataFromToolSet(this.tools);
   }
 
+  private get workflowStatus() {
+    return this._workflowStatus;
+  }
+
+  private set workflowStatus(status: WorkflowStatus) {
+    this._workflowStatus = status;
+    this.messageContext.generalSendMessage({
+      type: "WORKFLOW_STATUS_CHANGED",
+      workflowId: this.messageContext.contextId as WorkflowId,
+      ...(status === "running"
+        ? {
+            status,
+            prompt: this.prompt,
+          }
+        : { status }),
+    });
+  }
+
   async onInitialize() {
     log("Starting workflow loop for task", this.prompt, [
       this.messageContext.clientId,
@@ -77,11 +97,16 @@ export class CoordinationAgent extends BaseAgent {
     try {
       while (this.workflowStatus === "running") {
         await this.launchNewTask();
+
+        // Execution loop
         while (this.upcomingTaskQueue.length > 0) {
           const currentTask = this.upcomingTaskQueue.shift()!;
           this.processedTasks.push(currentTask);
           await this.executeTask(currentTask);
         }
+
+        // Synthesize into results
+        await this.synthesizeResults();
       }
     } catch (error) {
       this.sendError(
@@ -97,7 +122,7 @@ export class CoordinationAgent extends BaseAgent {
    * Produces LLM content summarizing current context including data
    * from completed tasks.
    */
-  getDetailedContext(): string {
+  private getDetailedContext(): string {
     let context = `Original Prompt: ${this.prompt}\n\n`;
 
     context += `Progress: ${this.processedTasks.length} tasks processed\n\n`;
@@ -183,9 +208,9 @@ Be specific and actionable in task descriptions.
 If all necessary tasks have been completed, set shouldContinue to false.`,
     });
 
+    // Don't add tasks, nothing to add since we're done!
     if (response.shouldContinue === "stop") {
-      this.workflowStatus = "completed";
-      this.sendChat(`Workflow completed: ${response.reasoning}`);
+      this.workflowStatus = "finishing";
       return;
     }
 
@@ -198,13 +223,35 @@ If all necessary tasks have been completed, set shouldContinue to false.`,
     });
   }
 
+  /**
+   * Synthesize results from completed tasks
+   */
+  private async synthesizeResults() {
+    log("Synthesizing workflow results", [
+      this.messageContext.clientId,
+      this.messageContext.contextId,
+    ]);
+
+    const synthesisAgent = new SynthesisAgent({
+      prompt: this.prompt,
+      messageContext: this.messageContext,
+      processedTaskResults: this.processedTaskResults,
+    });
+
+    const finalResult = await synthesisAgent.onInitialize();
+
+    this.sendFinal(finalResult);
+
+    this.workflowStatus = "completed";
+  }
+
   private async executeTask(task: WorkflowTask) {
     log("Executing task", task.slug, [
       this.messageContext.clientId,
       this.messageContext.contextId,
     ]);
 
-    task.status = "in-progress";
+    task.status = "running";
     this.processedTasks.push(task);
 
     const tools: ToolSet = Object.fromEntries(

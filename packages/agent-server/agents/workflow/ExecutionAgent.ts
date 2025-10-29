@@ -1,4 +1,4 @@
-import { stepCountIs, streamText, ToolSet } from "ai";
+import { generateText, stepCountIs, streamText, ToolSet } from "ai";
 import { MessageContext } from "../../components/messageContext.js";
 import { BaseAgent } from "../BaseAgent.js";
 import { WorkflowTask, WorkflowTaskResult } from "@celesta/types";
@@ -42,13 +42,8 @@ export class ExecutionAgent extends BaseAgent {
       if (this.taskResults.length > 0) {
         contextSection = `\n\nPREVIOUS TASKS RESULTS:\n`;
         this.taskResults.forEach((taskData, index) => {
-          contextSection += `${index + 1}. ${taskData.taskSlug}\n`;
-          if (taskData.success) {
-            contextSection += `   Result: ${taskData.finalResult}\n`;
-            if (taskData.toolCallResults) {
-              contextSection += `   Raw Tool Call Data: ${JSON.stringify(taskData.toolCallResults, null, 2)}\n`;
-            }
-          }
+          if (!taskData.success) return; // Skip failed tasks
+          contextSection += `${index + 1}. ${taskData.taskSlug}. This task's raw results are accessible via the tool system__getPreviousTaskResults and passing the slug ${taskData.taskSlug}.\n`;
         });
         contextSection += `\nIMPORTANT: If the information needed for your current task was already collected in previous tasks, USE THAT INFORMATION instead of calling tools again. Only use tools if you need NEW information that hasn't been collected yet.\n`;
       }
@@ -62,11 +57,7 @@ export class ExecutionAgent extends BaseAgent {
         day: "numeric",
       });
 
-      const streamResult = streamText({
-        model: this.model,
-        tools: this.tools, // Use wrapped tools that capture results
-        stopWhen: stepCountIs(20), // Limit to 10 steps to avoid long runs
-        prompt: `You are an autonomous execution agent tasked with completing the following:
+      const prompt = `You are an autonomous execution agent tasked with completing the following:
 
 Current Date: ${dateString}
 
@@ -82,7 +73,7 @@ ACCESSING DATA FROM PREVIOUS TASKS:
 DATA PERSISTENCE:
 - All your tool call results are AUTOMATICALLY saved and will be available to future tasks
 - You do NOT need to repeat data in your final output - just summarize key findings
-- Future tasks can retrieve your raw tool data using system__getTaskData
+- Future tasks can retrieve your raw tool data using system__getPreviousTaskResults
 - Focus your response on analysis and insights, not regurgitating raw data
 
 DECISION FRAMEWORK FOR CLARIFYING QUESTIONS:
@@ -107,7 +98,7 @@ BE AUTONOMOUS (no questions) when:
 General principle: "Better to ask one question than to send the wrong email"
 
 CRITICAL WORKFLOW:
-1. Check if you need data from previous tasks → use system__getTaskData("task-slug") to get full details
+1. Check if you need data from previous tasks → use system__getPreviousTaskResults("task-slug") to get full details
 2. If you need NEW information, call the appropriate tools WITH COMPREHENSIVE PARAMETERS
 3. Make multiple tool calls if needed to gather complete information
 4. Continue calling tools and analyzing results until you have all the information needed
@@ -117,38 +108,44 @@ YOUR RESPONSE FORMAT:
 - Provide a clear, concise summary of what you accomplished
 - Focus on insights, analysis, and actionable information
 - Do NOT repeat large amounts of raw data (it's auto-saved)
-- Your response should be SHORT and to the point
-- Empty responses are acceptable if tools speak for themselves`,
+- Your response should be SHORT and to the point`;
+
+      log(prompt);
+
+      const toolCallResults: [string, string][] = [];
+
+      const { text } = await generateText({
+        model: this.model,
+        tools: this.tools,
+        stopWhen: stepCountIs(20), // Limit to 20 steps
+        prompt,
+        onStepFinish(step) {
+          const stepToolResults = step.toolResults.map(
+            ({ toolName, output }) =>
+              [toolName, JSON.stringify({ output })] as [string, string]
+          );
+
+          log("Step completed... Tools", stepToolResults);
+
+          toolCallResults.push(...stepToolResults);
+        },
       });
 
-      // Consume the stream to get final results
-      let fullText = "";
-      for await (const chunk of streamResult.textStream) {
-        fullText += chunk;
-      }
-
-      // Await the promises that resolve to arrays
-      const allToolCalls = await streamResult.toolCalls;
-      const allToolResults = await streamResult.toolResults;
-
-      // Debug logging
-      log(`Tool calls count: ${allToolCalls?.length || 0}`);
-      log(`Tool results count: ${allToolResults?.length || 0}`);
-      if (allToolCalls && allToolCalls.length > 0) {
-        log(`First tool call:`, JSON.stringify(allToolCalls[0], null, 2));
-      }
-
-      if (allToolResults && allToolResults.length > 0) {
-        log(`First tool result:`, JSON.stringify(allToolResults[0], null, 2));
-      }
-      const outputText = fullText || "Task completed.";
+      const outputText = text || "Task completed.";
 
       const taskResult: WorkflowTaskResult = {
         taskSlug: this.task.slug,
         success: true,
         finalResult: outputText,
-        toolCallResults: allToolResults.map((tr) => [tr.toolName, tr.output]),
+        toolCallResults,
       };
+
+      log(
+        `Task ${this.task.slug} completed successfully. Output:\n---\n`,
+        outputText,
+        "\n---\nTool Results:\n",
+        taskResult.toolCallResults
+      );
 
       return taskResult;
     } catch (error) {

@@ -1,6 +1,7 @@
 import { WorkflowId } from "./ids.js";
 
-export type WorkflowStatus = "running" | "completed" | "failed";
+export type WorkflowStatus = "running" | "completed" | "failed" | "finishing";
+export type WorkflowTaskStatus = "pending" | "running" | "completed" | "failed";
 
 export interface WorkflowMetadata {
   workflowId: WorkflowId;
@@ -8,12 +9,15 @@ export interface WorkflowMetadata {
   status: WorkflowStatus;
 }
 
-export interface WorkflowTask {
-  slug: string; // Human-readable identifier like "email-query-1"
+export interface MinimalWorkflowTask {
+  slug: string;
   description: string;
+  status: WorkflowTaskStatus;
+}
+
+export interface WorkflowTask extends MinimalWorkflowTask {
   goal: string;
   tools: string[];
-  status: "pending" | "in-progress" | "completed" | "failed";
 }
 
 export type WorkflowTaskResult = {

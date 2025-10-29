@@ -115,31 +115,14 @@ Be conversational and natural in your responses.`,
         })),
       ];
 
-      // If tools are available, use streamText for tool execution
-      if (this.tools && Object.keys(this.tools).length > 0) {
-        const { textStream } = streamText({
-          model: this.model,
-          tools: this.tools,
-          stopWhen: stepCountIs(4),
-          messages,
-        });
+      const { text } = await generateText({
+        model: this.model,
+        tools: this.tools,
+        stopWhen: stepCountIs(4),
+        messages,
+      });
 
-        // Consume the text stream
-        let fullText = "";
-        for await (const chunk of textStream) {
-          fullText += chunk;
-        }
-
-        this.sendChat(fullText.trim() || "I've completed your request.");
-      } else {
-        // No tools available, just generate text
-        const response = await generateText({
-          model: this.model,
-          messages,
-        });
-
-        this.sendChat(response.text.trim() || "I've completed your request.");
-      }
+      this.sendChat(text.trim() || "I've completed your request.");
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`[ChatAgent] Error generating response: ${errorMsg}`);

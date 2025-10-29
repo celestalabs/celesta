@@ -16,7 +16,8 @@ export function useAgentServer(handlerByType: {
 }) {
   const addContext = useStore((store) => store.addContext);
   const addMessageToContext = useStore((store) => store.addMessageToContext);
-  const upsertWorkflow = useStore((store) => store.upsertWorkflow);
+  const createWorkflow = useStore((store) => store.createWorkflow);
+  const updateWorkflowStatus = useStore((store) => store.updateWorkflowStatus);
   const routeToView = useStore((store) => store.routeToView);
 
   const handleOpen = useCallback(() => {
@@ -34,11 +35,15 @@ export function useAgentServer(handlerByType: {
       if (message.type === "CONTEXT_CREATED") {
         addContext(message.contextId);
       } else if (message.type === "WORKFLOW_STATUS_CHANGED") {
-        upsertWorkflow({
-          workflowId: message.workflowId,
-          prompt: message.prompt,
-          status: message.status,
-        });
+        if (message.status === "running") {
+          createWorkflow({
+            workflowId: message.workflowId,
+            status: message.status,
+            prompt: message.prompt,
+          });
+        } else {
+          updateWorkflowStatus(message.workflowId, message.status);
+        }
 
         const toastConfig = {
           action: {
@@ -49,24 +54,27 @@ export function useAgentServer(handlerByType: {
         } as const;
 
         switch (message.status) {
-          case "failed":
+          case "failed": {
             toast.error("Workflow failed! :(", {
               ...toastConfig,
               description: "Something went wrong during execution.",
             });
             break;
-          case "completed":
+          }
+          case "completed": {
             toast.success(`Workflow completed!`, {
               description: "Take a peek at what happened.",
               ...toastConfig,
             });
             break;
-          case "running":
+          }
+          case "running": {
             toast.info("Workflow created!", {
               description: `It's running as we speak.`,
               ...toastConfig,
             });
             break;
+          }
         }
       } else if ("contextId" in message) {
         addMessageToContext(message);

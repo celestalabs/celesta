@@ -7,7 +7,7 @@ export interface Task {
   slug?: string; // Human-readable identifier like "email-query-1"
   description: string;
   goal: string;
-  status: "pending" | "in-progress" | "completed" | "failed";
+  status: "pending" | "running" | "completed" | "failed";
   createdAt: Date;
 }
 

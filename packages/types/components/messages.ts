@@ -1,5 +1,10 @@
 import { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
-import { WorkflowMetadata } from "./workflow.js";
+import {
+  MinimalWorkflowTask,
+  WorkflowMetadata,
+  WorkflowStatus,
+  WorkflowTaskStatus,
+} from "./workflow.js";
 
 export type FrontendWSUserMessage = {
   type: "USER_MESSAGE";
@@ -40,8 +45,7 @@ export type ServerWSAgentMessage = {
   content: string;
 };
 
-export type ServerWSMessage =
-  | ServerWSAgentMessage
+export type ServerToolWSMessage =
   | {
       type: "TOOL_INVOCATION";
       toolCallId: ToolCallId;
@@ -54,7 +58,9 @@ export type ServerWSMessage =
       toolCallId: ToolCallId;
       contextId: ContextId;
       output: string;
-    }
+    };
+
+export type ServerRequestWSMessage =
   | {
       type: "REQUEST_CREDENTIALS";
       integrationName: string;
@@ -74,14 +80,33 @@ export type ServerWSMessage =
       suggestedPrompt: string;
       confidence: "low" | "medium" | "high";
       reasoning: string;
-    }
+    };
+
+export type ServerWSWorkflowMessage =
+  | ({
+      type: "WORKFLOW_STATUS_CHANGED";
+      workflowId: WorkflowId;
+    } & (
+      | ({ status: "running" } & WorkflowMetadata)
+      | { status: Exclude<WorkflowStatus, "running"> }
+    ))
+  | ({
+      type: "WORKFLOW_TASK_STATUS_CHANGED";
+      workflowId: WorkflowId;
+    } & (
+      | ({ status: "running" } & MinimalWorkflowTask)
+      | { status: Exclude<WorkflowTaskStatus, "running">; slug: string }
+    ));
+
+export type ServerWSMessage =
+  | ServerWSAgentMessage
+  | ServerRequestWSMessage
+  | ServerToolWSMessage
+  | ServerWSWorkflowMessage
   | {
       type: "CONTEXT_CREATED";
       contextId: ContextId;
-    }
-  | ({
-      type: "WORKFLOW_STATUS_CHANGED";
-    } & WorkflowMetadata);
+    };
 
 export type ConversationWSMessage =
   | ServerWSAgentMessage

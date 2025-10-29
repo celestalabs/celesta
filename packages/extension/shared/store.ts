@@ -2,6 +2,7 @@ import {
   ContextId,
   WorkflowId,
   WorkflowMetadata,
+  WorkflowStatus,
   WSMessage,
 } from "@celesta/types";
 import { create } from "zustand";
@@ -12,11 +13,17 @@ type WSMessageWithContextId = Extract<WSMessage, { contextId: ContextId }>;
 type Store = {
   currentView: ViewId;
   routeToView: (viewId: ViewId) => void;
+
   messagesByContext: Partial<Record<ContextId, WSMessageWithContextId[]>>;
   addContext: (contextId: ContextId) => void;
   addMessageToContext: (message: WSMessageWithContextId) => void;
+
   workflowMetadata: Partial<Record<WorkflowId, WorkflowMetadata>>;
-  upsertWorkflow: (partialWorkflowMetadata: WorkflowMetadata) => void;
+  createWorkflow: (workflowMetadata: WorkflowMetadata) => void;
+  updateWorkflowStatus: (
+    workflowId: WorkflowId,
+    status: WorkflowStatus
+  ) => void;
 };
 
 export const useStore = create<Store>()((set) => ({
@@ -47,12 +54,23 @@ export const useStore = create<Store>()((set) => ({
         },
       };
     }),
-  upsertWorkflow: (workflowMetadata: WorkflowMetadata) =>
+  createWorkflow: (workflowMetadata: WorkflowMetadata) =>
     set((state) => ({
       ...state,
       workflowMetadata: {
         ...state.workflowMetadata,
         [workflowMetadata.workflowId]: workflowMetadata,
+      },
+    })),
+  updateWorkflowStatus: (workflowId: WorkflowId, status: WorkflowStatus) =>
+    set((state) => ({
+      ...state,
+      workflowMetadata: {
+        ...state.workflowMetadata,
+        [workflowId]: {
+          ...state.workflowMetadata[workflowId],
+          status,
+        },
       },
     })),
 }));
