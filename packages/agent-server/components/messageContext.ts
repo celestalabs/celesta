@@ -7,11 +7,12 @@ import {
   ConversationWSMessage,
   FrontendWSUserMessage,
   ServerWSMessage,
+  ts,
 } from "@celesta/types";
+import { BaseAgent } from "../agents/BaseAgent.js";
 import { generateId } from "../utils/generateId.js";
 import { logger } from "../utils/logger.js";
 import { sessionManager } from "./sessionManager.js";
-import { BaseAgent } from "../agents/BaseAgent.js";
 
 const log = logger("messageContext");
 
@@ -73,11 +74,14 @@ class InternalMessageContext {
             }
           })
           .catch(reject);
-        sessionManager.sendMessage(this.clientId, {
-          type: "REQUEST_CREDENTIALS",
-          integrationName,
-          requestId,
-        });
+        sessionManager.sendMessage(
+          this.clientId,
+          ts({
+            type: "REQUEST_CREDENTIALS",
+            integrationName,
+            requestId,
+          })
+        );
       });
     }
   }
@@ -101,12 +105,15 @@ class InternalMessageContext {
         .catch(reject);
 
       // send message to trigger response
-      sessionManager.sendMessage(this.clientId, {
-        type: "REQUEST_QUESTION_RESPONSE",
-        contextId: this.contextId,
-        question,
-        requestId,
-      });
+      sessionManager.sendMessage(
+        this.clientId,
+        ts({
+          type: "REQUEST_QUESTION_RESPONSE",
+          contextId: this.contextId,
+          question,
+          requestId,
+        })
+      );
     });
   }
 
@@ -128,12 +135,12 @@ class InternalMessageContext {
    * Sends an agent message to the client in a specific context.
    */
   async sendAgentMessage(content: string, type: AgentMessageType) {
-    const message = {
+    const message = ts({
       type: "AGENT_MESSAGE",
       contextId: this.contextId,
       content,
       messageType: type,
-    } satisfies ServerWSMessage;
+    }) satisfies ServerWSMessage;
 
     this.messages.push(message);
     this.generalSendMessage(message);
@@ -149,21 +156,25 @@ class InternalMessageContext {
   ): (output: object) => void {
     const toolCallId = generateId("TOOL_CALL");
 
-    this.generalSendMessage({
-      type: "TOOL_INVOCATION",
-      contextId: this.contextId,
-      toolName,
-      toolCallId,
-      input: JSON.stringify(input),
-    });
+    this.generalSendMessage(
+      ts({
+        type: "TOOL_INVOCATION",
+        contextId: this.contextId,
+        toolName,
+        toolCallId,
+        input: JSON.stringify(input),
+      })
+    );
 
     return (output: object) => {
-      this.generalSendMessage({
-        type: "TOOL_RESULT",
-        toolCallId,
-        output: JSON.stringify(output),
-        contextId: this.contextId,
-      });
+      this.generalSendMessage(
+        ts({
+          type: "TOOL_RESULT",
+          toolCallId,
+          output: JSON.stringify(output),
+          contextId: this.contextId,
+        })
+      );
     };
   }
 }

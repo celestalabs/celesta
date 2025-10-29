@@ -1,5 +1,5 @@
-import useWebSocket from "react-use-websocket";
 import { FrontendWSMessage, ServerWSMessage } from "@celesta/types";
+import useWebSocket from "react-use-websocket";
 import { useStore } from "../store";
 
 // Map each ServerWSMessage type to its specific message shape
@@ -86,7 +86,15 @@ export function useAgentServer(handlerByType: {
         console.warn(`No handler for message type: ${message.type}`);
       }
     },
-    [handlerByType]
+    [
+      handlerByType,
+      addContext,
+      addMessageToContext,
+      createWorkflow,
+      updateWorkflowStatus,
+      createWorkflowTask,
+      updateWorkflowTaskStatus,
+    ]
   );
 
   const { sendJsonMessage } = useWebSocket(
@@ -104,7 +112,7 @@ export function useAgentServer(handlerByType: {
         addMessageToContext(message);
       }
     },
-    [sendJsonMessage]
+    [sendJsonMessage, addMessageToContext]
   );
 
   return {

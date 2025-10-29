@@ -9,15 +9,15 @@ export function getMetadataFromToolSet(tools: ToolSet): ToolMetadata[] {
   ]);
 }
 
-export function formatToolMetadataForPrompt(toolMetadata: ToolMetadata[]): string {
+export function formatToolMetadataForPrompt(
+  toolMetadata: ToolMetadata[]
+): string {
   if (toolMetadata.length === 0) {
     return "No tools are currently available.";
   }
 
   const formattedTools = toolMetadata
-    .map(
-      ([name, description]) => `- ${name}: ${description}`
-    )
+    .map(([name, description]) => `- ${name}: ${description}`)
     .join("\n");
 
   return `Available Tools:\n${formattedTools}`;

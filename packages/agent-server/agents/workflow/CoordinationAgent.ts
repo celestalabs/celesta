@@ -1,22 +1,23 @@
-import { generateObject, tool, ToolSet } from "ai";
-import { MessageContext } from "../../components/messageContext.js";
-import { BaseAgent } from "../BaseAgent.js";
-import z from "zod";
-import { gatherTools } from "../../utils/gatherTools.js";
 import {
-  formatToolMetadataForPrompt,
-  getMetadataFromToolSet,
-  ToolMetadata,
-} from "../../utils/toolMetadata.js";
-import {
+  ts,
   WorkflowId,
   WorkflowStatus,
   WorkflowTask,
   WorkflowTaskResult,
   WorkflowTaskStatus,
 } from "@celesta/types";
-import { ExecutionAgent } from "./ExecutionAgent.js";
+import { generateObject, tool, ToolSet } from "ai";
+import z from "zod";
+import { MessageContext } from "../../components/messageContext.js";
+import { gatherTools } from "../../utils/gatherTools.js";
 import { logger } from "../../utils/logger.js";
+import {
+  formatToolMetadataForPrompt,
+  getMetadataFromToolSet,
+  ToolMetadata,
+} from "../../utils/toolMetadata.js";
+import { BaseAgent } from "../BaseAgent.js";
+import { ExecutionAgent } from "./ExecutionAgent.js";
 import { SynthesisAgent } from "./SynthesisAgent.js";
 
 const log = logger("CoordinationAgent");
@@ -81,7 +82,7 @@ export class CoordinationAgent extends BaseAgent {
               await messageContext.retrieveQuestionResponse(question);
             return answer;
           } catch (error) {
-            return "The user didn't respond in time.";
+            return "The user didn't respond in time. " + error;
           }
         },
       }),
@@ -122,33 +123,37 @@ export class CoordinationAgent extends BaseAgent {
     status: WorkflowTaskStatus = "pending"
   ) {
     task.status = status;
-    this.messageContext.generalSendMessage({
-      type: "WORKFLOW_TASK_STATUS_CHANGED",
-      workflowId: this.messageContext.contextId as WorkflowId,
-      slug: task.slug,
-      ...(status === "pending"
-        ? {
-            status,
-            description: task.description,
-          }
-        : {
-            status,
-          }),
-    });
+    this.messageContext.generalSendMessage(
+      ts({
+        type: "WORKFLOW_TASK_STATUS_CHANGED",
+        workflowId: this.messageContext.contextId as WorkflowId,
+        slug: task.slug,
+        ...(status === "pending"
+          ? {
+              status,
+              description: task.description,
+            }
+          : {
+              status,
+            }),
+      })
+    );
   }
 
   private set workflowStatus(status: WorkflowStatus) {
     this._workflowStatus = status;
-    this.messageContext.generalSendMessage({
-      type: "WORKFLOW_STATUS_CHANGED",
-      workflowId: this.messageContext.contextId as WorkflowId,
-      ...(status === "running"
-        ? {
-            status,
-            prompt: this.prompt,
-          }
-        : { status }),
-    });
+    this.messageContext.generalSendMessage(
+      ts({
+        type: "WORKFLOW_STATUS_CHANGED",
+        workflowId: this.messageContext.contextId as WorkflowId,
+        ...(status === "running"
+          ? {
+              status,
+              prompt: this.prompt,
+            }
+          : { status }),
+      })
+    );
   }
 
   async onInitialize() {

@@ -11,17 +11,17 @@ import {
   FrontendWSResponseMessage,
   FrontendWSUserMessage,
   ServerWSMessage,
+  ts,
 } from "@celesta/types";
 import { WebSocket } from "ws";
+import { ChatAgent } from "../agents/ChatAgent.js";
 import { logger } from "../utils/logger.js";
+import { integrationsClient } from "./integrationsClient.js";
 import {
   createMessageContext,
   HandlerAgentCreator,
   MessageContext,
 } from "./messageContext.js";
-import { integrationsClient } from "./integrationsClient.js";
-import { gatherTools } from "../utils/gatherTools.js";
-import { ChatAgent } from "../agents/ChatAgent.js";
 
 const log = logger("sessionManager");
 
@@ -69,10 +69,13 @@ class SessionManager {
       );
     log(`Created context ${contextId} for client ${clientId}.`);
 
-    this.sendMessage(clientId, {
-      type: "CONTEXT_CREATED",
-      contextId,
-    });
+    this.sendMessage(
+      clientId,
+      ts({
+        type: "CONTEXT_CREATED",
+        contextId,
+      })
+    );
   }
 
   /**

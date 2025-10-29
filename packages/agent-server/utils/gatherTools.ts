@@ -1,8 +1,8 @@
-import { jsonSchema, tool, Tool, ToolSet } from "ai";
-import { sessionManager } from "../components/sessionManager.js";
-import { MessageContext } from "../components/messageContext.js";
-import { integrationsClient } from "../components/integrationsClient.js";
 import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
+import { jsonSchema, tool, Tool, ToolSet } from "ai";
+import { integrationsClient } from "../components/integrationsClient.js";
+import { MessageContext } from "../components/messageContext.js";
+import { sessionManager } from "../components/sessionManager.js";
 import { logger } from "./logger.js";
 
 const log = logger("gatherTools");

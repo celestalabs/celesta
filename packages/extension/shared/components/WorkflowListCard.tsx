@@ -1,6 +1,7 @@
+import { WorkflowId, WorkflowStatus } from "@celesta/types";
 import React from "react";
 import { useStore } from "../store";
-import { WorkflowId, WorkflowStatus } from "@celesta/types";
+import { Button } from "./ui/button";
 import {
   Item,
   ItemContent,
@@ -9,7 +10,6 @@ import {
   ItemMedia,
   ItemActions,
 } from "./ui/item";
-import { Button } from "./ui/button";
 
 type Props = {
   workflowId: WorkflowId;

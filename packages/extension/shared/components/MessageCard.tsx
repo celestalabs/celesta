@@ -1,15 +1,9 @@
-import {
-  ContextId,
-  FrontendWSMessage,
-  RequestId,
-  WSMessage,
-} from "@celesta/types";
+import { ContextId, FrontendWSMessage, RequestId, ts } from "@celesta/types";
 import React from "react";
-import { UIMessageRepr } from "../types";
 import ReactMarkdown from "react-markdown";
-
-import { ButtonGroup } from "./ui/button-group";
+import { UIMessageRepr } from "../types";
 import { Button } from "./ui/button";
+import { ButtonGroup } from "./ui/button-group";
 import {
   Item,
   ItemDescription,
@@ -28,12 +22,14 @@ export const MessageCard = React.memo(
   ({ message, sendMessage, contextId }: Props) => {
     const handleProvideStartWorkflow = useCallback(
       (requestId: RequestId, yes: boolean) => {
-        sendMessage({
-          type: "PROVIDE_SHOULD_START_WORKFLOW",
-          contextId: "CHAT",
-          requestId,
-          yes,
-        });
+        sendMessage(
+          ts({
+            type: "PROVIDE_SHOULD_START_WORKFLOW",
+            contextId: "CHAT",
+            requestId,
+            yes,
+          })
+        );
       },
       [sendMessage]
     );

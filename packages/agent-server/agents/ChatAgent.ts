@@ -1,18 +1,12 @@
-import { ConversationWSMessage, WSMessage } from "@celesta/types";
-import {
-  generateText,
-  generateObject,
-  streamText,
-  ToolSet,
-  stepCountIs,
-} from "ai";
+import { ts } from "@celesta/types";
+import { generateText, generateObject, ToolSet, stepCountIs } from "ai";
 import { z } from "zod";
 import { MessageContext } from "../components/messageContext.js";
-import { BaseAgent } from "./BaseAgent.js";
-import { logger } from "../utils/logger.js";
-import { generateId } from "../utils/generateId.js";
-import { gatherTools } from "../utils/gatherTools.js";
 import { sessionManager } from "../components/sessionManager.js";
+import { gatherTools } from "../utils/gatherTools.js";
+import { generateId } from "../utils/generateId.js";
+import { logger } from "../utils/logger.js";
+import { BaseAgent } from "./BaseAgent.js";
 import { CoordinationAgent } from "./workflow/CoordinationAgent.js";
 
 const log = logger("ChatAgent");
@@ -254,12 +248,14 @@ Be conversational, natural, and supportive in all responses.`,
                     })
                 );
 
-                this.messageContext.generalSendMessage({
-                  type: "WORKFLOW_STATUS_CHANGED",
-                  workflowId: contextId,
-                  prompt,
-                  status: "running",
-                });
+                this.messageContext.generalSendMessage(
+                  ts({
+                    type: "WORKFLOW_STATUS_CHANGED",
+                    workflowId: contextId,
+                    prompt,
+                    status: "running",
+                  })
+                );
 
                 return;
               }
@@ -274,15 +270,17 @@ Be conversational, natural, and supportive in all responses.`,
               this.handleMessage();
             });
 
-          this.messageContext.generalSendMessage({
-            type: "REQUEST_SHOULD_START_WORKFLOW",
-            contextId: this.messageContext.contextId,
-            requestId: workflowRequestId,
-            content: `I can help you with that using a workflow. ${intent.reasoning}`,
-            suggestedPrompt: prompt,
-            confidence: intent.confidence,
-            reasoning: intent.reasoning,
-          });
+          this.messageContext.generalSendMessage(
+            ts({
+              type: "REQUEST_SHOULD_START_WORKFLOW",
+              contextId: this.messageContext.contextId,
+              requestId: workflowRequestId,
+              content: `I can help you with that using a workflow. ${intent.reasoning}`,
+              suggestedPrompt: prompt,
+              confidence: intent.confidence,
+              reasoning: intent.reasoning,
+            })
+          );
 
           log(
             `Sent workflow intent detection to client ${this.messageContext.clientId}`

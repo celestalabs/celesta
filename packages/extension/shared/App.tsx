@@ -1,15 +1,17 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
+import { toast, Toaster } from "sonner";
 import { Button } from "./components/ui/button";
+import { ButtonGroup } from "./components/ui/button-group";
 import { useAgentServer } from "./hooks/useAgentServer";
 import { useOAuth } from "./hooks/useOAuth";
-import { ButtonGroup } from "./components/ui/button-group";
+import { useStore } from "./store";
 import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
-import { useStore } from "./store";
-import { toast, Toaster } from "sonner";
+// eslint-disable-next-line import/order
+import { ts } from "@celesta/types";
 
 const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
@@ -22,24 +24,28 @@ const App = React.memo(() => {
       async ({ integrationName, requestId }, send) => {
         const accessToken = await handleOAuthFlow(integrationName);
         if (accessToken != null) {
-          send({
-            type: "PROVIDE_CREDENTIALS",
-            integrationName,
-            requestId,
-            accessToken,
-          });
+          send(
+            ts({
+              type: "PROVIDE_CREDENTIALS",
+              integrationName,
+              requestId,
+              accessToken,
+            })
+          );
         }
       },
       [handleOAuthFlow]
     ),
     REQUEST_QUESTION_RESPONSE: (message, send) => {
       const response = prompt("Celesta asks:", message.question);
-      send({
-        type: "PROVIDE_QUESTION_RESPONSE",
-        requestId: message.requestId,
-        response: response || "",
-        contextId: message.contextId,
-      });
+      send(
+        ts({
+          type: "PROVIDE_QUESTION_RESPONSE",
+          requestId: message.requestId,
+          response: response || "",
+          contextId: message.contextId,
+        })
+      );
     },
     REQUEST_SHOULD_START_WORKFLOW: () => {},
     CONTEXT_CREATED: () => {},

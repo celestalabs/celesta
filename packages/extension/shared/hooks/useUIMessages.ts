@@ -4,16 +4,21 @@ import { UIMessageRepr } from "../types";
 
 export function useUIMessages(contextId: ContextId) {
   const messagesByContext = useStore((store) => store.messagesByContext);
+  const messages = messagesByContext[contextId];
 
   return useMemo(() => {
     const result: UIMessageRepr[] = [];
     const resultIndexByToolCallId: Record<ToolCallId, number> = {};
 
-    for (const msg of messagesByContext[contextId] ?? []) {
+    for (const msg of messages ?? []) {
       if (msg.type === "USER_MESSAGE") {
         result.push({ type: "user", content: msg.content });
       } else if (msg.type === "AGENT_MESSAGE") {
-        result.push({ type: "agent", content: msg.content, messageType: msg.messageType });
+        result.push({
+          type: "agent",
+          content: msg.content,
+          messageType: msg.messageType,
+        });
       } else if (msg.type === "TOOL_INVOCATION") {
         resultIndexByToolCallId[msg.toolCallId] = result.length;
 
@@ -32,7 +37,7 @@ export function useUIMessages(contextId: ContextId) {
       }
     }
 
-    const lastMessage = messagesByContext[contextId]?.at(-1);
+    const lastMessage = messages?.at(-1);
 
     if (lastMessage?.type === "REQUEST_SHOULD_START_WORKFLOW") {
       result.push({
@@ -43,5 +48,5 @@ export function useUIMessages(contextId: ContextId) {
     }
 
     return result;
-  }, [messagesByContext[contextId]]);
+  }, [messages]);
 }

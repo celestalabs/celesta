@@ -1,15 +1,15 @@
-import React from "react";
-import { useStore } from "../store";
-import { useUIMessages } from "../hooks/useUIMessages";
-import { MessageCard } from "../components/MessageCard";
-import { useAutoScrollToBottom } from "../hooks/useAutoScrollToBottom";
 import { FrontendWSMessage, WorkflowId } from "@celesta/types";
+import React from "react";
+import { MessageCard } from "../components/MessageCard";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "../components/ui/accordion";
+import { useAutoScrollToBottom } from "../hooks/useAutoScrollToBottom";
+import { useUIMessages } from "../hooks/useUIMessages";
+import { useStore } from "../store";
 
 type Props = { sendMessage: (message: FrontendWSMessage) => void };
 

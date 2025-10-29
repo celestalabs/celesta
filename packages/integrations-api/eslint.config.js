@@ -6,7 +6,13 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
-    ignores: ["*.json", "*.config.ts", "*.config.js", ".output/**/*", ".wxt/**/*"],
+    ignores: [
+      "*.json",
+      "*.config.ts",
+      "*.config.js",
+      ".output/**/*",
+      ".wxt/**/*",
+    ],
     files: ["**/*.{js,mjs,cjs,ts}", "**/*.ts"],
     languageOptions: {
       parser: tseslint.parser,
@@ -14,7 +20,7 @@ export default [
         ecmaVersion: "latest",
         sourceType: "module",
         project: "./tsconfig.json",
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: import.meta.dirname,
       },
       globals: {
         ...globals.node,

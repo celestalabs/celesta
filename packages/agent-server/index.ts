@@ -1,8 +1,8 @@
 import "dotenv/config";
 
 import { WebSocketServer } from "ws";
-import { sessionManager } from "./components/sessionManager.js";
 import { frontendMessageHandler } from "./components/frontendMessageHandler.js";
+import { sessionManager } from "./components/sessionManager.js";
 import { generateId } from "./utils/generateId.js";
 import { logger } from "./utils/logger.js";
 

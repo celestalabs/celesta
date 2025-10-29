@@ -10,6 +10,7 @@ export type FrontendWSUserMessage = {
   type: "USER_MESSAGE";
   contextId: ContextId;
   content: string;
+  timestamp: number;
 };
 
 export type FrontendWSResponseMessage =
@@ -18,18 +19,21 @@ export type FrontendWSResponseMessage =
       integrationName: string;
       accessToken: string;
       requestId: RequestId;
+      timestamp: number;
     }
   | {
       type: "PROVIDE_QUESTION_RESPONSE";
       response: string;
       contextId: ContextId;
       requestId: RequestId;
+      timestamp: number;
     }
   | {
       type: "PROVIDE_SHOULD_START_WORKFLOW";
       contextId: ContextId;
       requestId: RequestId;
       yes: boolean;
+      timestamp: number;
     };
 
 export type FrontendWSMessage =
@@ -43,6 +47,7 @@ export type ServerWSAgentMessage = {
   messageType: AgentMessageType;
   contextId: ContextId;
   content: string;
+  timestamp: number;
 };
 
 export type ServerToolWSMessage =
@@ -52,12 +57,14 @@ export type ServerToolWSMessage =
       contextId: ContextId;
       toolName: string;
       input: string;
+      timestamp: number;
     }
   | {
       type: "TOOL_RESULT";
       toolCallId: ToolCallId;
       contextId: ContextId;
       output: string;
+      timestamp: number;
     };
 
 export type ServerRequestWSMessage =
@@ -65,12 +72,14 @@ export type ServerRequestWSMessage =
       type: "REQUEST_CREDENTIALS";
       integrationName: string;
       requestId: RequestId;
+      timestamp: number;
     }
   | {
       type: "REQUEST_QUESTION_RESPONSE";
       question: string;
       contextId: ContextId;
       requestId: RequestId;
+      timestamp: number;
     }
   | {
       type: "REQUEST_SHOULD_START_WORKFLOW";
@@ -80,12 +89,14 @@ export type ServerRequestWSMessage =
       suggestedPrompt: string;
       confidence: "low" | "medium" | "high";
       reasoning: string;
+      timestamp: number;
     };
 
 export type ServerWSWorkflowMessage =
   | ({
       type: "WORKFLOW_STATUS_CHANGED";
       workflowId: WorkflowId;
+      timestamp: number;
     } & (
       | ({ status: "running" } & WorkflowMetadata)
       | { status: Exclude<WorkflowStatus, "running"> }
@@ -93,9 +104,11 @@ export type ServerWSWorkflowMessage =
   | ({
       type: "WORKFLOW_TASK_STATUS_CHANGED";
       workflowId: WorkflowId;
+      timestamp: number;
+      slug: string;
     } & (
       | ({ status: "pending" } & MinimalWorkflowTask)
-      | { status: Exclude<WorkflowTaskStatus, "pending">; slug: string }
+      | { status: Exclude<WorkflowTaskStatus, "pending"> }
     ));
 
 export type ServerWSMessage =
@@ -106,6 +119,7 @@ export type ServerWSMessage =
   | {
       type: "CONTEXT_CREATED";
       contextId: ContextId;
+      timestamp: number;
     };
 
 export type ConversationWSMessage =

@@ -1,10 +1,8 @@
-import { FrontendWSMessage, ToolCallId, WSMessage } from "@celesta/types";
+import { FrontendWSMessage, ts } from "@celesta/types";
 import React from "react";
-import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Button } from "../components/ui/button";
-import { UIMessageRepr } from "../types";
 import { MessageCard } from "../components/MessageCard";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { useAutoScrollToBottom } from "../hooks/useAutoScrollToBottom";
 import { useUIMessages } from "../hooks/useUIMessages";
 
@@ -21,11 +19,13 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
 
       if (!chatInput.trim()) return;
 
-      sendMessage({
-        type: "USER_MESSAGE",
-        content: chatInput.trim(),
-        contextId: "CHAT",
-      });
+      sendMessage(
+        ts({
+          type: "USER_MESSAGE",
+          content: chatInput.trim(),
+          contextId: "CHAT",
+        })
+      );
 
       setChatInput("");
     },
@@ -39,13 +39,21 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
 
   return (
     <>
-      <div ref={scrollRef} className="flex-auto flex flex-col gap-4 overflow-y-auto px-4">
+      <div
+        ref={scrollRef}
+        className="flex-auto flex flex-col gap-4 overflow-y-auto px-4"
+      >
         {chatMessages.length === 0 && (
-          <h1 className="text-xl text-center">How's it going?</h1>
+          <h1 className="text-xl text-center">How&apos;s it going?</h1>
         )}
 
         {chatMessages.map((msg, index) => (
-          <MessageCard contextId="CHAT" key={index} message={msg} sendMessage={sendMessage} />
+          <MessageCard
+            contextId="CHAT"
+            key={index}
+            message={msg}
+            sendMessage={sendMessage}
+          />
         ))}
       </div>
 

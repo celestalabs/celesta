@@ -1,8 +1,8 @@
+import { WorkflowTaskResult } from "@celesta/types";
 import { generateText, ToolSet } from "ai";
 import { MessageContext } from "../../components/messageContext.js";
-import { BaseAgent } from "../BaseAgent.js";
-import { WorkflowTaskResult } from "@celesta/types";
 import { logger } from "../../utils/logger.js";
+import { BaseAgent } from "../BaseAgent.js";
 
 const log = logger("SynthesisAgent");
 
