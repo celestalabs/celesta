@@ -95,6 +95,7 @@ export class CoordinationAgent extends BaseAgent {
             ),
         }),
         execute: (input) => {
+          log("Getting previous task results for slug:", input.taskSlug);
           const { taskSlug } = input;
           const taskResult = this.processedTaskResults.find(
             (result) => result.taskSlug === taskSlug
@@ -140,14 +141,17 @@ export class CoordinationAgent extends BaseAgent {
 
         // Execution loop
         while (this.upcomingTaskQueue.length > 0) {
+          log("Processed Tasks:", this.processedTasks);
+          log("Processed Task Results:", this.processedTaskResults);
+          log("Upcoming Task Queue:", this.upcomingTaskQueue);
           const currentTask = this.upcomingTaskQueue.shift()!;
           this.processedTasks.push(currentTask);
           await this.executeTask(currentTask);
         }
-
-        // Synthesize into results
-        await this.synthesizeResults();
       }
+
+      // Synthesize into results
+      await this.synthesizeResults();
     } catch (error) {
       log(error);
       this.sendError(
@@ -262,7 +266,8 @@ If all necessary tasks are complete, set shouldContinue to false.`,
       messageContext: this.messageContext,
       processedTaskResults: this.processedTaskResults,
       tools: {
-        system__get_previous_task_results: this.tools["system__get_previous_task_results"],
+        system__get_previous_task_results:
+          this.tools["system__get_previous_task_results"],
       },
     });
 

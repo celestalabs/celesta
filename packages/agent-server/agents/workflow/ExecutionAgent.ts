@@ -103,10 +103,17 @@ export class ExecutionAgent extends BaseAgent {
         stopWhen: stepCountIs(20), // Limit to 20 steps
         prompt,
         onStepFinish(step) {
-          const stepToolResults = step.toolResults.map(
-            ({ toolName, output }) =>
-              [toolName, JSON.stringify({ output })] as [string, string]
-          );
+          const stepToolResults = step.toolResults
+            .filter(
+              ({ toolName }) => toolName !== "system__get_previous_task_results"
+            )
+            .map(
+              ({ toolName, input, output }) =>
+                [
+                  `${toolName}(${JSON.stringify({ input })})`,
+                  JSON.stringify({ output }),
+                ] as [string, string]
+            );
 
           log("Step completed... Tools", stepToolResults);
 
