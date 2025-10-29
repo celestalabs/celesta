@@ -1,6 +1,6 @@
-import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
+import { ExecuteIntegrationHandler } from "@celesta/integrations";
+import { IntegrationName } from "@celesta/integrations/integrations/integrationName.js";
 import { jsonSchema, tool, Tool, ToolSet } from "ai";
-import { integrationsClient } from "../components/integrationsClient.js";
 import { MessageContext } from "../components/messageContext.js";
 import { sessionManager } from "../components/sessionManager.js";
 import { logger } from "./logger.js";
@@ -31,22 +31,21 @@ export function gatherTools(
                 const handleToolResponse =
                   messageContext.sendToolInvocationMessage(toolName, input);
 
-                const toolResponse =
-                  await integrationsClient.executeIntegration({
-                    body: {
-                      integrationName,
-                      actionName: action.name,
-                      props: input as Record<string, unknown>,
-                      auth: integrationMetadata.requiresUserAuth
-                        ? {
-                            access_token:
-                              await messageContext.retrieveCredentials(
-                                integrationName as IntegrationName
-                              ),
-                          }
-                        : undefined,
-                    },
-                  });
+                const toolResponse = await ExecuteIntegrationHandler({
+                  body: {
+                    integrationName,
+                    actionName: action.name,
+                    props: input as Record<string, unknown>,
+                    auth: integrationMetadata.requiresUserAuth
+                      ? {
+                          access_token:
+                            await messageContext.retrieveCredentials(
+                              integrationName as IntegrationName
+                            ),
+                        }
+                      : undefined,
+                  },
+                });
 
                 handleToolResponse(toolResponse);
 

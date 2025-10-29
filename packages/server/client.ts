@@ -1,7 +1,9 @@
-import type { ExecuteIntegrationHandler } from "./routes/executeIntegration.ts";
-import type { GenerateOAuthAccessTokenHandler } from "./routes/generateOAuthAccessToken.ts";
-import type { GenerateOAuthRedirectUrlHandler } from "./routes/generateOAuthRedirectUrl.ts";
-import type { ListIntegrationsHandler } from "./routes/listIntegrations.ts";
+import type {
+  GenerateOAuthAccessTokenHandler,
+  GenerateOAuthRedirectUrlHandler,
+  ExecuteIntegrationHandler,
+  ListIntegrationsHandler,
+} from "@celesta/integrations";
 
 const GENERIC_FETCHER =
   (method: "GET" | "POST" | "PUT" | "DELETE", url: string) =>
@@ -34,7 +36,7 @@ const GENERIC_FETCHER =
     return res.json();
   };
 
-export const createIntegrationApiClient = (baseUrl: string) =>
+export const createIntegrationsClient = (baseUrl: string) =>
   ({
     generateOAuthRedirectUrl: GENERIC_FETCHER(
       "GET",

@@ -1,5 +1,5 @@
-import { isIntegrationName } from "@celesta/integrations-api/integrations/integrationName";
-import { PieceName } from "@celesta/integrations-api/pieces/pieceName.js";
+import { isIntegrationName } from "@celesta/integrations/integrations/integrationName";
+import { PieceName } from "@celesta/integrations/pieces/pieceName.js";
 import { integrationsClient } from "../utils/integrationsClient";
 
 export function useOAuth() {

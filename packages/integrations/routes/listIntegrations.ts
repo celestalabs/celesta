@@ -8,7 +8,7 @@ import {
   type IntegrationName,
 } from "../integrations/integrationName.ts";
 import { PieceName } from "../pieces/pieceName.ts";
-import type { TypedFetcher } from "../utils/wrappedRouter.ts";
+import { type TypedFetcher } from "../utils/TypedFetcher.ts";
 
 type ResponseMetadata = Omit<IntegrationMetadata, "actions"> & {
   actions: {

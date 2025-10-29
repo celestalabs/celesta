@@ -100,7 +100,7 @@ export function useAgentServer(handlerByType: {
   );
 
   const { sendJsonMessage } = useWebSocket(
-    import.meta.env.VITE_AGENT_SERVER_URL || "",
+    import.meta.env.VITE_AGENT_SERVER_WS_URL || "",
     {
       onOpen: handleOpen,
       onMessage: handleMessage,

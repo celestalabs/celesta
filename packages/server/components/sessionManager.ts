@@ -3,7 +3,8 @@
  * WebSocket communication, and request/response tracking for agent-server.
  */
 
-import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
+import { ListIntegrationsHandler } from "@celesta/integrations";
+import { IntegrationName } from "@celesta/integrations/integrations/integrationName.js";
 import {
   RequestId,
   ClientId,
@@ -16,7 +17,6 @@ import {
 import { WebSocket } from "ws";
 import { ChatAgent } from "../agents/ChatAgent.js";
 import { logger } from "../utils/logger.js";
-import { integrationsClient } from "./integrationsClient.js";
 import {
   createMessageContext,
   HandlerAgentCreator,
@@ -30,7 +30,7 @@ const log = logger("sessionManager");
  */
 
 type Integrations = Extract<
-  Awaited<ReturnType<typeof integrationsClient.listIntegrations>>,
+  Awaited<ReturnType<ListIntegrationsHandler>>,
   { success: true }
 >["integrations"];
 
@@ -88,7 +88,7 @@ class SessionManager {
       this.pendingRequests.set(clientId, new Map());
       this.messageContexts.set(clientId, new Map());
 
-      const toolResponse = await integrationsClient.listIntegrations({
+      const toolResponse = await ListIntegrationsHandler({
         params: { mode: "all" },
       });
 

@@ -8,7 +8,7 @@ import {
 import { executePieceAction } from "../pieces/executePieceAction.ts";
 import { isPieceName } from "../pieces/pieceName.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
-import { type TypedFetcher } from "../utils/wrappedRouter.ts";
+import { type TypedFetcher } from "../utils/TypedFetcher.ts";
 
 /**
  * Get server-side API key for integrations that don't require user auth

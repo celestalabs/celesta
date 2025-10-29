@@ -44,7 +44,11 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
         className="flex-auto flex flex-col gap-4 overflow-y-auto px-4"
       >
         {chatMessages.length === 0 && (
-          <h1 className="text-xl text-center">How&apos;s it going?</h1>
+          <div className="flex-auto flex justify-center items-center">
+            <h1 className="text-2xl mb-10 text-shadow-xs">
+              How&apos;s it going?
+            </h1>
+          </div>
         )}
 
         {chatMessages.map((msg, index) => (

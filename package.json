@@ -14,14 +14,13 @@
   },
   "scripts": {
     "dev:extension": "cd packages/extension && npm run dev",
-    "dev:integrations-api": "cd packages/integrations-api && npm run dev",
-    "dev:agent-server": "cd packages/agent-server && npm run dev",
+    "dev:server": "cd packages/server && npm run dev",
     "dev": "concurrently npm:dev:*"
   },
   "workspaces": [
     "packages/extension",
-    "packages/integrations-api",
-    "packages/agent-server",
+    "packages/integrations",
+    "packages/server",
     "packages/types"
   ],
   "devDependencies": {

@@ -1,5 +1,5 @@
-import { createIntegrationApiClient } from "@celesta/integrations-api/client";
+import { createIntegrationsClient } from "../../../server/client";
 
-export const integrationsClient = createIntegrationApiClient(
-  import.meta.env.VITE_INTEGRATIONS_API_URL!
+export const integrationsClient = createIntegrationsClient(
+  import.meta.env.VITE_AGENT_SERVER_HTTP_URL!
 );

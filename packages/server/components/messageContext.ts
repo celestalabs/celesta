@@ -1,4 +1,4 @@
-import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
+import { IntegrationName } from "@celesta/integrations/integrations/integrationName.js";
 import {
   RequestId,
   ClientId,
