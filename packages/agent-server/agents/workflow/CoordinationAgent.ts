@@ -149,6 +149,7 @@ export class CoordinationAgent extends BaseAgent {
         await this.synthesizeResults();
       }
     } catch (error) {
+      log(error);
       this.sendError(
         `Workflow failed: ${
           error instanceof Error ? error.message : String(error)
@@ -198,54 +199,38 @@ export class CoordinationAgent extends BaseAgent {
     const { object: response } = await generateObject({
       model: this.model,
       schema: NextTaskSchema,
-      prompt: `You are an autonomous coordination agent that breaks down complex tasks and makes intelligent decisions.
-
+      prompt: `Act as a workflow coordination agent for autonomous, multi-step processes.
 Current Date: ${dateString}
-
-Current Context:
+Context:
 ${detailedContextSummary}
-
 ${formatToolMetadataForPrompt(this.toolMetadata)}
 
-Your job is to:
-1. Analyze the original prompt and what has been done so far
-2. Review what DATA and INFORMATION has already been collected
-3. Determine if more tasks are needed to complete the request
-4. If yes, define the next specific task to execute
-5. If no, signal that execution should complete
+Your objectives:
+- Set and maintain a clear high-level goal for the workflow.
+- Decompose the main goal into actionable sub-tasks, reasoning step-by-step and reflecting on progress after each step.
+- For each decision, provide explicit reasoning and reference relevant context.
 
-For the task (if one is needed), provide a list of tool names (as strings) that could be used to accomplish the task. Select tools that are relevant and provide reasoning for each choice. If no tools are needed, return an empty array. Use the available tool registry and metadata above for your selection. 
+Tool Calling:
+- You have access to the following tools and their descriptions. Use them to accomplish tasks, retrieve information, or interact with external systems.
+- For each tool call, extract and provide the necessary arguments from the user context or previous results.
+- Only call tools when their use is justified and required for progress.
 
-IMPORTANT: Synthesis/compilation will NOT occur at this step and should NOT be triggered as a task here. Synthesis is handled in a separate step after all data collection and execution tasks are complete.
+Agentic Workflow:
+- After each sub-task, self-evaluate progress and adapt your plan if needed. If the workflow is open-ended or research-focused, prioritize comprehensiveness and synthesis over speed.
+- For workflows with a clear, binary goal, end as soon as the goal is achieved.
+- Maintain and reference relevant context across all steps and tool calls.
+- If you identify gaps or ambiguities, ask clarifying questions before proceeding with risky or irreversible actions.
 
-WHEN TO ASK CLARIFYING QUESTIONS:
-Ask questions for RISKY WRITE OPERATIONS when critical information is missing:
-- Sending emails: Ask for recipient if unclear ("my colleague" → ask which one)
-- Creating/modifying calendar events: Ask for details if ambiguous
-- Deleting or modifying data: Confirm if there's risk of data loss
-- Financial transactions or important decisions: Clarify before acting
-- Any operation that cannot be easily undone
+Output Requirements:
+- For each new task, provide: (1) explicit reasoning, (2) the next actionable task, (3) relevant tool names, and (4) a stop signal if the workflow is complete.
+- Be specific, actionable, and justify all decisions.
 
-When to mention doubts related to the task:
-- If the user says "send to my colleague" but you don't know who → create a clarification task
-- If creating an event without clear date/time → identify the ambiguity
-- If modifying data and the target is unclear → note what needs clarification
+Rules:
+- Do not create tasks to retrieve information already collected.
+- Each data retrieval task should use available tools.
+- Be specific and actionable.
 
-BE AUTONOMOUS FOR SAFE READ OPERATIONS:
-- Reading calendars: Check ALL calendars without asking
-- Reading emails: Retrieve comprehensive data without asking which folder
-- Searching information: Gather complete results
-- Listing/viewing data: Default to comprehensive rather than minimal
-
-General principle: "Ask before writing/modifying, be autonomous when reading"
-
-IMPORTANT RULES:
-- DO NOT create tasks to retrieve information that has already been collected
-- Each data retrieval task should be something that can be executed using the available tools listed above
-
-Be specific and actionable in task descriptions.
-
-If all necessary tasks have been completed, set shouldContinue to false.`,
+If all necessary tasks are complete, set shouldContinue to false.`,
     });
 
     // Don't add tasks, nothing to add since we're done!
@@ -277,7 +262,7 @@ If all necessary tasks have been completed, set shouldContinue to false.`,
       messageContext: this.messageContext,
       processedTaskResults: this.processedTaskResults,
       tools: {
-        system__getPreviousTaskResults: this.tools["getPreviousTaskResults"],
+        system__get_previous_task_results: this.tools["system__get_previous_task_results"],
       },
     });
 

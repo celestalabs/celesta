@@ -3,6 +3,9 @@ import { sessionManager } from "../components/sessionManager.js";
 import { MessageContext } from "../components/messageContext.js";
 import { integrationsClient } from "../components/integrationsClient.js";
 import { IntegrationName } from "@celesta/integrations-api/integrations/integrationName.js";
+import { logger } from "./logger.js";
+
+const log = logger("gatherTools");
 
 export function gatherTools(
   messageContext: MessageContext,
@@ -24,6 +27,7 @@ export function gatherTools(
                 integrationMetadata.description + " - " + action.description,
               inputSchema: jsonSchema(action.props),
               async execute(input) {
+                log("Executing tool:", toolName);
                 const handleToolResponse =
                   messageContext.sendToolInvocationMessage(toolName, input);
 
@@ -61,6 +65,8 @@ export function gatherTools(
     integrations[fullToolName] = tool({
       ...toolInstance,
       execute: async (input, context) => {
+        log("Executing tool:", toolName);
+
         const handleToolResponse = messageContext.sendToolInvocationMessage(
           fullToolName,
           input

@@ -2,6 +2,9 @@ import { generateText, ToolSet } from "ai";
 import { MessageContext } from "../../components/messageContext.js";
 import { BaseAgent } from "../BaseAgent.js";
 import { WorkflowTaskResult } from "@celesta/types";
+import { logger } from "../../utils/logger.js";
+
+const log = logger("SynthesisAgent");
 
 type SynthesisAgentConfig = {
   prompt: string;
@@ -43,38 +46,37 @@ export class SynthesisAgent extends BaseAgent {
       })
       .join("\n\n");
 
-    const systemPrompt = `You are an autonomous synthesis agent that generates cohesive, natural responses.
+    const systemPrompt = `Act as a synthesis agent responsible for generating a comprehensive, actionable response to the user's request using the results of completed workflow tasks.
+  Current Date: ${dateString}
 
-Current Date: ${dateString}
+  Your objectives:
+  - Reason step-by-step to synthesize information from all completed tasks and tool outputs.
+  - Reference all relevant context and results to ensure completeness and avoid omissions.
+  - For open-ended or research-focused requests, prioritize thoroughness, synthesis, and quality over speed.
+  - For requests with a clear, binary goal, focus on direct completion and clarity.
 
-Your job is to take the results from multiple completed tasks and synthesize them into a single, unified response that directly answers the user's original question or request.
+  Tool Usage:
+  - You have access to the following tools and their descriptions. Use them to retrieve additional details or clarify information if needed.
+  - Only call tools when their use is justified and required for a more complete or accurate response.
 
-AUTONOMY PRINCIPLES:
-- Provide COMPLETE, ACTIONABLE information without asking for clarification
-- When presenting options or choices, include ALL relevant details to help decision-making
-- Organize information in the most useful way for the user
-- If data seems incomplete, work with what's available rather than noting gaps
-- Make your response immediately useful and comprehensive
+  Workflow Steps:
+  1. Review all completed tasks and their results.
+  2. Identify key findings, insights, and actionable information.
+  3. If synthesis/compilation steps exist, use their outputs as your main source.
+  4. If data is incomplete, use what's available and clearly indicate any gaps.
+  5. Organize information for usefulness and clarity, using markdown formatting if appropriate.
+  6. Make actionable recommendations if relevant.
+  7. After synthesizing, self-evaluate the response for completeness and quality. Iterate if necessary.
 
-CRITICAL GUIDELINES:
-1. DO NOT list tasks or describe what was done - the user doesn't care about the process
-2. DO provide a direct, natural answer to their question using the task results
-3. Use a conversational, helpful tone as if you're directly answering them
-4. Combine information from multiple tasks seamlessly
-5. If the user asked for a summary, provide a comprehensive summary - not a list of tasks
-6. If the user asked for research, provide synthesized findings - not task descriptions
-7. Format your response in a clear, readable way (use markdown if appropriate)
-8. Include ALL relevant information, not just highlights - be thorough
-9. Present information in order of importance or logical flow
-10. Make actionable recommendations when appropriate
+  User Request:
+  ${this.prompt}
 
-Original User Request:
-${this.prompt}
+  Completed Tasks and Results:
+  ${taskContext}
 
-Completed Tasks and Their Results:
-${taskContext}
+  Now synthesize this into a comprehensive, cohesive response that directly and completely answers the user's request.`;
 
-Now synthesize this into a comprehensive, cohesive response that directly and completely answers the user's request.`;
+    log(this.tools);
 
     const result = await generateText({
       model: this.model,
@@ -82,7 +84,9 @@ Now synthesize this into a comprehensive, cohesive response that directly and co
       tools: this.tools,
     });
 
-    return result.text.trim() || "No response was produced by the synthesis agent.";
+    return (
+      result.text.trim() || "No response was produced by the synthesis agent."
+    );
   }
 
   // not used - stub method

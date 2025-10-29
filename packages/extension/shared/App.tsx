@@ -32,7 +32,15 @@ const App = React.memo(() => {
       },
       [handleOAuthFlow]
     ),
-    REQUEST_QUESTION_RESPONSE: (message) => {},
+    REQUEST_QUESTION_RESPONSE: (message, send) => {
+      const response = prompt("Celesta asks:", message.question);
+      send({
+        type: "PROVIDE_QUESTION_RESPONSE",
+        requestId: message.requestId,
+        response: response || "",
+        contextId: message.contextId,
+      });
+    },
     REQUEST_SHOULD_START_WORKFLOW: (message) => {},
     CONTEXT_CREATED: (message) => {},
     WORKFLOW_STATUS_CHANGED: (message) => {},
