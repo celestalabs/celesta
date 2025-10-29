@@ -115,7 +115,7 @@ Be conversational, natural, and supportive in all responses.`,
       this.sendChat(text.trim() || "I've completed your request.");
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[ChatAgent] Error generating response: ${errorMsg}`);
+      log(`Error generating response: ${errorMsg}`);
       this.sendError(
         "I apologize, but I encountered an error processing your message. Could you please try again?"
       );
@@ -176,12 +176,10 @@ Be conversational, natural, and supportive in all responses.`,
         schema: WorkflowIntentSchema,
       });
 
-      console.log("Workflow detection prompt.");
-
       return response.object;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[ChatAgent] Error detecting workflow intent: ${errorMsg}`);
+      log(`[ChatAgent] Error detecting workflow intent: ${errorMsg}`);
 
       // Default to no workflow on error
       return {

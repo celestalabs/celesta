@@ -13,6 +13,7 @@ import {
   WorkflowStatus,
   WorkflowTask,
   WorkflowTaskResult,
+  WorkflowTaskStatus,
 } from "@celesta/types";
 import { ExecutionAgent } from "./ExecutionAgent.js";
 import { logger } from "../../utils/logger.js";
@@ -113,6 +114,27 @@ export class CoordinationAgent extends BaseAgent {
 
   private get workflowStatus() {
     return this._workflowStatus;
+  }
+
+  // supplying no status implies new task creation, set to pending
+  private createOrUpdateTask(
+    task: WorkflowTask,
+    status: WorkflowTaskStatus = "pending"
+  ) {
+    task.status = status;
+    this.messageContext.generalSendMessage({
+      type: "WORKFLOW_TASK_STATUS_CHANGED",
+      workflowId: this.messageContext.contextId as WorkflowId,
+      slug: task.slug,
+      ...(status === "pending"
+        ? {
+            status,
+            description: task.description,
+          }
+        : {
+            status,
+          }),
+    });
   }
 
   private set workflowStatus(status: WorkflowStatus) {
@@ -243,13 +265,16 @@ If all necessary tasks are complete, set shouldContinue to false.`,
       return;
     }
 
-    this.upcomingTaskQueue.push({
+    const task = {
       slug: response.task.slug,
       description: response.task.description,
       goal: response.task.goal,
       tools: response.task.tools.filter((toolId) => toolId in this.tools),
       status: "pending",
-    });
+    } as const satisfies WorkflowTask;
+
+    this.createOrUpdateTask(task);
+    this.upcomingTaskQueue.push(task);
   }
 
   /**
@@ -284,7 +309,8 @@ If all necessary tasks are complete, set shouldContinue to false.`,
       this.messageContext.contextId,
     ]);
 
-    task.status = "running";
+    this.createOrUpdateTask(task, "running");
+
     this.processedTasks.push(task);
 
     const tools: ToolSet = Object.fromEntries(
@@ -306,12 +332,12 @@ If all necessary tasks are complete, set shouldContinue to false.`,
     this.processedTaskResults.push(result);
 
     if (result.success) {
-      task.status = "completed";
+      this.createOrUpdateTask(task, "completed");
       this.sendChat(
         `*Task \`${task.slug}\` completed successfully.*\n\n${result.finalResult}`
       );
     } else {
-      task.status = "failed";
+      this.createOrUpdateTask(task, "failed");
       this.sendError(
         `*Task \`${task.slug}\` failed.*\n\n${result.error || "Unknown error"}`
       );

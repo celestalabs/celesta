@@ -15,8 +15,14 @@ export function useAgentServer(handlerByType: {
 }) {
   const addContext = useStore((store) => store.addContext);
   const addMessageToContext = useStore((store) => store.addMessageToContext);
+
   const createWorkflow = useStore((store) => store.createWorkflow);
   const updateWorkflowStatus = useStore((store) => store.updateWorkflowStatus);
+
+  const createWorkflowTask = useStore((store) => store.createWorkflowTask);
+  const updateWorkflowTaskStatus = useStore(
+    (store) => store.updateWorkflowTaskStatus
+  );
 
   const handleOpen = useCallback(() => {
     console.log("WebSocket connection opened");
@@ -49,6 +55,20 @@ export function useAgentServer(handlerByType: {
           break;
         }
         case "WORKFLOW_TASK_STATUS_CHANGED": {
+          if (message.status === "pending") {
+            createWorkflowTask(message.workflowId, {
+              slug: message.slug,
+              status: message.status,
+              description: message.description,
+            });
+          } else {
+            updateWorkflowTaskStatus(
+              message.workflowId,
+              message.slug,
+              message.status
+            );
+          }
+
           break;
         }
       }

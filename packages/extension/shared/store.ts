@@ -1,5 +1,6 @@
 import {
   ContextId,
+  MinimalWorkflowTask,
   WorkflowId,
   WorkflowMetadata,
   WorkflowStatus,
@@ -24,6 +25,17 @@ type Store = {
     workflowId: WorkflowId,
     status: WorkflowStatus
   ) => void;
+
+  tasksByWorkflow: Partial<Record<WorkflowId, MinimalWorkflowTask[]>>;
+  createWorkflowTask: (
+    workflowId: WorkflowId,
+    task: MinimalWorkflowTask
+  ) => void;
+  updateWorkflowTaskStatus: (
+    workflowId: WorkflowId,
+    taskSlug: string,
+    taskStatus: WorkflowStatus
+  ) => void;
 };
 
 export const useStore = create<Store>()((set) => ({
@@ -33,8 +45,8 @@ export const useStore = create<Store>()((set) => ({
       ...state,
       currentView: viewId,
     })),
+
   messagesByContext: {},
-  workflowMetadata: {},
   addContext: (contextId: ContextId) =>
     set((state) => ({
       ...state,
@@ -54,6 +66,8 @@ export const useStore = create<Store>()((set) => ({
         },
       };
     }),
+
+  workflowMetadata: {},
   createWorkflow: (workflowMetadata: WorkflowMetadata) =>
     set((state) => ({
       ...state,
@@ -73,4 +87,35 @@ export const useStore = create<Store>()((set) => ({
         },
       },
     })),
+
+  tasksByWorkflow: {},
+  createWorkflowTask: (workflowId: WorkflowId, task: MinimalWorkflowTask) =>
+    set((state) => {
+      const existingTasks = state.tasksByWorkflow[workflowId] ?? [];
+      return {
+        ...state,
+        tasksByWorkflow: {
+          ...state.tasksByWorkflow,
+          [workflowId]: [...existingTasks, task],
+        },
+      };
+    }),
+  updateWorkflowTaskStatus: (
+    workflowId: WorkflowId,
+    taskSlug: string,
+    taskStatus: WorkflowStatus
+  ) =>
+    set((state) => {
+      const existingTasks = state.tasksByWorkflow[workflowId] ?? [];
+      const updatedTasks = existingTasks.map((t) =>
+        t.slug === taskSlug ? { ...t, status: taskStatus } : t
+      );
+      return {
+        ...state,
+        tasksByWorkflow: {
+          ...state.tasksByWorkflow,
+          [workflowId]: updatedTasks,
+        },
+      };
+    }),
 }));

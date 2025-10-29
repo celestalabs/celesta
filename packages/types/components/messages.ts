@@ -94,8 +94,8 @@ export type ServerWSWorkflowMessage =
       type: "WORKFLOW_TASK_STATUS_CHANGED";
       workflowId: WorkflowId;
     } & (
-      | ({ status: "running" } & MinimalWorkflowTask)
-      | { status: Exclude<WorkflowTaskStatus, "running">; slug: string }
+      | ({ status: "pending" } & MinimalWorkflowTask)
+      | { status: Exclude<WorkflowTaskStatus, "pending">; slug: string }
     ));
 
 export type ServerWSMessage =

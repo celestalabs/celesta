@@ -4,12 +4,19 @@ import { useUIMessages } from "../hooks/useUIMessages";
 import { MessageCard } from "../components/MessageCard";
 import { useAutoScrollToBottom } from "../hooks/useAutoScrollToBottom";
 import { FrontendWSMessage, WorkflowId } from "@celesta/types";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
 
 type Props = { sendMessage: (message: FrontendWSMessage) => void };
 
 export const WorkflowView = React.memo(({ sendMessage }: Props) => {
   const currentView = useStore((state) => state.currentView);
   const workflowMetadata = useStore((state) => state.workflowMetadata);
+  const tasksByWorkflow = useStore((state) => state.tasksByWorkflow);
 
   const metadata = workflowMetadata[currentView as WorkflowId]!;
   const workflowMessages = useUIMessages(currentView);
@@ -20,13 +27,35 @@ export const WorkflowView = React.memo(({ sendMessage }: Props) => {
   return (
     <>
       <div className="px-4">
-        <h3 className="text-md">
-          <b>Goal:</b> {metadata.prompt}
-        </h3>
+        <Accordion collapsible type="single">
+          <AccordionItem value="tasks">
+            <AccordionTrigger>
+              <small>{metadata.prompt}</small>
+            </AccordionTrigger>
+            <AccordionContent>
+              <ul>
+                {tasksByWorkflow[currentView as WorkflowId]?.map((task) => (
+                  <li key={task.slug}>
+                    <b>{task.slug}:</b> {task.description} (<i>{task.status}</i>
+                    )
+                  </li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
-      <div ref={scrollRef} className="flex-auto flex flex-col gap-4 overflow-y-auto px-4">
+      <div
+        ref={scrollRef}
+        className="flex-auto flex flex-col gap-4 overflow-y-auto px-4"
+      >
         {workflowMessages.map((msg, index) => (
-          <MessageCard contextId={currentView} key={index} message={msg} sendMessage={sendMessage} />
+          <MessageCard
+            contextId={currentView}
+            key={index}
+            message={msg}
+            sendMessage={sendMessage}
+          />
         ))}
       </div>
     </>

@@ -15,9 +15,9 @@ const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
 
   const { sendMessage } = useAgentServer({
-    AGENT_MESSAGE: (message) => {},
-    TOOL_INVOCATION: (message) => {},
-    TOOL_RESULT: (message) => {},
+    AGENT_MESSAGE: () => {},
+    TOOL_INVOCATION: () => {},
+    TOOL_RESULT: () => {},
     REQUEST_CREDENTIALS: useCallback(
       async ({ integrationName, requestId }, send) => {
         const accessToken = await handleOAuthFlow(integrationName);
@@ -41,9 +41,9 @@ const App = React.memo(() => {
         contextId: message.contextId,
       });
     },
-    REQUEST_SHOULD_START_WORKFLOW: (message) => {},
-    CONTEXT_CREATED: (message) => {},
-    
+    REQUEST_SHOULD_START_WORKFLOW: () => {},
+    CONTEXT_CREATED: () => {},
+
     // Show toast for workflow status changes
     WORKFLOW_STATUS_CHANGED: (message) => {
       // Don't show if user is already viewing the workflow
@@ -81,7 +81,7 @@ const App = React.memo(() => {
         }
       }
     },
-    WORKFLOW_TASK_STATUS_CHANGED: (message) => {},
+    WORKFLOW_TASK_STATUS_CHANGED: () => {},
   });
 
   const currentView = useStore((state) => state.currentView);
@@ -90,7 +90,7 @@ const App = React.memo(() => {
   return (
     <>
       <Toaster />
-      <div className="h-full py-4 flex flex-col gap-5">
+      <div className="h-full py-4 flex flex-col gap-4">
         <ButtonGroup className="flex w-full px-4">
           <Button
             className="flex-auto"
