@@ -1,15 +1,16 @@
 import { FrontendWSMessage, RequestId, WSMessage } from "@celesta/types";
 import React from "react";
 import { UIMessageRepr } from "../types";
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
+
 import { ButtonGroup } from "./ui/button-group";
 import { Button } from "./ui/button";
+import {
+  Item,
+  ItemDescription,
+  ItemFooter,
+  ItemContent,
+  ItemTitle,
+} from "./ui/item";
 
 type Props = {
   message: UIMessageRepr;
@@ -31,10 +32,10 @@ export const MessageCard = React.memo(({ message, sendMessage }: Props) => {
 
   if (message.type === "tool") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{message.toolName}</CardTitle>
-          <CardDescription className="overflow-x-hidden">
+      <Item variant="outline">
+        <ItemContent>
+          <ItemTitle>{message.toolName}</ItemTitle>
+          <ItemDescription className="overflow-x-hidden !line-clamp-none">
             <pre className="wrap-break-word whitespace-pre-wrap">
               <b>Input:</b> <code>{message.input}</code>
               {message.output != null && (
@@ -44,20 +45,22 @@ export const MessageCard = React.memo(({ message, sendMessage }: Props) => {
                 </>
               )}
             </pre>
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          </ItemDescription>
+        </ItemContent>
+      </Item>
     );
   }
 
   if (message.type === "workflow-request") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Start a workflow?</CardTitle>
-          <CardDescription>{message.prompt}</CardDescription>
-        </CardHeader>
-        <CardFooter>
+      <Item variant="muted">
+        <ItemContent>
+          <ItemTitle>Start a workflow?</ItemTitle>
+          <ItemDescription className="!line-clamp-none">
+            {message.prompt}
+          </ItemDescription>
+        </ItemContent>
+        <ItemFooter>
           <ButtonGroup>
             <Button
               size="sm"
@@ -77,17 +80,19 @@ export const MessageCard = React.memo(({ message, sendMessage }: Props) => {
               Dismiss
             </Button>
           </ButtonGroup>
-        </CardFooter>
-      </Card>
+        </ItemFooter>
+      </Item>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="capitalize">{message.type}</CardTitle>
-        <CardDescription>{message.content}</CardDescription>
-      </CardHeader>
-    </Card>
+    <Item variant="outline">
+      <ItemContent>
+        <ItemTitle>{message.type === "agent" ? "Celesta ✨" : "You"}</ItemTitle>
+        <ItemDescription className="!line-clamp-none">
+          {message.content}
+        </ItemDescription>
+      </ItemContent>
+    </Item>
   );
 });

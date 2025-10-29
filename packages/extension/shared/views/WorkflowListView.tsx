@@ -1,6 +1,7 @@
 import { ContextId, WorkflowId } from "@celesta/types";
 import React from "react";
 import { useStore } from "../store";
+import { WorkflowListCard } from "../components/WorkflowListCard";
 
 // type Props = {};
 
@@ -33,18 +34,18 @@ export const WorkflowListView = React.memo((/*{}: Props*/) => {
       )}
 
       {inProgressWorkflowIds.length > 0 && (
-        <div className="px-4 flex-col gap-4">
+        <div className="px-4 flex flex-col gap-4">
           <h1 className="text-lg">Workflows in progress</h1>
           {inProgressWorkflowIds.map((id) => (
-            <div key={id}>{workflowMetadata[id]!.prompt}</div>
+            <WorkflowListCard key={id} workflowId={id} />
           ))}
         </div>
       )}
       {pastWorkflowIds.length > 0 && (
-        <div className="px-4 flex-col gap-4">
+        <div className="px-4 flex flex-col gap-4">
           <h1 className="text-lg">Past workflows</h1>
           {pastWorkflowIds.map((id) => (
-            <div key={id}>{workflowMetadata[id]!.prompt}</div>
+            <WorkflowListCard key={id} workflowId={id} />
           ))}
         </div>
       )}

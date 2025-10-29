@@ -5,10 +5,13 @@ import {
   WSMessage,
 } from "@celesta/types";
 import { create } from "zustand";
+import { ViewId } from "./types";
 
 type WSMessageWithContextId = Extract<WSMessage, { contextId: ContextId }>;
 
 type Store = {
+  currentView: ViewId;
+  routeToView: (viewId: ViewId) => void;
   messagesByContext: Partial<Record<ContextId, WSMessageWithContextId[]>>;
   addContext: (contextId: ContextId) => void;
   addMessageToContext: (message: WSMessageWithContextId) => void;
@@ -17,6 +20,12 @@ type Store = {
 };
 
 export const useStore = create<Store>()((set) => ({
+  currentView: "CHAT",
+  routeToView: (viewId: ViewId) =>
+    set((state) => ({
+      ...state,
+      currentView: viewId,
+    })),
   messagesByContext: {},
   workflowMetadata: {},
   addContext: (contextId: ContextId) =>

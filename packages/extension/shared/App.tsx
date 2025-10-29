@@ -8,7 +8,7 @@ import { ButtonGroup } from "./components/ui/button-group";
 import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
-import { ViewId } from "./types";
+import { useStore } from "./store";
 
 const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
@@ -37,35 +37,34 @@ const App = React.memo(() => {
     WORKFLOW_STATUS_CHANGED: (message) => {},
   });
 
-  const [currentTab, setCurrentTab] = useState<ViewId>(
-    "CHAT"
-  );
+  const currentView = useStore((state) => state.currentView);
+  const routeToView = useStore((state) => state.routeToView);
 
   return (
     <div className="h-full py-4 flex flex-col gap-5">
       <ButtonGroup className="flex w-full px-4">
         <Button
           className="flex-auto"
-          variant={currentTab === "CHAT" ? "default" : "secondary"}
-          onClick={() => setCurrentTab("CHAT")}
+          variant={currentView === "CHAT" ? "default" : "secondary"}
+          onClick={() => routeToView("CHAT")}
         >
           Assistant
         </Button>
         <Button
           className="flex-auto"
-          variant={currentTab !== "CHAT" ? "default" : "secondary"}
-          onClick={() => setCurrentTab("WORKFLOW_LIST")}
+          variant={currentView !== "CHAT" ? "default" : "secondary"}
+          onClick={() => routeToView("WORKFLOW_LIST")}
         >
           Workflows
         </Button>
       </ButtonGroup>
 
-      {currentTab === "CHAT" ? (
+      {currentView === "CHAT" ? (
         <AssistantView sendMessage={sendMessage} />
-      ) : currentTab === "WORKFLOW_LIST" ? (
+      ) : currentView === "WORKFLOW_LIST" ? (
         <WorkflowListView />
       ) : (
-        <WorkflowView />
+        <WorkflowView sendMessage={sendMessage} />
       )}
     </div>
   );
