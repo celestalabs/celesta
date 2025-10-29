@@ -1,4 +1,3 @@
-import { MessageContext } from "@celesta/session";
 import {
   ts,
   WorkflowId,
@@ -9,14 +8,15 @@ import {
   WorkflowTaskStatus,
   logger,
 } from "@celesta/common";
+import { MessageContext } from "@celesta/session";
 import { generateObject, tool, ToolSet } from "ai";
 import z from "zod";
-import { gatherTools } from "../../utils/gatherTools.js";
+import { gatherTools } from "../utils/gatherTools.js";
 import {
   formatToolMetadataForPrompt,
   getMetadataFromToolSet,
   ToolMetadata,
-} from "../../utils/toolMetadata.js";
+} from "../../../server/utils/toolMetadata.js";
 import { ExecutionAgent } from "./ExecutionAgent.js";
 import { SynthesisAgent } from "./SynthesisAgent.js";
 

@@ -1,8 +1,8 @@
-import { sessionManager, MessageContext } from "@celesta/session";
 import { ts, BaseAgent, logger, generateId } from "@celesta/common";
+import { sessionManager, MessageContext } from "@celesta/session";
 import { generateText, generateObject, ToolSet, stepCountIs } from "ai";
 import { z } from "zod";
-import { gatherTools } from "../utils/gatherTools.js";
+import { gatherTools } from "./utils/gatherTools.js";
 import { CoordinationAgent } from "./workflow/CoordinationAgent.js";
 
 const log = logger("ChatAgent");

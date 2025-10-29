@@ -3,8 +3,10 @@
  * WebSocket communication, and request/response tracking for agent-server.
  */
 
-import { ListIntegrationsHandler } from "@celesta/integrations";
-import { IntegrationName } from "@celesta/integrations/integrations/integrationName.js";
+import {
+  ListIntegrationsHandler,
+  IntegrationName,
+} from "@celesta/integrations";
 import {
   RequestId,
   ClientId,

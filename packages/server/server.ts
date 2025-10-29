@@ -1,6 +1,8 @@
 import "dotenv/config";
 
 import { createServer } from "http";
+import { ChatAgent } from "@celesta/agents";
+import { generateId, logger } from "@celesta/common";
 import {
   ExecuteIntegrationHandler,
   GenerateOAuthAccessTokenHandler,
@@ -8,11 +10,9 @@ import {
   ListIntegrationsHandler,
 } from "@celesta/integrations";
 import { sessionManager } from "@celesta/session";
-import { generateId, logger } from "@celesta/common";
 import cors from "cors";
 import express from "express";
 import { WebSocketServer } from "ws";
-import { ChatAgent } from "./agents/ChatAgent.js";
 import { frontendMessageHandler } from "./components/frontendMessageHandler.js";
 import {} from "@celesta/common";
 import { WrappedRouter } from "./utils/wrappedRouter.js";

@@ -1,5 +1,5 @@
-import { sessionManager } from "@celesta/session";
 import { ClientId, logger } from "@celesta/common";
+import { sessionManager } from "@celesta/session";
 import { isFrontendWSMessage } from "../types/guards.js";
 
 const log = logger("frontendMessageHandler");

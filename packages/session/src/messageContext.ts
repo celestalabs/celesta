@@ -1,4 +1,3 @@
-import { IntegrationName } from "@celesta/integrations/integrations/integrationName.js";
 import {
   RequestId,
   ClientId,
@@ -12,6 +11,7 @@ import {
   logger,
   generateId,
 } from "@celesta/common";
+import { IntegrationName } from "@celesta/integrations";
 import { sessionManager } from "./sessionManager.js";
 
 const log = logger("messageContext");
