@@ -36,6 +36,7 @@ const App = React.memo(() => {
     REQUEST_SHOULD_START_WORKFLOW: (message) => {},
     CONTEXT_CREATED: (message) => {},
     WORKFLOW_STATUS_CHANGED: (message) => {},
+    WORKFLOW_TASK_STATUS_CHANGED: (message) => {},
   });
 
   const currentView = useStore((state) => state.currentView);

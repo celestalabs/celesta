@@ -5,7 +5,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { UIMessageRepr } from "../types";
 import { MessageCard } from "../components/MessageCard";
-import { useStore } from "../store";
+import { useAutoScrollToBottom } from "../hooks/useAutoScrollToBottom";
 import { useUIMessages } from "../hooks/useUIMessages";
 
 type Props = {
@@ -34,9 +34,12 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
 
   const chatMessages = useUIMessages("CHAT");
 
+  // Auto-scroll logic
+  const scrollRef = useAutoScrollToBottom(chatMessages.length);
+
   return (
     <>
-      <div className="flex-auto flex flex-col gap-4 overflow-y-auto px-4">
+      <div ref={scrollRef} className="flex-auto flex flex-col gap-4 overflow-y-auto px-4">
         {chatMessages.length === 0 && (
           <h1 className="text-xl text-center">How's it going?</h1>
         )}

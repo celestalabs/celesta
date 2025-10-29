@@ -19,6 +19,7 @@ const statusEmojiMap = {
   running: "🏃‍♂️",
   completed: "✅",
   failed: "❌",
+  finishing: "🏁",
 } satisfies Record<WorkflowStatus, string>;
 
 export const WorkflowListCard = React.memo(({ workflowId }: Props) => {
@@ -42,8 +43,11 @@ export const WorkflowListCard = React.memo(({ workflowId }: Props) => {
       </ItemMedia>
       <ItemContent>
         <ItemTitle className="line-clamp-2">{shortenedTitle}</ItemTitle>
-        <ItemDescription className="capitalize">
-          {metadata.status + (metadata.status === "running" ? "..." : ".")}
+        <ItemDescription className="capitalize !text-wrap">
+          {metadata.status +
+            (metadata.status === "running" || metadata.status === "finishing"
+              ? "..."
+              : ".")}
         </ItemDescription>
       </ItemContent>
       <ItemActions>

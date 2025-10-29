@@ -13,7 +13,7 @@ export function useUIMessages(contextId: ContextId) {
       if (msg.type === "USER_MESSAGE") {
         result.push({ type: "user", content: msg.content });
       } else if (msg.type === "AGENT_MESSAGE") {
-        result.push({ type: "agent", content: msg.content });
+        result.push({ type: "agent", content: msg.content, messageType: msg.messageType });
       } else if (msg.type === "TOOL_INVOCATION") {
         resultIndexByToolCallId[msg.toolCallId] = result.length;
 

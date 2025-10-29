@@ -6,7 +6,8 @@ import { IntegrationName } from "@celesta/integrations-api/integrations/integrat
 
 export function gatherTools(
   messageContext: MessageContext,
-  mode: "workflow" | "chat"
+  mode: "workflow" | "chat",
+  systemTools: Partial<Record<string, Tool>> = {}
 ): ToolSet {
   const integrations = Object.fromEntries(
     Object.entries(
@@ -54,8 +55,23 @@ export function gatherTools(
     )
   );
 
-  if (mode === "workflow") {
-    // TODO: add system tools (ask question, task data lookup, etc.)
+  for (const [toolName, toolInstance] of Object.entries(systemTools)) {
+    if (toolInstance == null) continue;
+
+    integrations[`system__${toolName}`] = tool({
+      ...toolInstance,
+      execute: async (input, context) => {
+        const handleToolResponse = messageContext.sendToolInvocationMessage(
+          toolName,
+          input
+        );
+        const toolResponse = await Promise.resolve(
+          toolInstance.execute?.(input, context)
+        );
+        handleToolResponse(toolResponse);
+        return toolResponse;
+      },
+    });
   }
 
   return integrations;
