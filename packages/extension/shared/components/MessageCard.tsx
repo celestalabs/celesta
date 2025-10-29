@@ -1,4 +1,10 @@
-import { ContextId, FrontendWSMessage, RequestId, ts } from "@celesta/types";
+import {
+  ContextId,
+  FrontendWSMessage,
+  RequestId,
+  ts,
+  WorkflowTaskStatus,
+} from "@celesta/types";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import { UIMessageRepr } from "../types";
@@ -10,6 +16,7 @@ import {
   ItemFooter,
   ItemContent,
   ItemTitle,
+  ItemMedia,
 } from "./ui/item";
 
 type Props = {
@@ -17,6 +24,13 @@ type Props = {
   message: UIMessageRepr;
   sendMessage: (message: FrontendWSMessage) => void;
 };
+
+const statusEmojiMap = {
+  pending: "⏳",
+  running: "🏃‍♂️",
+  completed: "✅",
+  failed: "❌",
+} satisfies Record<WorkflowTaskStatus, string>;
 
 export const MessageCard = React.memo(
   ({ message, sendMessage, contextId }: Props) => {
@@ -85,6 +99,27 @@ export const MessageCard = React.memo(
               </Button>
             </ButtonGroup>
           </ItemFooter>
+        </Item>
+      );
+    }
+
+    if (message.type === "workflow-task") {
+      return (
+        <Item variant="outline">
+          <ItemMedia>
+            <span className="text-xl">{statusEmojiMap[message.status]}</span>
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle>
+              {message.status === "completed"
+                ? "Completed"
+                : message.status === "failed"
+                  ? "Failed"
+                  : "Completing"}{" "}
+              &quot;{message.slug.split("-").join(" ")}&quot;
+            </ItemTitle>
+            <ItemDescription>{message.description}</ItemDescription>
+          </ItemContent>
         </Item>
       );
     }

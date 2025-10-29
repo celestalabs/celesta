@@ -1,6 +1,7 @@
 import { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
 import {
   MinimalWorkflowTask,
+  UIWorkflowTask,
   WorkflowMetadata,
   WorkflowStatus,
   WorkflowTaskStatus,
@@ -107,7 +108,7 @@ export type ServerWSWorkflowMessage =
       timestamp: number;
       slug: string;
     } & (
-      | ({ status: "pending" } & MinimalWorkflowTask)
+      | ({ status: "pending" } & Omit<UIWorkflowTask, "type">)
       | { status: Exclude<WorkflowTaskStatus, "pending"> }
     ));
 

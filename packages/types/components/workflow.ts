@@ -15,6 +15,11 @@ export interface MinimalWorkflowTask {
   status: WorkflowTaskStatus;
 }
 
+export interface UIWorkflowTask extends MinimalWorkflowTask {
+  type: "UI_WORKFLOW_TASK";
+  timestamp: number;
+}
+
 export interface WorkflowTask extends MinimalWorkflowTask {
   goal: string;
   tools: string[];

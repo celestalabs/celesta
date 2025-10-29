@@ -57,9 +57,11 @@ export function useAgentServer(handlerByType: {
         case "WORKFLOW_TASK_STATUS_CHANGED": {
           if (message.status === "pending") {
             createWorkflowTask(message.workflowId, {
+              type: "UI_WORKFLOW_TASK",
               slug: message.slug,
               status: message.status,
               description: message.description,
+              timestamp: message.timestamp,
             });
           } else {
             updateWorkflowTaskStatus(

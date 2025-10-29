@@ -1,22 +1,29 @@
-import { FrontendWSMessage, WorkflowId } from "@celesta/types";
+import { FrontendWSMessage, WorkflowId, WorkflowStatus } from "@celesta/types";
 import React from "react";
 import { MessageCard } from "../components/MessageCard";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "../components/ui/accordion";
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "../components/ui/item";
 import { useAutoScrollToBottom } from "../hooks/useAutoScrollToBottom";
 import { useUIMessages } from "../hooks/useUIMessages";
 import { useStore } from "../store";
 
 type Props = { sendMessage: (message: FrontendWSMessage) => void };
 
+const statusEmojiMap = {
+  running: "🏃‍♂️",
+  completed: "✅",
+  failed: "❌",
+  finishing: "🏁",
+} satisfies Record<WorkflowStatus, string>;
+
 export const WorkflowView = React.memo(({ sendMessage }: Props) => {
   const currentView = useStore((state) => state.currentView);
   const workflowMetadata = useStore((state) => state.workflowMetadata);
-  const tasksByWorkflow = useStore((state) => state.tasksByWorkflow);
 
   const metadata = workflowMetadata[currentView as WorkflowId]!;
   const workflowMessages = useUIMessages(currentView);
@@ -27,23 +34,13 @@ export const WorkflowView = React.memo(({ sendMessage }: Props) => {
   return (
     <>
       <div className="px-4">
-        <Accordion collapsible type="single">
-          <AccordionItem value="tasks">
-            <AccordionTrigger>
-              <small>{metadata.prompt}</small>
-            </AccordionTrigger>
-            <AccordionContent>
-              <ul>
-                {tasksByWorkflow[currentView as WorkflowId]?.map((task) => (
-                  <li key={task.slug}>
-                    <b>{task.slug}:</b> {task.description} (<i>{task.status}</i>
-                    )
-                  </li>
-                ))}
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <Item>
+          <ItemMedia>{statusEmojiMap[metadata.status]}</ItemMedia>
+          <ItemContent>
+            <ItemTitle>Workflow Directions</ItemTitle>
+            <ItemDescription>{metadata.prompt}</ItemDescription>
+          </ItemContent>
+        </Item>
       </div>
       <div
         ref={scrollRef}

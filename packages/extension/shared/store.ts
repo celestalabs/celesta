@@ -1,6 +1,6 @@
 import {
   ContextId,
-  MinimalWorkflowTask,
+  UIWorkflowTask,
   WorkflowId,
   WorkflowMetadata,
   WorkflowStatus,
@@ -26,11 +26,8 @@ type Store = {
     status: WorkflowStatus
   ) => void;
 
-  tasksByWorkflow: Partial<Record<WorkflowId, MinimalWorkflowTask[]>>;
-  createWorkflowTask: (
-    workflowId: WorkflowId,
-    task: MinimalWorkflowTask
-  ) => void;
+  tasksByWorkflow: Partial<Record<WorkflowId, UIWorkflowTask[]>>;
+  createWorkflowTask: (workflowId: WorkflowId, task: UIWorkflowTask) => void;
   updateWorkflowTaskStatus: (
     workflowId: WorkflowId,
     taskSlug: string,
@@ -89,7 +86,7 @@ export const useStore = create<Store>()((set) => ({
     })),
 
   tasksByWorkflow: {},
-  createWorkflowTask: (workflowId: WorkflowId, task: MinimalWorkflowTask) =>
+  createWorkflowTask: (workflowId: WorkflowId, task: UIWorkflowTask) =>
     set((state) => {
       const existingTasks = state.tasksByWorkflow[workflowId] ?? [];
       return {
