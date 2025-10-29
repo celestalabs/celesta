@@ -9,6 +9,7 @@ import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
 import { useStore } from "./store";
+import { Toaster } from "sonner";
 
 const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
@@ -41,32 +42,35 @@ const App = React.memo(() => {
   const routeToView = useStore((state) => state.routeToView);
 
   return (
-    <div className="h-full py-4 flex flex-col gap-5">
-      <ButtonGroup className="flex w-full px-4">
-        <Button
-          className="flex-auto"
-          variant={currentView === "CHAT" ? "default" : "secondary"}
-          onClick={() => routeToView("CHAT")}
-        >
-          Assistant
-        </Button>
-        <Button
-          className="flex-auto"
-          variant={currentView !== "CHAT" ? "default" : "secondary"}
-          onClick={() => routeToView("WORKFLOW_LIST")}
-        >
-          Workflows
-        </Button>
-      </ButtonGroup>
+    <>
+      <Toaster />
+      <div className="h-full py-4 flex flex-col gap-5">
+        <ButtonGroup className="flex w-full px-4">
+          <Button
+            className="flex-auto"
+            variant={currentView === "CHAT" ? "default" : "secondary"}
+            onClick={() => routeToView("CHAT")}
+          >
+            Assistant
+          </Button>
+          <Button
+            className="flex-auto"
+            variant={currentView !== "CHAT" ? "default" : "secondary"}
+            onClick={() => routeToView("WORKFLOW_LIST")}
+          >
+            Workflows
+          </Button>
+        </ButtonGroup>
 
-      {currentView === "CHAT" ? (
-        <AssistantView sendMessage={sendMessage} />
-      ) : currentView === "WORKFLOW_LIST" ? (
-        <WorkflowListView />
-      ) : (
-        <WorkflowView sendMessage={sendMessage} />
-      )}
-    </div>
+        {currentView === "CHAT" ? (
+          <AssistantView sendMessage={sendMessage} />
+        ) : currentView === "WORKFLOW_LIST" ? (
+          <WorkflowListView />
+        ) : (
+          <WorkflowView sendMessage={sendMessage} />
+        )}
+      </div>
+    </>
   );
 });
 

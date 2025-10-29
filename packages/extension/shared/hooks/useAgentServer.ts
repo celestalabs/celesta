@@ -1,6 +1,7 @@
 import useWebSocket from "react-use-websocket";
 import { FrontendWSMessage, ServerWSMessage } from "@celesta/types";
 import { useStore } from "../store";
+import { toast } from "sonner";
 
 // Map each ServerWSMessage type to its specific message shape
 type ServerWSMessageByType = {
@@ -16,6 +17,7 @@ export function useAgentServer(handlerByType: {
   const addContext = useStore((store) => store.addContext);
   const addMessageToContext = useStore((store) => store.addMessageToContext);
   const upsertWorkflow = useStore((store) => store.upsertWorkflow);
+  const routeToView = useStore((store) => store.routeToView);
 
   const handleOpen = useCallback(() => {
     console.log("WebSocket connection opened");
@@ -37,6 +39,35 @@ export function useAgentServer(handlerByType: {
           prompt: message.prompt,
           status: message.status,
         });
+
+        const toastConfig = {
+          action: {
+            label: "View",
+            onClick: () => routeToView(message.workflowId),
+          },
+          position: "top-center",
+        } as const;
+
+        switch (message.status) {
+          case "failed":
+            toast.error("Workflow failed! :(", {
+              ...toastConfig,
+              description: "Something went wrong during execution.",
+            });
+            break;
+          case "completed":
+            toast.success(`Workflow completed!`, {
+              description: "Take a peek at what happened.",
+              ...toastConfig,
+            });
+            break;
+          case "running":
+            toast.info("Workflow created!", {
+              description: `It's running as we speak.`,
+              ...toastConfig,
+            });
+            break;
+        }
       } else if ("contextId" in message) {
         addMessageToContext(message);
       }
