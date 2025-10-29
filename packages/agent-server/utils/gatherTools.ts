@@ -20,7 +20,6 @@ export function gatherTools(
           return [
             toolName,
             tool({
-              name: toolName,
               description:
                 integrationMetadata.description + " - " + action.description,
               inputSchema: jsonSchema(action.props),
@@ -56,13 +55,14 @@ export function gatherTools(
   );
 
   for (const [toolName, toolInstance] of Object.entries(systemTools)) {
+    const fullToolName = `system__${toolName}`;
     if (toolInstance == null) continue;
 
-    integrations[`system__${toolName}`] = tool({
+    integrations[fullToolName] = tool({
       ...toolInstance,
       execute: async (input, context) => {
         const handleToolResponse = messageContext.sendToolInvocationMessage(
-          toolName,
+          fullToolName,
           input
         );
         const toolResponse = await Promise.resolve(

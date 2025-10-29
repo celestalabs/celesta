@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, ToolSet } from "ai";
 import { MessageContext } from "../../components/messageContext.js";
 import { BaseAgent } from "../BaseAgent.js";
 import { WorkflowTaskResult } from "@celesta/types";
@@ -7,20 +7,24 @@ type SynthesisAgentConfig = {
   prompt: string;
   messageContext: MessageContext;
   processedTaskResults: WorkflowTaskResult[];
+  tools: ToolSet;
 };
 
 export class SynthesisAgent extends BaseAgent {
   private prompt: string;
   private processedTaskResults: WorkflowTaskResult[];
+  private tools: ToolSet;
 
   constructor({
     prompt,
     messageContext,
     processedTaskResults,
+    tools,
   }: SynthesisAgentConfig) {
     super(messageContext);
     this.prompt = prompt;
     this.processedTaskResults = processedTaskResults;
+    this.tools = tools;
   }
 
   async onInitialize() {
@@ -75,6 +79,7 @@ Now synthesize this into a comprehensive, cohesive response that directly and co
     const result = await generateText({
       model: this.model,
       prompt: systemPrompt,
+      tools: this.tools,
     });
 
     return result.text.trim() || "No response was produced by the synthesis agent.";

@@ -1,4 +1,4 @@
-import { generateObject, ToolSet } from "ai";
+import { generateObject, tool, ToolSet } from "ai";
 import { MessageContext } from "../../components/messageContext.js";
 import { BaseAgent } from "../BaseAgent.js";
 import z from "zod";
@@ -66,7 +66,47 @@ export class CoordinationAgent extends BaseAgent {
   constructor({ prompt, messageContext }: CoordinationAgentConfig) {
     super(messageContext);
     this.prompt = prompt;
-    this.tools = gatherTools(messageContext, "workflow");
+    this.tools = gatherTools(messageContext, "workflow", {
+      ask_user_question: tool({
+        description:
+          "Ask the user a question, to clarify uncertainties or doubts.",
+        inputSchema: z.object({
+          question: z.string().describe("The question to ask the user."),
+        }),
+        execute: async (input) => {
+          try {
+            const { question } = input;
+            const answer =
+              await messageContext.retrieveQuestionResponse(question);
+            return answer;
+          } catch (error) {
+            return "The user didn't respond in time.";
+          }
+        },
+      }),
+      get_previous_task_results: tool({
+        description:
+          "Retrieve data and tool call output from a previously executed task.",
+        inputSchema: z.object({
+          taskSlug: z
+            .string()
+            .describe(
+              "The slug identifier of the task whose data is to be retrieved."
+            ),
+        }),
+        execute: (input) => {
+          const { taskSlug } = input;
+          const taskResult = this.processedTaskResults.find(
+            (result) => result.taskSlug === taskSlug
+          );
+          if (taskResult) {
+            return taskResult;
+          } else {
+            return `No data found for task with slug: ${taskSlug}`;
+          }
+        },
+      }),
+    });
     this.toolMetadata = getMetadataFromToolSet(this.tools);
   }
 
@@ -236,6 +276,9 @@ If all necessary tasks have been completed, set shouldContinue to false.`,
       prompt: this.prompt,
       messageContext: this.messageContext,
       processedTaskResults: this.processedTaskResults,
+      tools: {
+        system__getPreviousTaskResults: this.tools["getPreviousTaskResults"],
+      },
     });
 
     const finalResult = await synthesisAgent.onInitialize();
@@ -255,7 +298,11 @@ If all necessary tasks have been completed, set shouldContinue to false.`,
     this.processedTasks.push(task);
 
     const tools: ToolSet = Object.fromEntries(
-      task.tools.map((toolName) => [toolName, this.tools[toolName]])
+      [
+        ...task.tools,
+        "system__get_previous_task_results",
+        "system__ask_user_question",
+      ].map((toolName) => [toolName, this.tools[toolName]])
     );
 
     const executionAgent = new ExecutionAgent({
