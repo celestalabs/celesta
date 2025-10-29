@@ -7,13 +7,14 @@ import {
   GenerateOAuthRedirectUrlHandler,
   ListIntegrationsHandler,
 } from "@celesta/integrations";
+import { sessionManager } from "@celesta/session";
+import { generateId, logger } from "@celesta/common";
 import cors from "cors";
 import express from "express";
 import { WebSocketServer } from "ws";
+import { ChatAgent } from "./agents/ChatAgent.js";
 import { frontendMessageHandler } from "./components/frontendMessageHandler.js";
-import { sessionManager } from "./components/sessionManager.js";
-import { generateId } from "./utils/generateId.js";
-import { logger } from "./utils/logger.js";
+import {} from "@celesta/common";
 import { WrappedRouter } from "./utils/wrappedRouter.js";
 
 const integrationsServer = express();
@@ -58,6 +59,7 @@ agentServer.on("connection", async (ws) => {
 
   // register in session manager
   await sessionManager.registerClientId(clientId, ws);
+  sessionManager.createContext(clientId, "CHAT", (ctx) => new ChatAgent(ctx));
 
   ws.on("message", (message) => {
     log(`Received raw message from ${clientId}:`, message.toString());

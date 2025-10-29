@@ -4,7 +4,7 @@ import {
   RequestId,
   ts,
   WorkflowTaskStatus,
-} from "@celesta/types";
+} from "@celesta/common";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import { UIMessageRepr } from "../types";

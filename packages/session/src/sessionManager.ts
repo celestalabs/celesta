@@ -13,10 +13,9 @@ import {
   FrontendWSUserMessage,
   ServerWSMessage,
   ts,
-} from "@celesta/types";
+  logger,
+} from "@celesta/common";
 import { WebSocket } from "ws";
-import { ChatAgent } from "../agents/ChatAgent.js";
-import { logger } from "../utils/logger.js";
 import {
   createMessageContext,
   HandlerAgentCreator,
@@ -97,9 +96,6 @@ class SessionManager {
       } else {
         this.tools.set(clientId, {} as Integrations);
       }
-
-      // chat context
-      this.createContext(clientId, "CHAT", (ctx) => new ChatAgent(ctx));
     } else {
       log(`Client ID ${clientId} is already registered.`);
     }

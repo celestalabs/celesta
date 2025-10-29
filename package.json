@@ -21,7 +21,9 @@
     "packages/extension",
     "packages/integrations",
     "packages/server",
-    "packages/types"
+    "packages/common",
+    "packages/session",
+    "packages/agents"
   ],
   "devDependencies": {
     "concurrently": "^9.2.1"

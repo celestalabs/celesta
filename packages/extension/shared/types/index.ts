@@ -3,7 +3,7 @@ import {
   ContextId,
   RequestId,
   WorkflowTaskStatus,
-} from "@celesta/types";
+} from "@celesta/common";
 
 export type UIMessageRepr =
   | { type: "user"; content: string }

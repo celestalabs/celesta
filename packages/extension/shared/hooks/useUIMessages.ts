@@ -3,7 +3,7 @@ import {
   ToolCallId,
   UIWorkflowTask,
   WSMessage,
-} from "@celesta/types";
+} from "@celesta/common";
 import { useStore } from "../store";
 import { UIMessageRepr } from "../types";
 

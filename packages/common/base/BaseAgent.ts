@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { LanguageModel } from "ai";
-import { MessageContext } from "../components/messageContext.js";
+import { MessageContext } from "../../session/src/messageContext.js";
 
 /**
  * Base class for all AI agents in the workflow system.

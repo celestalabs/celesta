@@ -5,7 +5,7 @@ import {
   WorkflowMetadata,
   WorkflowStatus,
   WSMessage,
-} from "@celesta/types";
+} from "@celesta/common";
 import { create } from "zustand";
 import { ViewId } from "./types";
 

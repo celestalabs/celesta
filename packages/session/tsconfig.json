@@ -13,6 +13,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["**/*.ts", "../types/components/BaseAgent.ts", "../types/utils/generateId.ts"],
+  "include": ["**/*.ts"],
   "exclude": ["node_modules"]
 }

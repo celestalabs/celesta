@@ -11,7 +11,7 @@ import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
 // eslint-disable-next-line import/order
-import { ts } from "@celesta/types";
+import { ts } from "@celesta/common";
 
 const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
