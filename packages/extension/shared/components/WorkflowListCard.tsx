@@ -1,11 +1,25 @@
 import React from "react";
 import { useStore } from "../store";
-import { WorkflowId } from "@celesta/types";
-import { Item, ItemContent, ItemTitle, ItemDescription } from "./ui/item";
+import { WorkflowId, WorkflowStatus } from "@celesta/types";
+import {
+  Item,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemMedia,
+  ItemActions,
+} from "./ui/item";
+import { Button } from "./ui/button";
 
 type Props = {
   workflowId: WorkflowId;
 };
+
+const statusEmojiMap = {
+  running: "🏃‍♂️",
+  completed: "✅",
+  failed: "❌",
+} satisfies Record<WorkflowStatus, string>;
 
 export const WorkflowListCard = React.memo(({ workflowId }: Props) => {
   const workflowMetadata = useStore((state) => state.workflowMetadata);
@@ -16,16 +30,25 @@ export const WorkflowListCard = React.memo(({ workflowId }: Props) => {
     [workflowId, workflowMetadata]
   );
 
-  const shortenedTitle = metadata.prompt.length > 50
-    ? metadata.prompt.slice(0, 65) + "..."
-    : metadata.prompt;
+  const shortenedTitle =
+    metadata.prompt.length > 50
+      ? metadata.prompt.slice(0, 170) + "..."
+      : metadata.prompt;
 
   return (
-    <Item variant="outline" onClick={() => routeToView(workflowId)}>
+    <Item variant="outline">
+      <ItemMedia>
+        <span className="text-xl">{statusEmojiMap[metadata.status]}</span>
+      </ItemMedia>
       <ItemContent>
-        <ItemTitle>{shortenedTitle}</ItemTitle>
-        <ItemDescription>{metadata.status}</ItemDescription>
+        <ItemTitle className="line-clamp-2">{shortenedTitle}</ItemTitle>
+        <ItemDescription className="capitalize">
+          {metadata.status + (metadata.status === "running" ? "..." : ".")}
+        </ItemDescription>
       </ItemContent>
+      <ItemActions>
+        <Button onClick={() => routeToView(workflowId)}>View</Button>
+      </ItemActions>
     </Item>
   );
 });

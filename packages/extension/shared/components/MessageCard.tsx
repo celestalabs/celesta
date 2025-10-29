@@ -31,21 +31,21 @@ export const MessageCard = React.memo(({ message, sendMessage }: Props) => {
   );
 
   if (message.type === "tool") {
+    let [integrationName, toolName] = message.toolName.split("__");
+    integrationName = integrationName.split("_").join(" ");
+    toolName = toolName.split("_").join(" ");
+
     return (
-      <Item variant="outline">
+      <Item variant="muted" size="sm">
         <ItemContent>
-          <ItemTitle>{message.toolName}</ItemTitle>
-          <ItemDescription className="overflow-x-hidden !line-clamp-none">
-            <pre className="wrap-break-word whitespace-pre-wrap">
-              <b>Input:</b> <code>{message.input}</code>
-              {message.output != null && (
-                <>
-                  <br />
-                  <b>Output:</b> <code>{message.output}</code>
-                </>
-              )}
-            </pre>
-          </ItemDescription>
+          <ItemTitle>
+            <span>
+              {message.output == null ? "⏳ Using" : "✅ Finished using"}
+              <span className="capitalize">
+                &nbsp;{integrationName} ({toolName})
+              </span>
+            </span>
+          </ItemTitle>
         </ItemContent>
       </Item>
     );
