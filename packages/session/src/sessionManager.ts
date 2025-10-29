@@ -4,10 +4,6 @@
  */
 
 import {
-  ListIntegrationsHandler,
-  IntegrationName,
-} from "@celesta/integrations";
-import {
   RequestId,
   ClientId,
   ContextId,
@@ -17,6 +13,10 @@ import {
   ts,
   logger,
 } from "@celesta/common";
+import {
+  ListIntegrationsHandler,
+  IntegrationName,
+} from "@celesta/integrations";
 import { WebSocket } from "ws";
 import {
   createMessageContext,
