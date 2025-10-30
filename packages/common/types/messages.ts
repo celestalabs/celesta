@@ -1,3 +1,4 @@
+import { BrowserContextAction } from "./browser.js";
 import { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
 import {
   MinimalWorkflowTask,
@@ -37,15 +38,9 @@ export type FrontendWSResponseMessage =
       timestamp: number;
     }
   | {
-      type: "PROVIDE_BROWSER_GET_PAGE_CONTENT";
+      type: "PROVIDE_BROWSER_CONTEXT_ACTION";
       requestId: RequestId;
-      pageContent: string;
-      timestamp: number;
-    }
-  | {
-      type: "PROVIDE_BROWSER_LIST_OPEN_TABS";
-      requestId: RequestId;
-      openTabs: { title: string; url: string; isActive: boolean }[];
+      response: object;
       timestamp: number;
     };
 
@@ -105,14 +100,9 @@ export type ServerRequestWSMessage =
       timestamp: number;
     }
   | {
-      type: "REQUEST_BROWSER_GET_PAGE_CONTENT";
+      type: "REQUEST_BROWSER_CONTEXT_ACTION";
       requestId: RequestId;
-      titleOfOpenTab: string;
-      timestamp: number;
-    }
-  | {
-      type: "REQUEST_BROWSER_LIST_OPEN_TABS";
-      requestId: RequestId;
+      action: BrowserContextAction;
       timestamp: number;
     };
 

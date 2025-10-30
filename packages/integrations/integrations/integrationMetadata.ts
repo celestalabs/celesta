@@ -40,6 +40,13 @@ const nonPieceIntegrationMetadata = {
         props: z.object({}),
         mode: "all",
       },
+      {
+        name: "open_url",
+        description:
+          "Open a URL in a new tab. Useful for navigating to a specific page for further interactions.",
+        props: z.object({ url: z.string() }),
+        mode: "all",
+      },
     ],
   },
   [NonPieceIntegrationName.GMAIL]: gmailIntegration,

@@ -74,7 +74,7 @@ class SessionManager {
   /**
    * Registers a new client with its WebSocket connection.
    */
-  async registerClientId(clientId: ClientId, ws: WebSocket) {
+  registerClientId(clientId: ClientId, ws: WebSocket) {
     if (!this.credentials.has(clientId)) {
       this.sockets.set(clientId, ws);
       this.credentials.set(clientId, new Map());

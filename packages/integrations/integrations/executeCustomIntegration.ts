@@ -1,4 +1,9 @@
-import { type ClientId, NonPieceIntegrationName } from "@celesta/common";
+import { browserManager } from "@celesta/browser";
+import {
+  type BrowserContextAction,
+  type ClientId,
+  NonPieceIntegrationName,
+} from "@celesta/common";
 import { executeGmailAction } from "./gmail/gmailIntegration.ts";
 import { executeCalendarAction } from "./google-calendar/calendarIntegration.ts";
 import { executeWebSearchAction } from "./web-search/webSearchIntegration.ts";
@@ -46,11 +51,43 @@ export async function executeCustomIntegration(
       }
 
       case NonPieceIntegrationName.BROWSER_CONTEXT: {
-        return {
-          success: false,
-          error:
-            "Browser Use integration is not yet implemented in custom executor",
-        };
+        let action: BrowserContextAction | null = null;
+
+        switch (actionName) {
+          case "get_page_content": {
+            action = {
+              type: "GET_PAGE_CONTENT",
+              titleOfOpenTab: (props as any).titleOfOpenTab,
+            };
+            break;
+          }
+          case "list_open_tabs": {
+            action = { type: "LIST_OPEN_TABS" };
+            break;
+          }
+          case "open_url": {
+            action = { type: "OPEN_URL", url: (props as any).url };
+            break;
+          }
+          default: {
+            return {
+              success: false,
+              error: `Unknown action ${actionName} for Browser Use integration.`,
+            };
+          }
+        }
+
+        try {
+          const result = await browserManager.executeAction(clientId, action);
+          return { success: true, data: result };
+        } catch (error) {
+          return {
+            success: false,
+            error: `Error executing Browser Use action: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          };
+        }
       }
 
       default: {

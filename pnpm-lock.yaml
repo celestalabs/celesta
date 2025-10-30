@@ -64,6 +64,52 @@ importers:
         specifier: ^8.41.0
         version: 8.46.2(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3)
 
+  packages/browser:
+    dependencies:
+      '@celesta/common':
+        specifier: workspace:*
+        version: link:../common
+      '@celesta/session':
+        specifier: workspace:*
+        version: link:../session
+      ws:
+        specifier: ^8.18.3
+        version: 8.18.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.18.13
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.41.0
+        version: 8.46.2(@typescript-eslint/parser@8.46.2(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.41.0
+        version: 8.46.2(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3)
+      eslint:
+        specifier: ^9.38.0
+        version: 9.38.0(jiti@2.6.1)
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@9.38.0(jiti@2.6.1))
+      eslint-plugin-import:
+        specifier: ^2.32.0
+        version: 2.32.0(@typescript-eslint/parser@8.46.2(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3))(eslint@9.38.0(jiti@2.6.1))
+      eslint-plugin-prettier:
+        specifier: ^5.5.4
+        version: 5.5.4(eslint-config-prettier@10.1.8(eslint@9.38.0(jiti@2.6.1)))(eslint@9.38.0(jiti@2.6.1))(prettier@3.6.2)
+      globals:
+        specifier: ^16.4.0
+        version: 16.4.0
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.46.2
+        version: 8.46.2(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3)
+
   packages/common:
     devDependencies:
       '@ai-sdk/google':
@@ -108,12 +154,6 @@ importers:
 
   packages/extension:
     dependencies:
-      '@ai-sdk/google':
-        specifier: ^2.0.13
-        version: 2.0.25(zod@4.1.12)
-      '@ai-sdk/react':
-        specifier: ^2.0.39
-        version: 2.0.82(react@19.2.0)(zod@4.1.12)
       '@celesta/server':
         specifier: workspace:*
         version: link:../server
@@ -340,6 +380,12 @@ importers:
       '@activepieces/pieces-framework':
         specifier: ^0.20.1
         version: 0.20.1
+      '@celesta/browser':
+        specifier: workspace:*
+        version: link:../browser
+      '@celesta/common':
+        specifier: workspace:*
+        version: link:../common
       '@types/node':
         specifier: ^22.18.13
         version: 22.18.13
@@ -395,6 +441,9 @@ importers:
       '@celesta/agents':
         specifier: workspace:*
         version: link:../agents
+      '@celesta/browser':
+        specifier: workspace:*
+        version: link:../browser
       '@celesta/common':
         specifier: workspace:*
         version: link:../common
@@ -502,9 +551,6 @@ importers:
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
-      tsx:
-        specifier: ^4.20.5
-        version: 4.20.6
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
@@ -597,16 +643,6 @@ packages:
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
       zod: ^3.23.8
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@ai-sdk/react@2.0.82':
-    resolution: {integrity: sha512-InaGqykKGFq/XA6Vhh2Hyy38nzeMpqp8eWxjTNEQA5Gwcal0BVNuZyTbTIL5t5VNXV+pQPDhe9ak1+mc9qxjog==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: ^18 || ^19 || ^19.0.0-rc
-      zod: ^3.25.76 || ^4.1.8
     peerDependenciesMeta:
       zod:
         optional: true
@@ -5456,16 +5492,6 @@ snapshots:
       throttleit: 2.1.0
     optionalDependencies:
       zod: 3.25.76
-
-  '@ai-sdk/react@2.0.82(react@19.2.0)(zod@4.1.12)':
-    dependencies:
-      '@ai-sdk/provider-utils': 3.0.14(zod@4.1.12)
-      ai: 5.0.82(zod@4.1.12)
-      react: 19.2.0
-      swr: 2.3.6(react@19.2.0)
-      throttleit: 2.1.0
-    optionalDependencies:
-      zod: 4.1.12
 
   '@ai-sdk/replicate@0.2.8(zod@3.25.76)':
     dependencies:

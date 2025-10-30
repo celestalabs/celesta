@@ -1,7 +1,7 @@
 import {
   AgentMessageType,
-  ContextId,
   RequestId,
+  WorkflowId,
   WorkflowTaskStatus,
 } from "@celesta/common";
 
@@ -17,4 +17,4 @@ export type UIMessageRepr =
       status: WorkflowTaskStatus;
     };
 
-export type ViewId = ContextId | "WORKFLOW_LIST";
+export type ViewId = "CHAT" | WorkflowId | "WORKFLOW_LIST";

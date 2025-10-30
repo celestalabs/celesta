@@ -26,18 +26,18 @@ class InternalMessageContext {
   clientId: ClientId;
   contextId: ContextId;
   messages: ConversationWSMessage[] = [];
-  private handlerAgent: BaseAgent;
+  private handlerAgent: BaseAgent | undefined;
 
   constructor(
     clientId: ClientId,
     contextId: ContextId,
-    createHandlerAgent: HandlerAgentCreator
+    createHandlerAgent?: HandlerAgentCreator
   ) {
     this.clientId = clientId;
     this.contextId = contextId;
-    this.handlerAgent = createHandlerAgent(this);
+    this.handlerAgent = createHandlerAgent?.(this);
 
-    this.handlerAgent.onInitialize();
+    this.handlerAgent?.onInitialize();
   }
 
   /**
@@ -48,7 +48,7 @@ class InternalMessageContext {
       `Received message in context ${this.contextId} from client ${this.clientId}: ${message.content}`
     );
     this.messages.push(message);
-    this.handlerAgent.onUserMessage();
+    this.handlerAgent?.onUserMessage();
   }
 
   /**
@@ -182,7 +182,7 @@ class InternalMessageContext {
 export const createMessageContext = (
   clientId: ClientId,
   contextId: ContextId,
-  createHandlerAgent: (ctx: InternalMessageContext) => BaseAgent
+  createHandlerAgent?: (ctx: InternalMessageContext) => BaseAgent
 ) => new InternalMessageContext(clientId, contextId, createHandlerAgent);
 
 export type MessageContext = ReturnType<typeof createMessageContext>;

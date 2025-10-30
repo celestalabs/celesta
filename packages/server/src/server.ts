@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import { createServer } from "http";
 import { ChatAgent } from "@celesta/agents";
+import { browserManager } from "@celesta/browser";
 import { generateId, logger } from "@celesta/common";
 import {
   ExecuteIntegrationHandler,
@@ -57,7 +58,8 @@ agentServer.on("connection", async (ws) => {
   log(`Client connected: ${clientId}`);
 
   // register in session manager
-  await sessionManager.registerClientId(clientId, ws);
+  sessionManager.registerClientId(clientId, ws);
+  browserManager.registerClientId(clientId);
   sessionManager.createContext(clientId, "CHAT", (ctx) => new ChatAgent(ctx));
 
   ws.on("message", (message) => {
