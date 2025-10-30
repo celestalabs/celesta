@@ -7,6 +7,7 @@ import { ButtonGroup } from "./components/ui/button-group";
 import { useAgentServer } from "./hooks/useAgentServer";
 import { useOAuth } from "./hooks/useOAuth";
 import { useStore } from "./store";
+import { browserActions } from "./utils/browserActions";
 import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
@@ -36,6 +37,7 @@ const App = React.memo(() => {
       },
       [handleOAuthFlow]
     ),
+
     REQUEST_QUESTION_RESPONSE: (message, send) => {
       const response = prompt("Celesta asks:", message.question);
       send(
@@ -47,6 +49,7 @@ const App = React.memo(() => {
         })
       );
     },
+
     REQUEST_SHOULD_START_WORKFLOW: () => {},
     CONTEXT_CREATED: () => {},
 
@@ -87,7 +90,18 @@ const App = React.memo(() => {
         }
       }
     },
+
     WORKFLOW_TASK_STATUS_CHANGED: () => {},
+
+    REQUEST_BROWSER_CONTEXT_ACTION: async ({ action, requestId }, send) => {
+      send(
+        ts({
+          type: "PROVIDE_BROWSER_CONTEXT_ACTION",
+          requestId,
+          response: await browserActions[action.type](action as any),
+        })
+      );
+    },
   });
 
   const currentView = useStore((state) => state.currentView);
