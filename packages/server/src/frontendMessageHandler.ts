@@ -53,6 +53,16 @@ export function frontendMessageHandler(clientId: ClientId, rawMessage: any) {
       break;
     }
 
+    case "PROVIDE_BROWSER_CONTEXT_ACTION": {
+      log(`Browser context action response from ${clientId}`);
+      sessionManager.triggerRequestResponse(
+        clientId,
+        message.requestId,
+        message
+      );
+      break;
+    }
+
     default: {
       log(`Unhandled message type from ${clientId}:`, message);
     }

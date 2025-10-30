@@ -1,5 +1,5 @@
+import { isPieceName } from "@celesta/common";
 import { pieceByName } from "./pieceData.ts";
-import { isPieceName } from "./pieceName.ts";
 
 export async function executePieceAction(
   pieceName: string,

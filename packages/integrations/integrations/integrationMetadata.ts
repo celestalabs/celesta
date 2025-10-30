@@ -1,10 +1,13 @@
-import { NonPieceIntegrationName } from "@celesta/common";
+import {
+  NonPieceIntegrationName,
+  isPieceName,
+  isIntegrationName,
+} from "@celesta/common";
 import z, { ZodObject, ZodOptional } from "zod";
 import { pieceByName } from "../pieces/pieceData.ts";
 import type { SuccessResponse } from "../utils/responseType.ts";
 import { gmailIntegration } from "./gmail/gmailIntegration.ts";
 import { calendarIntegration } from "./google-calendar/calendarIntegration.ts";
-import { isPieceName, isIntegrationName } from "./typeGuards.js";
 import { webSearchIntegration } from "./web-search/webSearchIntegration.ts";
 
 export type IntegrationMetadata = {

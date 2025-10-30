@@ -1,9 +1,9 @@
 import { OAuth2PropertyValue } from "@activepieces/pieces-framework";
-import { NonPieceIntegrationName } from "@celesta/common";
 import {
+  NonPieceIntegrationName,
   isNonPieceIntegrationName,
   isPieceName,
-} from "../integrations/typeGuards.js";
+} from "@celesta/common";
 import { pieceAuthByName } from "../pieces/pieceData.ts";
 import {
   clientIdByPieceName,

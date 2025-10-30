@@ -1,4 +1,4 @@
-import { isIntegrationName } from "../integrations/typeGuards.js";
+import { isIntegrationName } from "@celesta/common";
 import { getOAuthConfig } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/TypedFetcher.ts";
 

@@ -32,6 +32,13 @@ export function isFrontendWSMessage(msg: any): msg is FrontendWSMessage {
         msg.requestId.startsWith("REQUEST_") &&
         typeof msg.yes === "boolean"
       );
+    case "PROVIDE_BROWSER_CONTEXT_ACTION":
+      return (
+        msg.type === "PROVIDE_BROWSER_CONTEXT_ACTION" &&
+        typeof msg.requestId === "string" &&
+        msg.requestId.startsWith("REQUEST_") &&
+        typeof msg.response === "object"
+      );
     default:
       return false;
   }
