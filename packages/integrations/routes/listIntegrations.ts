@@ -1,13 +1,13 @@
+import {
+  NonPieceIntegrationName,
+  type IntegrationName,
+  PieceName,
+} from "@celesta/common";
 import z from "zod";
 import {
   readIntegrationMetadata,
   type IntegrationMetadata,
 } from "../integrations/integrationMetadata.ts";
-import {
-  NonPieceIntegrationName,
-  type IntegrationName,
-} from "../integrations/integrationName.ts";
-import { PieceName } from "../pieces/pieceName.ts";
 import { type TypedFetcher } from "../utils/TypedFetcher.ts";
 
 type ResponseMetadata = Omit<IntegrationMetadata, "actions"> & {

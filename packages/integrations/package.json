@@ -16,7 +16,8 @@
     "exa-js": "^1.9.3",
     "googleapis": "^144.0.0",
     "marked": "^16.4.1",
-    "zod": "^4.1.5"
+    "zod": "^4.1.5",
+    "@celesta/common": "workspace:*"
   },
   "devDependencies": {
     "eslint": "^9.34.0",

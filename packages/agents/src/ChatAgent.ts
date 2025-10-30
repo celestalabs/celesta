@@ -37,11 +37,10 @@ export type WorkflowIntent = z.infer<typeof WorkflowIntentSchema>;
  * and detect when a user's request requires a complex multi-step workflow.
  */
 export class ChatAgent extends BaseAgent {
-  private tools: ToolSet;
+  private tools: ToolSet = {};
 
   constructor(messageContext: MessageContext) {
     super(messageContext);
-    this.tools = gatherTools(messageContext, "chat");
   }
 
   /**
@@ -180,8 +179,10 @@ Be conversational, natural, and supportive in all responses.`,
     }
   }
 
-  // No initialization needed for ChatAgent
-  async onInitialize() {}
+  // Initialize tools asynchronously
+  async onInitialize() {
+    this.tools = await gatherTools(this.messageContext, "chat");
+  }
 
   /**
    * Chat agent executes onUserMessage because it needs to respond

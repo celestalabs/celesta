@@ -10,8 +10,8 @@ import {
   BaseAgent,
   logger,
   generateId,
+  IntegrationName,
 } from "@celesta/common";
-import { IntegrationName } from "@celesta/integrations";
 import { sessionManager } from "./sessionManager.js";
 
 const log = logger("messageContext");

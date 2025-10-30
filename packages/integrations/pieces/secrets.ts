@@ -1,4 +1,4 @@
-import { PieceName } from "./pieceName.ts";
+import { PieceName } from "@celesta/common";
 
 export const clientIdByPieceName = {
   [PieceName.GOOGLE_DRIVE]: () => process.env.TOOL_GOOGLE_CLIENT_ID,

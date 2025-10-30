@@ -1,25 +1,31 @@
-import { logger } from "@celesta/common";
+import { IntegrationName, logger } from "@celesta/common";
 import {
   ExecuteIntegrationHandler,
-  IntegrationName,
+  ListIntegrationsHandler,
 } from "@celesta/integrations";
-import { sessionManager, MessageContext } from "@celesta/session";
+import { MessageContext } from "@celesta/session";
 import { jsonSchema, tool, Tool, ToolSet } from "ai";
 
 const log = logger("gatherTools");
 
-export function gatherTools(
+export async function gatherTools(
   messageContext: MessageContext,
   mode: "workflow" | "chat",
   systemTools: Partial<Record<string, Tool>> = {}
-): ToolSet {
+): Promise<ToolSet> {
+  const rawIntegrationsResponse = await ListIntegrationsHandler({
+    params: { mode },
+  });
+
+  if (!rawIntegrationsResponse.success) {
+    log("Failed to list integrations:", rawIntegrationsResponse.error);
+    return {};
+  }
+
   const integrations = Object.fromEntries(
-    Object.entries(
-      sessionManager.tools.get(messageContext.clientId) || {}
-    ).flatMap(([integrationName, integrationMetadata]) =>
-      integrationMetadata.actions
-        .filter((a) => a.mode === mode || a.mode === "all")
-        .map((action) => {
+    Object.entries(rawIntegrationsResponse.integrations).flatMap(
+      ([integrationName, integrationMetadata]) =>
+        integrationMetadata.actions.map((action) => {
           const toolName = `${integrationName}__${action.name}`;
           return [
             toolName,
@@ -34,6 +40,7 @@ export function gatherTools(
 
                 const toolResponse = await ExecuteIntegrationHandler({
                   body: {
+                    clientId: messageContext.clientId,
                     integrationName,
                     actionName: action.name,
                     props: input as Record<string, unknown>,

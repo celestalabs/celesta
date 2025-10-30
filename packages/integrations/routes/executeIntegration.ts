@@ -1,12 +1,13 @@
+import type { ClientId, IntegrationName } from "@celesta/common";
 import { executeCustomIntegration } from "../integrations/executeCustomIntegration.ts";
 import { readIntegrationMetadata } from "../integrations/integrationMetadata.ts";
 import {
   isIntegrationName,
   isNonPieceIntegrationName,
-  type IntegrationName,
-} from "../integrations/integrationName.ts";
+  isPieceName,
+} from "../integrations/typeGuards.js";
 import { executePieceAction } from "../pieces/executePieceAction.ts";
-import { isPieceName } from "../pieces/pieceName.ts";
+import {} from "../pieces/pieceName.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/TypedFetcher.ts";
 
@@ -30,6 +31,7 @@ export type ExecuteIntegrationHandler = TypedFetcher<
     result: unknown;
   },
   /* Body */ {
+    clientId: ClientId;
     integrationName: string;
     actionName: string;
     props: object;
@@ -40,7 +42,7 @@ export type ExecuteIntegrationHandler = TypedFetcher<
 export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
   body,
 }) => {
-  const { integrationName, actionName, props, auth } = body;
+  const { integrationName, actionName, props, auth, clientId } = body;
 
   // Basic validation
   if (
@@ -114,7 +116,8 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
       integrationName,
       actionName,
       props,
-      finalAuth
+      finalAuth,
+      clientId
     );
 
     return response.success

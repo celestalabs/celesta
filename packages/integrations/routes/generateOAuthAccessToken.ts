@@ -1,5 +1,5 @@
 import axios from "axios";
-import { isIntegrationName } from "../integrations/integrationName.ts";
+import { isIntegrationName } from "../integrations/typeGuards.js";
 import { getOAuthConfig } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/TypedFetcher.ts";
 

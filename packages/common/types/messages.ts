@@ -35,6 +35,18 @@ export type FrontendWSResponseMessage =
       requestId: RequestId;
       yes: boolean;
       timestamp: number;
+    }
+  | {
+      type: "PROVIDE_BROWSER_GET_PAGE_CONTENT";
+      requestId: RequestId;
+      pageContent: string;
+      timestamp: number;
+    }
+  | {
+      type: "PROVIDE_BROWSER_LIST_OPEN_TABS";
+      requestId: RequestId;
+      openTabs: { title: string; url: string; isActive: boolean }[];
+      timestamp: number;
     };
 
 export type FrontendWSMessage =
@@ -90,6 +102,17 @@ export type ServerRequestWSMessage =
       suggestedPrompt: string;
       confidence: "low" | "medium" | "high";
       reasoning: string;
+      timestamp: number;
+    }
+  | {
+      type: "REQUEST_BROWSER_GET_PAGE_CONTENT";
+      requestId: RequestId;
+      titleOfOpenTab: string;
+      timestamp: number;
+    }
+  | {
+      type: "REQUEST_BROWSER_LIST_OPEN_TABS";
+      requestId: RequestId;
       timestamp: number;
     };
 

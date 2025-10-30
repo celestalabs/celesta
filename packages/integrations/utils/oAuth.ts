@@ -1,10 +1,10 @@
 import { OAuth2PropertyValue } from "@activepieces/pieces-framework";
+import { NonPieceIntegrationName } from "@celesta/common";
 import {
   isNonPieceIntegrationName,
-  NonPieceIntegrationName,
-} from "../integrations/integrationName.ts";
+  isPieceName,
+} from "../integrations/typeGuards.js";
 import { pieceAuthByName } from "../pieces/pieceData.ts";
-import { isPieceName } from "../pieces/pieceName.ts";
 import {
   clientIdByPieceName,
   clientSecretByPieceName,
@@ -50,7 +50,7 @@ const customIntegrationOAuthConfig: Partial<
       "https://www.googleapis.com/auth/calendar.events",
     ],
   },
-  [NonPieceIntegrationName.BROWSER_USE]: null, // No OAuth for browser use
+  [NonPieceIntegrationName.BROWSER_CONTEXT]: null, // No OAuth for browser use
 };
 
 export function getOAuthConfig(provider: string): {

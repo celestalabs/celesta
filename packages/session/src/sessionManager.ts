@@ -10,13 +10,10 @@ import {
   FrontendWSResponseMessage,
   FrontendWSUserMessage,
   ServerWSMessage,
+  IntegrationName,
   ts,
   logger,
 } from "@celesta/common";
-import {
-  ListIntegrationsHandler,
-  IntegrationName,
-} from "@celesta/integrations";
 import { WebSocket } from "ws";
 import {
   createMessageContext,
@@ -30,17 +27,12 @@ const log = logger("sessionManager");
  * Manages sessions, credentials, and WebSocket messaging for clients.
  */
 
-type Integrations = Extract<
-  Awaited<ReturnType<ListIntegrationsHandler>>,
-  { success: true }
->["integrations"];
-
 class SessionManager {
   // Maps client IDs to their credentials per integration
   credentials: Map<ClientId, Map<IntegrationName, string>> = new Map();
 
   // Maps client IDs to the tools they have available
-  tools: Map<ClientId, Integrations> = new Map();
+  // tools: Map<ClientId, Integrations> = new Map();
 
   // Maps client IDs to their WebSocket connections
   sockets: Map<ClientId, WebSocket> = new Map();
@@ -88,16 +80,6 @@ class SessionManager {
       this.credentials.set(clientId, new Map());
       this.pendingRequests.set(clientId, new Map());
       this.messageContexts.set(clientId, new Map());
-
-      const toolResponse = await ListIntegrationsHandler({
-        params: { mode: "all" },
-      });
-
-      if (toolResponse.success) {
-        this.tools.set(clientId, toolResponse.integrations);
-      } else {
-        this.tools.set(clientId, {} as Integrations);
-      }
     } else {
       log(`Client ID ${clientId} is already registered.`);
     }

@@ -58,8 +58,8 @@ const NextTaskSchema = z.discriminatedUnion("shouldContinue", [
 
 export class CoordinationAgent extends BaseAgent {
   private prompt: string;
-  private tools: ToolSet;
-  private toolMetadata: ToolMetadata[];
+  private tools: ToolSet = {};
+  private toolMetadata: ToolMetadata[] = [];
   private _workflowStatus: WorkflowStatus = "running";
   private upcomingTaskQueue: WorkflowTask[] = [];
   private processedTasks: WorkflowTask[] = [];
@@ -68,49 +68,6 @@ export class CoordinationAgent extends BaseAgent {
   constructor({ prompt, messageContext }: CoordinationAgentConfig) {
     super(messageContext);
     this.prompt = prompt;
-    this.tools = gatherTools(messageContext, "workflow", {
-      ask_user_question: tool({
-        description:
-          "Ask the user a question, to clarify uncertainties or doubts.",
-        inputSchema: z.object({
-          question: z.string().describe("The question to ask the user."),
-        }),
-        execute: async (input) => {
-          try {
-            const { question } = input;
-            const answer =
-              await messageContext.retrieveQuestionResponse(question);
-            return answer;
-          } catch (error) {
-            return "The user didn't respond in time. " + error;
-          }
-        },
-      }),
-      get_previous_task_results: tool({
-        description:
-          "Retrieve data and tool call output from a previously executed task.",
-        inputSchema: z.object({
-          taskSlug: z
-            .string()
-            .describe(
-              "The slug identifier of the task whose data is to be retrieved."
-            ),
-        }),
-        execute: (input) => {
-          log("Getting previous task results for slug:", input.taskSlug);
-          const { taskSlug } = input;
-          const taskResult = this.processedTaskResults.find(
-            (result) => result.taskSlug === taskSlug
-          );
-          if (taskResult) {
-            return taskResult;
-          } else {
-            return `No data found for task with slug: ${taskSlug}`;
-          }
-        },
-      }),
-    });
-    this.toolMetadata = getMetadataFromToolSet(this.tools);
   }
 
   private get workflowStatus() {
@@ -157,6 +114,50 @@ export class CoordinationAgent extends BaseAgent {
   }
 
   async onInitialize() {
+    this.tools = await gatherTools(this.messageContext, "workflow", {
+      ask_user_question: tool({
+        description:
+          "Ask the user a question, to clarify uncertainties or doubts.",
+        inputSchema: z.object({
+          question: z.string().describe("The question to ask the user."),
+        }),
+        execute: async (input) => {
+          try {
+            const { question } = input;
+            const answer =
+              await this.messageContext.retrieveQuestionResponse(question);
+            return answer;
+          } catch (error) {
+            return "The user didn't respond in time. " + error;
+          }
+        },
+      }),
+      get_previous_task_results: tool({
+        description:
+          "Retrieve data and tool call output from a previously executed task.",
+        inputSchema: z.object({
+          taskSlug: z
+            .string()
+            .describe(
+              "The slug identifier of the task whose data is to be retrieved."
+            ),
+        }),
+        execute: (input) => {
+          log("Getting previous task results for slug:", input.taskSlug);
+          const { taskSlug } = input;
+          const taskResult = this.processedTaskResults.find(
+            (result) => result.taskSlug === taskSlug
+          );
+          if (taskResult) {
+            return taskResult;
+          } else {
+            return `No data found for task with slug: ${taskSlug}`;
+          }
+        },
+      }),
+    });
+    this.toolMetadata = getMetadataFromToolSet(this.tools);
+
     log("Starting workflow loop for task", this.prompt, [
       this.messageContext.clientId,
       this.messageContext.contextId,

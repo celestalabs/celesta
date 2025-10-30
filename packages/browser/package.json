@@ -1,12 +1,11 @@
 {
-  "name": "@celesta/session",
+  "name": "@celesta/browser",
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
   "type": "module",
   "devDependencies": {
     "@celesta/common": "workspace:*",
-    "@celesta/integrations": "workspace:*",
     "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",

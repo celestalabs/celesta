@@ -1,13 +1,10 @@
+import { NonPieceIntegrationName } from "@celesta/common";
 import z, { ZodObject, ZodOptional } from "zod";
 import { pieceByName } from "../pieces/pieceData.ts";
-import { isPieceName } from "../pieces/pieceName.ts";
 import type { SuccessResponse } from "../utils/responseType.ts";
 import { gmailIntegration } from "./gmail/gmailIntegration.ts";
 import { calendarIntegration } from "./google-calendar/calendarIntegration.ts";
-import {
-  isIntegrationName,
-  NonPieceIntegrationName,
-} from "./integrationName.ts";
+import { isPieceName, isIntegrationName } from "./typeGuards.js";
 import { webSearchIntegration } from "./web-search/webSearchIntegration.ts";
 
 export type IntegrationMetadata = {
@@ -23,40 +20,32 @@ export type IntegrationMetadata = {
   }[];
 };
 
-const nonPieceIntegrationMetadata: Record<
-  NonPieceIntegrationName,
-  IntegrationMetadata
-> = {
-  [NonPieceIntegrationName.BROWSER_USE]: {
+const nonPieceIntegrationMetadata = {
+  [NonPieceIntegrationName.BROWSER_CONTEXT]: {
     name: "Browser Use Agent",
     description: "Interact directly with the user's browser.",
     logoUrl: null,
     requiresUserAuth: false,
     actions: [
       {
-        name: "goalOrientedBrowsing",
+        name: "get_page_content",
         description:
-          "Launch an agent on the user's browser, to complete a goal, such as information retrieval, task completion, etc.",
-        props: z.object({
-          goal: z
-            .string()
-            .describe(
-              "What is the goal of the browser use session? Describe in detail."
-            ),
-          responseType: z
-            .string()
-            .describe(
-              "What information do you want me to return to you? Describe in detail."
-            ),
-        }),
-        mode: "workflow" as const, // Browser use is complex, workflow-only
+          "Extract the page's content as HTML. Useful for determining XPaths of elements to interact with on the page, as well as getting general context of the current page's purpose and offerings.",
+        props: z.object({ titleOfOpenTab: z.string() }),
+        mode: "all",
+      },
+      {
+        name: "list_open_tabs",
+        description: "List all open tabs (title + URL + is active/current)",
+        props: z.object({}),
+        mode: "all",
       },
     ],
   },
   [NonPieceIntegrationName.GMAIL]: gmailIntegration,
   [NonPieceIntegrationName.GOOGLE_CALENDAR]: calendarIntegration,
   [NonPieceIntegrationName.WEB_SEARCH]: webSearchIntegration,
-};
+} satisfies Record<NonPieceIntegrationName, IntegrationMetadata>;
 
 export function readIntegrationMetadata(
   integrationName: string

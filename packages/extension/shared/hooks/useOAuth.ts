@@ -1,4 +1,5 @@
-import { IntegrationName, isIntegrationName } from "@celesta/integrations";
+import { IntegrationName } from "@celesta/common";
+import { isIntegrationName } from "@celesta/integrations";
 import { integrationsClient } from "../utils/integrationsClient";
 
 export function useOAuth() {
@@ -56,7 +57,7 @@ export function useOAuth() {
           body: {
             code,
             redirectUri: redirectUrl,
-            pieceName: integrationName as PieceName,
+            pieceName: integrationName as IntegrationName,
           },
         });
 

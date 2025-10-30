@@ -1,13 +1,8 @@
-import { isPieceName, type PieceName } from "../pieces/pieceName.ts";
-
-export enum NonPieceIntegrationName {
-  BROWSER_USE = "browser_use",
-  GMAIL = "gmail",
-  GOOGLE_CALENDAR = "google_calendar",
-  WEB_SEARCH = "web_search",
-}
-
-export type IntegrationName = NonPieceIntegrationName | PieceName;
+import {
+  type IntegrationName,
+  NonPieceIntegrationName,
+  PieceName,
+} from "@celesta/common";
 
 export function isNonPieceIntegrationName(
   value: any
@@ -17,6 +12,11 @@ export function isNonPieceIntegrationName(
       ([_, v]) => v === value
     ) !== -1
   );
+}
+
+// type guard for piecename
+export function isPieceName(value: any): value is PieceName {
+  return Object.entries(PieceName).findIndex(([_, v]) => v === value) !== -1;
 }
 
 export function isIntegrationName(

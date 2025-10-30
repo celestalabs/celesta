@@ -6,7 +6,7 @@ import {
   OAuth2Property,
   InputPropertyMap,
 } from "@activepieces/pieces-framework";
-import { PieceName } from "./pieceName.ts";
+import { PieceName } from "@celesta/common";
 
 export type ActionCompat = {
   description: string;
