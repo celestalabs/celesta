@@ -1,5 +1,4 @@
 import getXPath from "get-xpath";
-
 import {
   ResponseWebMessage,
   isAgentActionWebMessage,
@@ -17,13 +16,20 @@ export default defineContentScript({
 
       // Not a message payload
       if (!isWebMessageResponseIdTuple(messageResponseIdTuple)) return;
+      console.log("Received valid web message", messageResponseIdTuple);
       const [message, responseWebMessageId] = messageResponseIdTuple;
 
       // Not the right message
       if (!isAgentActionWebMessage(message)) return;
 
+      console.log(
+        "Received valid agent action web message",
+        messageResponseIdTuple
+      );
+
       switch (message.action) {
         case "getPageContent": {
+          console.log("Processing getPageContent action");
           const rawHtml = document.documentElement.outerHTML.trim();
           const filteredHtml = rawHtml
             .replace(/<!--[\s\S]*?-->/g, "") // remove comments

@@ -40,6 +40,8 @@ export const browserActions: {
         throw new Error(`No tab found with title: ${titleOfOpenTab}`);
       }
 
+      log("Sending getPageContent to tabId:", tabId);
+
       const response = await sendWebMessage(
         ["tabs", tabId],
         {

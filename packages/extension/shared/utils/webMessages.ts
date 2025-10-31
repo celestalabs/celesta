@@ -100,7 +100,7 @@ export const isResponseWebMessage = (
   maybeWebMessage: any
 ): maybeWebMessage is ResponseWebMessage =>
   isWebMessage(maybeWebMessage) &&
-  maybeWebMessage.__WebMessageType === "ResponseWebMessage";
+  maybeWebMessage.__webMessageType === "ResponseWebMessage";
 
 /**
  * CheckActiveTabWebMessage self-explanatory
@@ -112,7 +112,7 @@ export const isCheckActiveTabWebMessage = (
   maybeWebMessage: any
 ): maybeWebMessage is CheckActiveTabWebMessage =>
   isWebMessage(maybeWebMessage) &&
-  maybeWebMessage.__WebMessageType === "CheckActiveTabWebMessage";
+  maybeWebMessage.__webMessageType === "CheckActiveTabWebMessage";
 
 /**
  * AgentActionMessage sent to perform action in active tab
@@ -133,7 +133,7 @@ export const isAgentActionWebMessage = (
   maybeWebMessage: any
 ): maybeWebMessage is AgentActionWebMessage =>
   isWebMessage(maybeWebMessage) &&
-  maybeWebMessage.__WebMessageType === "AgentActionWebMessage";
+  maybeWebMessage.__webMessageType === "AgentActionWebMessage";
 
 export type TriggerMicrophoneInputWebMessage =
   WebMessage<"TriggerMicrophoneInputWebMessage">;
@@ -142,4 +142,4 @@ export const isTriggerMicrophoneInputWebMessage = (
   maybeWebMessage: any
 ): maybeWebMessage is TriggerMicrophoneInputWebMessage =>
   isWebMessage(maybeWebMessage) &&
-  maybeWebMessage.__WebMessageType === "TriggerMicrophoneInputWebMessage";
+  maybeWebMessage.__webMessageType === "TriggerMicrophoneInputWebMessage";
