@@ -3,12 +3,15 @@ import {
   NonPieceIntegrationName,
   isNonPieceIntegrationName,
   isPieceName,
+  logger,
 } from "@celesta/common";
 import { pieceAuthByName } from "../pieces/pieceData.ts";
 import {
   clientIdByPieceName,
   clientSecretByPieceName,
 } from "../pieces/secrets.ts";
+
+const log = logger("oAuth");
 
 export function isOAuth2PropertyValue(
   something: unknown
@@ -60,7 +63,7 @@ export function getOAuthConfig(provider: string): {
   tokenUrl: string | undefined;
   scope: string[] | undefined;
 } | null {
-  console.log("Getting OAuth config for provider:", provider);
+  log("Getting OAuth config for provider:", provider);
   const normalizedProvider = provider.toLowerCase();
 
   // Check if it's a custom integration first

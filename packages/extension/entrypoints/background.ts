@@ -1,34 +1,37 @@
+import { logger } from "@celesta/common";
 import { getActiveTabId } from "~/shared/utils/getActiveTabId.js";
 import {
-  isCheckActiveTabMessage,
-  isMessageResponseIdTuple,
-  ResponseMessage,
-} from "~/shared/utils/messages.js";
+  isCheckActiveTabWebMessage,
+  isWebMessageResponseIdTuple,
+  ResponseWebMessage,
+} from "~/shared/utils/webMessages.js";
+
+const log = logger("background");
 
 export default defineBackground(() => {
   // keep alive so it doesnt go inactive
-  browser.runtime.onStartup.addListener(() => console.log("keep-alive"));
-  browser.tabs.onUpdated.addListener(() => console.log("keep-alive"));
+  browser.runtime.onStartup.addListener(() => log("keep-alive"));
+  browser.tabs.onUpdated.addListener(() => log("keep-alive"));
 
   browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
   browser.runtime.onMessage.addListener(
     async (messageResponseIdTuple, sender) => {
-      if (!isMessageResponseIdTuple(messageResponseIdTuple)) return;
+      if (!isWebMessageResponseIdTuple(messageResponseIdTuple)) return;
       const [message, responseMessageId] = messageResponseIdTuple;
 
       // Handle content scripts checking if they are the active tab.
-      if (isCheckActiveTabMessage(message) && responseMessageId != null) {
+      if (isCheckActiveTabWebMessage(message) && responseMessageId != null) {
         const activeTab = await getActiveTabId();
 
         const senderTab = sender.tab?.id ?? -2;
 
         browser.runtime.sendMessage({
-          __isMessage: true,
-          __messageType: "ResponseMessage",
-          responseMessageId: responseMessageId,
+          __isWebMessage: true,
+          __webMessageType: "ResponseWebMessage",
+          responseWebMessageId: responseMessageId,
           payload: activeTab === senderTab,
-        } satisfies ResponseMessage);
+        } satisfies ResponseWebMessage);
       }
     }
   );

@@ -1,3 +1,4 @@
+import { ts } from "@celesta/common";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
@@ -11,8 +12,6 @@ import { browserActions } from "./utils/browserActions";
 import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
-// eslint-disable-next-line import/order
-import { ts } from "@celesta/common";
 
 const App = React.memo(() => {
   const { handleOAuthFlow } = useOAuth();
@@ -39,7 +38,7 @@ const App = React.memo(() => {
     ),
 
     REQUEST_QUESTION_RESPONSE: (message, send) => {
-      const response = prompt("Celesta asks:", message.question);
+      const response = prompt("Celesta asks: " + message.question);
       send(
         ts({
           type: "PROVIDE_QUESTION_RESPONSE",

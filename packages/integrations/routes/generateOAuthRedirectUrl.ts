@@ -1,6 +1,8 @@
-import { isIntegrationName } from "@celesta/common";
+import { isIntegrationName, logger } from "@celesta/common";
 import { getOAuthConfig } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/TypedFetcher.ts";
+
+const log = logger("generateOAuthRedirectUrl");
 
 export type GenerateOAuthRedirectUrlHandler = TypedFetcher<
   /* Response */ { success: true; code: number; url: string },
@@ -37,7 +39,7 @@ export const GenerateOAuthRedirectUrlHandler: GenerateOAuthRedirectUrlHandler =
       scope: undefined,
     };
 
-    console.log("oauth stuff for", pieceName, { clientId, authUrl, scope });
+    log("oauth stuff for", pieceName, { clientId, authUrl, scope });
 
     if (clientId == null || authUrl == null) {
       return {

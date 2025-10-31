@@ -1,4 +1,7 @@
-import { BrowserContextAction } from "@celesta/common";
+import { BrowserContextAction, logger } from "@celesta/common";
+import { AgentActionWebMessage, sendWebMessage } from "./webMessages";
+
+const log = logger("browserActions");
 
 export const browserActions: {
   [K in BrowserContextAction["type"]]: (
@@ -28,8 +31,31 @@ export const browserActions: {
     }
   },
   GET_PAGE_CONTENT: async ({ titleOfOpenTab }) => {
-    return {
-      response: `didn't find ${titleOfOpenTab} cuz get page content not implemented yet sorry`,
-    };
+    try {
+      const tabId = (await browser.tabs.query({ title: titleOfOpenTab })).at(
+        0
+      )?.id;
+
+      if (tabId == null) {
+        throw new Error(`No tab found with title: ${titleOfOpenTab}`);
+      }
+
+      const response = await sendWebMessage(
+        ["tabs", tabId],
+        {
+          __isWebMessage: true,
+          __webMessageType: "AgentActionWebMessage",
+          action: "getPageContent",
+        } satisfies AgentActionWebMessage,
+        true
+      );
+
+      log("Response payload:", response.payload);
+
+      return response.payload;
+    } catch (error) {
+      log("get page content error", error);
+      return { success: false, error: `${error}` };
+    }
   },
 };

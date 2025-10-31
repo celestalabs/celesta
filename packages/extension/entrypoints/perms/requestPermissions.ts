@@ -1,3 +1,7 @@
+import { logger } from "@celesta/common";
+
+const log = logger("requestPermissions");
+
 /**
  * requestPermission.ts
  * Requests user permission for microphone access.
@@ -10,7 +14,7 @@ export async function getUserPermission(): Promise<void> {
       .getUserMedia({ audio: true })
       .then((stream) => {
         // Permission granted, handle the stream if needed
-        console.log("Microphone access granted");
+        log("Microphone access granted");
 
         // Stop the tracks to prevent the recording indicator from being shown
         stream.getTracks().forEach(function (track) {
@@ -20,7 +24,7 @@ export async function getUserPermission(): Promise<void> {
         resolve();
       })
       .catch((error) => {
-        console.error("Error requesting microphone permission", error);
+        log("Error requesting microphone permission", error);
 
         reject(error);
       });
