@@ -11,14 +11,14 @@ import {
   type FrontendWSUserMessage,
   type ServerWSMessage,
   type IntegrationName,
-  ts,
   logger,
+  BaseAgent,
 } from "@celesta/common";
 import { WebSocket } from "ws";
 import {
   createMessageContext,
-  type HandlerAgentCreator,
   type MessageContext,
+  type MessageContextConfig,
 } from "./messageContext.js";
 
 const log = logger("sessionManager");
@@ -50,17 +50,10 @@ class SessionManager {
   /**
    * Creates a new message context for the specified client.
    */
-  async createContext(
-    clientId: ClientId,
-    contextId: ContextId,
-    createHandlerAgent: HandlerAgentCreator<any>
-  ) {
+  async createContext<T extends BaseAgent>(config: MessageContextConfig<T>) {
     this.messageContexts
-      .get(clientId)
-      ?.set(
-        contextId,
-        createMessageContext({ clientId, contextId, createHandlerAgent })
-      );
+      .get(config.clientId)!
+      .set(config.contextId, createMessageContext(config));
   }
 
   /**

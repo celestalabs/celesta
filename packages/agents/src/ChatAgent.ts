@@ -240,16 +240,16 @@ Be conversational, natural, and supportive in all responses.`,
                 this.sendChat("Starting a workflow for you in the background!");
 
                 const contextId = generateId("WORKFLOW");
-                sessionManager.createContext(
-                  this.messageContext.clientId,
+                sessionManager.createContext({
+                  clientId: this.messageContext.clientId,
                   contextId,
-                  async (messageContext) =>
+                  createHandlerAgent: async (messageContext) =>
                     new CoordinationAgent({
                       messageContext,
                       prompt,
                       tools: this.tools,
-                    })
-                );
+                    }),
+                });
 
                 this.messageContext.generalSendMessage(
                   ts({
