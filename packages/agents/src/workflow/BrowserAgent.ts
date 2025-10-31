@@ -97,8 +97,13 @@ export class BrowserAgent extends BaseAgent {
                 "Reasoning regarding why the goal was completed, else why it was not completed or cannot be completed"
               ),
           }),
-          prompt: "",
+          prompt: `You are a goal-oriented browsing agent. Your task is to use browser actions to achieve the user's stated goal as efficiently and accurately as possible. Consider the current context, available tools, and any constraints. At each step, reason about the best action to take, and only mark the goal as completed when you are certain it has been achieved. If the goal cannot be completed, provide a clear explanation. Be concise, logical, and avoid unnecessary actions.
+          
+          The user has provided the following goal for your to complete using the browser:
+          
+          # ${this.goalDescription}`,
           model: this.model,
+          tools: this.tools,
         });
 
         if (responseObject.goalCompleted) {
