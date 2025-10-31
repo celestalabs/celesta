@@ -1,4 +1,8 @@
-import { FrontendWSMessage, WorkflowId, WorkflowStatus } from "@celesta/common";
+import type {
+  FrontendWSMessage,
+  WorkflowId,
+  WorkflowStatus,
+} from "@celesta/common";
 import React from "react";
 import { MessageCard } from "../components/MessageCard";
 import {

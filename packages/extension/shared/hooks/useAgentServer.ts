@@ -1,4 +1,8 @@
-import { FrontendWSMessage, logger, ServerWSMessage } from "@celesta/common";
+import {
+  type FrontendWSMessage,
+  logger,
+  type ServerWSMessage,
+} from "@celesta/common";
 import useWebSocket from "react-use-websocket";
 import { useStore } from "../store";
 

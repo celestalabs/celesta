@@ -1,8 +1,7 @@
 import { ts, BaseAgent, logger, generateId } from "@celesta/common";
-import { sessionManager, MessageContext } from "@celesta/session";
-import { generateText, generateObject, ToolSet, stepCountIs } from "ai";
+import { sessionManager, type MessageContext } from "@celesta/session";
+import { generateText, generateObject, type ToolSet, stepCountIs } from "ai";
 import { z } from "zod";
-import { gatherTools } from "./utils/gatherTools.js";
 import { CoordinationAgent } from "./workflow/CoordinationAgent.js";
 
 const log = logger("ChatAgent");
@@ -31,16 +30,23 @@ const WorkflowIntentSchema = z.object({
 });
 
 export type WorkflowIntent = z.infer<typeof WorkflowIntentSchema>;
+
+type ChatAgentConfig = {
+  messageContext: MessageContext;
+  tools: ToolSet;
+};
+
 /**
  * ChatAgent handles conversational interactions with lightweight tool access.
  * It can execute simple, single-tool operations (like checking emails, searching web)
  * and detect when a user's request requires a complex multi-step workflow.
  */
 export class ChatAgent extends BaseAgent {
-  private tools: ToolSet = {};
+  private tools: ToolSet;
 
-  constructor(messageContext: MessageContext) {
+  constructor({ messageContext, tools }: ChatAgentConfig) {
     super(messageContext);
+    this.tools = tools;
   }
 
   /**
@@ -182,11 +188,8 @@ Be conversational, natural, and supportive in all responses.`,
     }
   }
 
-  // Initialize tools asynchronously
-  async onInitialize() {
-    this.tools = await gatherTools(this.messageContext, "chat");
-    log(Object.keys(this.tools));
-  }
+  // stub
+  async onInitialize() {}
 
   /**
    * Chat agent executes onUserMessage because it needs to respond
@@ -242,10 +245,11 @@ Be conversational, natural, and supportive in all responses.`,
                 sessionManager.createContext(
                   this.messageContext.clientId,
                   contextId,
-                  (messageContext) =>
+                  async (messageContext) =>
                     new CoordinationAgent({
                       messageContext,
                       prompt,
+                      tools: this.tools,
                     })
                 );
 

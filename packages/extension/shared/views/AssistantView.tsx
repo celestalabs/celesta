@@ -1,4 +1,4 @@
-import { FrontendWSMessage, ts } from "@celesta/common";
+import { type FrontendWSMessage, ts } from "@celesta/common";
 import React from "react";
 import { MessageCard } from "../components/MessageCard";
 import { Button } from "../components/ui/button";

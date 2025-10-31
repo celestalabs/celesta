@@ -3,7 +3,7 @@ import { getActiveTabId } from "~/shared/utils/getActiveTabId.js";
 import {
   isCheckActiveTabWebMessage,
   isWebMessageResponseIdTuple,
-  ResponseWebMessage,
+  type ResponseWebMessage,
 } from "~/shared/utils/webMessages.js";
 
 const log = logger("background");

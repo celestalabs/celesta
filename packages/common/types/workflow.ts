@@ -1,4 +1,4 @@
-import { WorkflowId } from "./ids.js";
+import type { WorkflowId } from "./ids.js";
 
 export type WorkflowStatus = "running" | "completed" | "failed" | "finishing";
 export type WorkflowTaskStatus = "pending" | "running" | "completed" | "failed";

@@ -1,4 +1,4 @@
-import { ClientId, logger } from "@celesta/common";
+import { type ClientId, logger } from "@celesta/common";
 import { sessionManager } from "@celesta/session";
 import { isFrontendWSMessage } from "./guards.js";
 

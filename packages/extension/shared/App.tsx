@@ -8,7 +8,7 @@ import { ButtonGroup } from "./components/ui/button-group";
 import { useAgentServer } from "./hooks/useAgentServer";
 import { useOAuth } from "./hooks/useOAuth";
 import { useStore } from "./store";
-import { browserContextActions } from "./utils/browerContextActions";
+import { browserContextActions } from "./utils/browserContextActions";
 import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";

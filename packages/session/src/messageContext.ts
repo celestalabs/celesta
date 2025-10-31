@@ -1,22 +1,24 @@
 import {
-  RequestId,
-  ClientId,
-  ContextId,
-  AgentMessageType,
-  ConversationWSMessage,
-  FrontendWSUserMessage,
-  ServerWSMessage,
+  type RequestId,
+  type ClientId,
+  type ContextId,
+  type AgentMessageType,
+  type ConversationWSMessage,
+  type FrontendWSUserMessage,
+  type ServerWSMessage,
   ts,
   BaseAgent,
   logger,
   generateId,
-  IntegrationName,
+  type IntegrationName,
 } from "@celesta/common";
 import { sessionManager } from "./sessionManager.js";
 
 const log = logger("messageContext");
 
-export type HandlerAgentCreator = (ctx: InternalMessageContext) => BaseAgent;
+export type HandlerAgentCreator = (
+  ctx: InternalMessageContext
+) => Promise<BaseAgent>;
 
 /**
  * Internal implementation of MessageContext.
@@ -35,9 +37,10 @@ class InternalMessageContext {
   ) {
     this.clientId = clientId;
     this.contextId = contextId;
-    this.handlerAgent = createHandlerAgent?.(this);
-
-    this.handlerAgent?.onInitialize();
+    createHandlerAgent?.(this).then((agent) => {
+      this.handlerAgent = agent;
+      this.handlerAgent?.onInitialize();
+    });
   }
 
   /**
@@ -182,7 +185,7 @@ class InternalMessageContext {
 export const createMessageContext = (
   clientId: ClientId,
   contextId: ContextId,
-  createHandlerAgent?: (ctx: InternalMessageContext) => BaseAgent
+  createHandlerAgent?: (ctx: InternalMessageContext) => Promise<BaseAgent>
 ) => new InternalMessageContext(clientId, contextId, createHandlerAgent);
 
 export type MessageContext = ReturnType<typeof createMessageContext>;

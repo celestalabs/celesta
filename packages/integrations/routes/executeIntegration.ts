@@ -35,7 +35,7 @@ export type ExecuteIntegrationHandler = TypedFetcher<
     integrationName: string;
     actionName: string;
     props: object;
-    auth?: { access_token: string }; // Now optional
+    auth?: { access_token: string } | undefined; // Now optional
   }
 >;
 

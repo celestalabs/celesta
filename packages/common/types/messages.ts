@@ -1,11 +1,10 @@
-import { BrowserContextAction } from "./browser.js";
-import { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
-import {
-  MinimalWorkflowTask,
+import type { BrowserContextAction } from "./browser.js";
+import type { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
+import type {
   UIWorkflowTask,
   WorkflowMetadata,
   WorkflowStatus,
-  WorkflowTaskStatus,
+  WorkflowTaskStatus
 } from "./workflow.js";
 
 export type FrontendWSUserMessage = {

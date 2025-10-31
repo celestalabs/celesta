@@ -17,9 +17,6 @@ importers:
       '@celesta/common':
         specifier: workspace:*
         version: link:../common
-      '@celesta/integrations':
-        specifier: workspace:*
-        version: link:../integrations
       '@celesta/session':
         specifier: workspace:*
         version: link:../session
@@ -527,9 +524,6 @@ importers:
       '@celesta/common':
         specifier: workspace:*
         version: link:../common
-      '@celesta/integrations':
-        specifier: workspace:*
-        version: link:../integrations
       '@types/node':
         specifier: ^22.10.5
         version: 22.18.13

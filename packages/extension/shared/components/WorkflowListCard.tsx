@@ -1,4 +1,4 @@
-import { WorkflowId, WorkflowStatus } from "@celesta/common";
+import type { WorkflowId, WorkflowStatus } from "@celesta/common";
 import React from "react";
 import { useStore } from "../store";
 import { Button } from "./ui/button";

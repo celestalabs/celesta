@@ -1,13 +1,13 @@
 import {
-  ContextId,
-  FrontendWSMessage,
-  RequestId,
+  type ContextId,
+  type FrontendWSMessage,
+  type RequestId,
   ts,
-  WorkflowTaskStatus,
+  type WorkflowTaskStatus,
 } from "@celesta/common";
 import React from "react";
 import ReactMarkdown from "react-markdown";
-import { UIMessageRepr } from "../types";
+import { type UIMessageRepr } from "../types";
 import { Button } from "./ui/button";
 import { ButtonGroup } from "./ui/button-group";
 import {

@@ -1,6 +1,6 @@
 import getXPath from "get-xpath";
 import {
-  ResponseWebMessage,
+  type ResponseWebMessage,
   isAgentActionWebMessage,
   isWebMessageResponseIdTuple,
 } from "~/shared/utils/webMessages.js";

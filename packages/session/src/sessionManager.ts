@@ -4,21 +4,21 @@
  */
 
 import {
-  RequestId,
-  ClientId,
-  ContextId,
-  FrontendWSResponseMessage,
-  FrontendWSUserMessage,
-  ServerWSMessage,
-  IntegrationName,
+  type RequestId,
+  type ClientId,
+  type ContextId,
+  type FrontendWSResponseMessage,
+  type FrontendWSUserMessage,
+  type ServerWSMessage,
+  type IntegrationName,
   ts,
   logger,
 } from "@celesta/common";
 import { WebSocket } from "ws";
 import {
   createMessageContext,
-  HandlerAgentCreator,
-  MessageContext,
+  type HandlerAgentCreator,
+  type MessageContext,
 } from "./messageContext.js";
 
 const log = logger("sessionManager");

@@ -1,5 +1,5 @@
-import { BrowserContextAction, logger } from "@celesta/common";
-import { AgentActionWebMessage, sendWebMessage } from "./webMessages";
+import { type BrowserContextAction, logger } from "@celesta/common";
+import { type AgentActionWebMessage, sendWebMessage } from "./webMessages";
 
 const log = logger("browserContextActions");
 

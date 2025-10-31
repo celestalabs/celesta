@@ -1,5 +1,5 @@
 import { logger } from "@celesta/common";
-import { TypedFetcher } from "@celesta/integrations";
+import type { TypedFetcher } from "@celesta/integrations";
 import type { Router } from "express";
 
 const log = logger("wrappedRouter");

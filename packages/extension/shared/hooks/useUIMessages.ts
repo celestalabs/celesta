@@ -1,18 +1,21 @@
-import {
+import type {
   ContextId,
   ToolCallId,
   UIWorkflowTask,
   WSMessage,
 } from "@celesta/common";
 import { useStore } from "../store";
-import { UIMessageRepr } from "../types";
+import { type UIMessageRepr } from "../types";
 
 export function useUIMessages(contextId: ContextId) {
   const messagesByContext = useStore((store) => store.messagesByContext);
   const tasksByWorkflow = useStore((store) => store.tasksByWorkflow);
 
   const messages = messagesByContext[contextId];
-  const tasks = contextId === "CHAT" ? undefined : tasksByWorkflow[contextId];
+  const tasks =
+    contextId === "CHAT" || contextId === "BROWSER"
+      ? undefined
+      : tasksByWorkflow[contextId];
 
   return useMemo(() => {
     const result: UIMessageRepr[] = [];

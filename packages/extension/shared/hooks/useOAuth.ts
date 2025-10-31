@@ -1,4 +1,4 @@
-import { IntegrationName, isIntegrationName } from "@celesta/common";
+import { type IntegrationName, isIntegrationName } from "@celesta/common";
 import { integrationsClient } from "../utils/integrationsClient";
 
 export function useOAuth() {

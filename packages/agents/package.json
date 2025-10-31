@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@celesta/common": "workspace:*",
-    "@celesta/integrations": "workspace:*",
     "@celesta/session": "workspace:*",
     "zod": "^4.1.12"
   },

@@ -1,4 +1,4 @@
-import {
+import type {
   ContextId,
   UIWorkflowTask,
   WorkflowId,
@@ -7,7 +7,7 @@ import {
   WSMessage,
 } from "@celesta/common";
 import { create } from "zustand";
-import { ViewId } from "./types";
+import type { ViewId } from "./types";
 
 type WSMessageWithContextId = Extract<WSMessage, { contextId: ContextId }>;
 

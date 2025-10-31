@@ -1,11 +1,11 @@
 import {
-  ClientId,
-  BrowserContextAction,
+  type ClientId,
+  type BrowserContextAction,
   generateId,
-  RequestId,
+  type RequestId,
   ts,
 } from "@celesta/common";
-import { createMessageContext, MessageContext } from "@celesta/session";
+import { createMessageContext, type MessageContext } from "@celesta/session";
 
 class BrowserManager {
   messageContexts: Map<ClientId, MessageContext> = new Map();

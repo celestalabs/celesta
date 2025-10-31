@@ -1,20 +1,17 @@
-import { IntegrationName, logger } from "@celesta/common";
-import {
-  ExecuteIntegrationHandler,
-  ListIntegrationsHandler,
-} from "@celesta/integrations";
-import { MessageContext } from "@celesta/session";
-import { jsonSchema, tool, Tool, ToolSet } from "ai";
+import { type IntegrationName, logger } from "@celesta/common";
+import { type MessageContext } from "@celesta/session";
+import { jsonSchema, tool, type Tool, type ToolSet } from "ai";
+import { ExecuteIntegrationHandler } from "../routes/executeIntegration.ts";
+import { ListIntegrationsHandler } from "../routes/listIntegrations.ts";
 
 const log = logger("gatherTools");
 
 export async function gatherTools(
   messageContext: MessageContext,
-  mode: "workflow" | "chat",
   systemTools: Partial<Record<string, Tool>> = {}
 ): Promise<ToolSet> {
   const rawIntegrationsResponse = await ListIntegrationsHandler({
-    params: { mode },
+    params: {},
   });
 
   if (!rawIntegrationsResponse.success) {
