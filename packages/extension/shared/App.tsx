@@ -1,4 +1,4 @@
-import { isChatId, ts } from "@celesta/common";
+import { isBrowserAgentId, isChatId, ts } from "@celesta/common";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
@@ -8,12 +8,17 @@ import { ButtonGroup } from "./components/ui/button-group";
 import { useAgentServer } from "./hooks/useAgentServer";
 import { useOAuth } from "./hooks/useOAuth";
 import { useStore } from "./store";
+import { browserAgentActions } from "./utils/browserAgentActions";
 import { browserContextActions } from "./utils/browserContextActions";
 import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
 
 const App = React.memo(() => {
+  const currentView = useStore((state) => state.currentView);
+  const routeToView = useStore((state) => state.routeToView);
+  const tabIdByBrowserAgent = useStore((state) => state.tabIdByBrowserAgent);
+
   const { handleOAuthFlow } = useOAuth();
 
   const { sendMessage } = useAgentServer({
@@ -101,11 +106,36 @@ const App = React.memo(() => {
         })
       );
     },
-    REQUEST_BROWSER_AGENT_ACTION: () => {},
-  });
+    REQUEST_BROWSER_AGENT_ACTION: async (
+      { contextId, requestId, action },
+      send
+    ) => {
+      if (!isBrowserAgentId(contextId)) {
+        return send(
+          ts({
+            type: "PROVIDE_BROWSER_AGENT_ACTION",
+            requestId,
+            contextId,
+            response: { text: "Invalid request" },
+          })
+        );
+      }
 
-  const currentView = useStore((state) => state.currentView);
-  const routeToView = useStore((state) => state.routeToView);
+      const response = await browserAgentActions[action.type](
+        tabIdByBrowserAgent[contextId]!,
+        action as any
+      );
+
+      send(
+        ts({
+          type: "PROVIDE_BROWSER_AGENT_ACTION",
+          requestId,
+          contextId,
+          response,
+        })
+      );
+    },
+  });
 
   return (
     <>

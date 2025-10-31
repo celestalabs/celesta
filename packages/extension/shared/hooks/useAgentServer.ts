@@ -1,10 +1,12 @@
 import {
   type FrontendWSMessage,
+  isBrowserAgentId,
   logger,
   type ServerWSMessage,
 } from "@celesta/common";
 import useWebSocket from "react-use-websocket";
 import { useStore } from "../store";
+import { attachDebugger } from "../utils/browserAgentActions";
 
 const log = logger("useAgentServer");
 
@@ -30,12 +32,14 @@ export function useAgentServer(handlerByType: {
     (store) => store.updateWorkflowTaskStatus
   );
 
+  const addBrowserAgentTabId = useStore((state) => state.addBrowserAgentTabId);
+
   const handleOpen = useCallback(() => {
     log("WebSocket connection opened");
   }, []);
 
   const handleMessage = useCallback(
-    (event: MessageEvent) => {
+    async (event: MessageEvent) => {
       const ws = event.target as WebSocket;
       const send = (ms: FrontendWSMessage) => ws.send(JSON.stringify(ms));
 
@@ -46,6 +50,18 @@ export function useAgentServer(handlerByType: {
       switch (message.type) {
         case "CONTEXT_CREATED": {
           addContext(message.contextId);
+
+          if (isBrowserAgentId(message.contextId)) {
+            log("Browser agent context created: " + message.contextId);
+
+            const { id } = await browser.tabs.create({
+              url: "https://google.com",
+            });
+
+            addBrowserAgentTabId(message.contextId, id!);
+            await attachDebugger(id!);
+          }
+
           break;
         }
         case "WORKFLOW_STATUS_CHANGED": {
@@ -102,6 +118,7 @@ export function useAgentServer(handlerByType: {
       updateWorkflowStatus,
       createWorkflowTask,
       updateWorkflowTaskStatus,
+      addBrowserAgentTabId,
     ]
   );
 

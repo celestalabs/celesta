@@ -32,7 +32,7 @@ const WorkflowIntentSchema = z.object({
 export type WorkflowIntent = z.infer<typeof WorkflowIntentSchema>;
 
 type ChatAgentConfig = {
-  messageContext: MessageContext;
+  messageContext: MessageContext<any>;
   tools: ToolSet;
 };
 
@@ -47,6 +47,7 @@ export class ChatAgent extends BaseAgent {
   constructor({ messageContext, tools }: ChatAgentConfig) {
     super(messageContext);
     this.tools = tools;
+    log("ChatAgent initialized with tools:", Object.keys(this.tools));
   }
 
   /**

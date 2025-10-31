@@ -1,5 +1,6 @@
-import { logger } from "@celesta/common";
-import { Protocol } from "devtools-protocol";
+import { logger, type BrowserAgentAction } from "@celesta/common";
+import { type Protocol } from "./devToolsProtocol";
+import { waitMs } from "./waitMs";
 
 const log = logger("browserAgentActions");
 
@@ -9,6 +10,7 @@ const log = logger("browserAgentActions");
  * @param tabId The ID of the tab to attach to.
  */
 export async function attachDebugger(tabId: number): Promise<void> {
+  log("Attaching debugger to tab " + tabId);
   return new Promise((resolve, reject) => {
     // We must use "1.3" as the protocol version
     browser.debugger.attach({ tabId }, "1.3", () => {
@@ -35,403 +37,6 @@ export async function detachDebugger(tabId: number): Promise<void> {
       }
     });
   });
-}
-
-/**
- * A promisified wrapper for browser.debugger.sendCommand.
- * This is the core function all other utilities will use.
- */
-async function sendCommand<T extends object>(
-  tabId: number,
-  method: string,
-  params?: Partial<Record<string, any>>
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    browser.debugger.sendCommand({ tabId }, method, params, (result) => {
-      if (browser.runtime.lastError) {
-        reject(browser.runtime.lastError.message);
-      } else if ((result as any)?.error) {
-        reject(new Error((result as any).error.message));
-      } else {
-        resolve(result as T);
-      }
-    });
-  });
-}
-
-/**
- * Gets the main frame ID for a given tab.
- * This is necessary for commands that are frame-specific, like `evaluate`.
- */
-export async function getMainFrameId(tabId: number): Promise<string> {
-  const { frameTree } = await sendCommand<Protocol.Page.GetFrameTreeResponse>(
-    tabId,
-    "Page.getFrameTree"
-  );
-  return frameTree.frame.id;
-}
-
-/**
- * Navigates the tab to a new URL.
- */
-export async function GOTO(tabId: number, url: string): Promise<void> {
-  await sendCommand(tabId, "Page.navigate", { url });
-}
-
-/**
- * Reloads the tab, optionally ignoring the cache.
- */
-export async function RELOAD_TAB(
-  tabId: number,
-  ignoreCache = false
-): Promise<void> {
-  await sendCommand(tabId, "Page.reload", { ignoreCache });
-}
-
-/**
- * Navigates back in the tab's history.
- */
-export async function GO_BACK(tabId: number): Promise<void> {
-  const { entries, currentIndex } =
-    await sendCommand<Protocol.Page.GetNavigationHistoryResponse>(
-      tabId,
-      "Page.getNavigationHistory"
-    );
-  const prev = entries[currentIndex - 1];
-  if (prev) {
-    await sendCommand(tabId, "Page.navigateToHistoryEntry", {
-      entryId: prev.id,
-    });
-  }
-}
-
-/**
- * Navigates forward in the tab's history.
- */
-export async function GO_FORWARD(tabId: number): Promise<void> {
-  const { entries, currentIndex } =
-    await sendCommand<Protocol.Page.GetNavigationHistoryResponse>(
-      tabId,
-      "Page.getNavigationHistory"
-    );
-  const next = entries[currentIndex + 1];
-  if (next) {
-    await sendCommand(tabId, "Page.navigateToHistoryEntry", {
-      entryId: next.id,
-    });
-  }
-}
-
-/**
- * Waits for the page to reach a specific load state (e.g., "load" or "domcontentloaded").
- * This is a simplified version of the LifecycleWatcher.
- */
-export async function WAIT_FOR_LOAD_STATE(
-  tabId: number,
-  mainFrameId: string,
-  state: "load" | "domcontentloaded" = "load",
-  timeoutMs = 15000
-): Promise<void> {
-  const record: Record<typeof state, string> = {
-    load: "load",
-    domcontentloaded: "DOMContentLoaded",
-  };
-  const wantedEvent = record[state];
-
-  // 1. Enable lifecycle events
-  await sendCommand(tabId, "Page.setLifecycleEventsEnabled", { enabled: true });
-
-  // 2. Check current state (fast path)
-  try {
-    const { executionContextId } =
-      await sendCommand<Protocol.Page.CreateIsolatedWorldResponse>(
-        tabId,
-        "Page.createIsolatedWorld",
-        { frameId: mainFrameId, worldName: "load-state-check" }
-      );
-    const { result } = await sendCommand<Protocol.Runtime.EvaluateResponse>(
-      tabId,
-      "Runtime.evaluate",
-      {
-        expression: "document.readyState",
-        contextId: executionContextId,
-        returnByValue: true,
-      }
-    );
-    const readyState = String(result?.value ?? "");
-    if (
-      (state === "domcontentloaded" &&
-        (readyState === "interactive" || readyState === "complete")) ||
-      (state === "load" && readyState === "complete")
-    ) {
-      return;
-    }
-  } catch (e) {
-    log("waitForLoadState fast path check failed:", e);
-    // Ignore fast-path failure, wait for event
-  }
-
-  // 3. Wait for the event
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      browser.debugger.onEvent.removeListener(listener);
-      reject(
-        new Error(`waitForLoadState(${state}) timed out after ${timeoutMs}ms`)
-      );
-    }, timeoutMs);
-
-    const listener = (
-      source: Browser.debugger.Debuggee,
-      method: string,
-      params?: object
-    ) => {
-      if (source.tabId !== tabId) return;
-
-      const event = params as Protocol.Page.LifecycleEventEvent;
-      if (method === "Page.lifecycleEvent" && event.name === wantedEvent) {
-        // Check if it's the main frame
-        if (event.frameId === mainFrameId) {
-          clearTimeout(timer);
-          browser.debugger.onEvent.removeListener(listener);
-          resolve();
-        }
-      }
-    };
-
-    browser.debugger.onEvent.addListener(listener);
-  });
-}
-
-/**
- * Dispatches a click (mouse press and release).
- */
-export async function CLICK(
-  tabId: number,
-  x: number,
-  y: number,
-  options?: {
-    button?: "left" | "right" | "middle";
-    clickCount?: number;
-  }
-): Promise<void> {
-  const button = options?.button ?? "left";
-  const clickCount = options?.clickCount ?? 1;
-
-  // Move mouse to position
-  await sendCommand(tabId, "Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x,
-    y,
-    button: "none",
-  } as Protocol.Input.DispatchMouseEventRequest);
-
-  // Press
-  await sendCommand(tabId, "Input.dispatchMouseEvent", {
-    type: "mousePressed",
-    x,
-    y,
-    button,
-    clickCount,
-  } as Protocol.Input.DispatchMouseEventRequest);
-
-  // Release
-  await sendCommand(tabId, "Input.dispatchMouseEvent", {
-    type: "mouseReleased",
-    x,
-    y,
-    button,
-    clickCount,
-  } as Protocol.Input.DispatchMouseEventRequest);
-}
-
-/**
- * Dispatches a double click.
- */
-export async function DOUBLE_CLICK(
-  tabId: number,
-  x: number,
-  y: number
-): Promise<void> {
-  await CLICK(tabId, x, y, { clickCount: 2, button: "left" });
-}
-
-/**
- * Dispatches a mouse wheel (scroll) event.
- */
-export async function SCROLL(
-  tabId: number,
-  x: number,
-  y: number,
-  deltaX: number,
-  deltaY: number
-): Promise<void> {
-  // Move mouse to position
-  await sendCommand(tabId, "Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x,
-    y,
-    button: "none",
-  } as Protocol.Input.DispatchMouseEventRequest);
-
-  // Dispatch wheel event
-  await sendCommand(tabId, "Input.dispatchMouseEvent", {
-    type: "mouseWheel",
-    x,
-    y,
-    button: "none",
-    deltaX,
-    deltaY,
-  } as Protocol.Input.DispatchMouseEventRequest);
-}
-
-/**
- * Simulates a drag-and-drop operation.
- */
-export async function DRAG_AND_DROP(
-  tabId: number,
-  fromX: number,
-  fromY: number,
-  toX: number,
-  toY: number,
-  options?: {
-    button?: "left" | "right" | "middle";
-    steps?: number; // Number of intermediate steps
-    delay?: number; // Delay between steps in ms
-  }
-): Promise<void> {
-  const button = options?.button ?? "left";
-  const steps = Math.max(1, Math.floor(options?.steps ?? 1));
-  const delay = Math.max(0, options?.delay ?? 0);
-
-  const sleep = (ms: number) =>
-    new Promise<void>((r) => (ms > 0 ? setTimeout(r, ms) : r()));
-
-  const buttonMask = (b: typeof button): number => {
-    switch (b) {
-      case "left":
-        return 1;
-      case "right":
-        return 2;
-      case "middle":
-        return 4;
-      default:
-        return 1;
-    }
-  };
-
-  // 1. Move to start
-  await sendCommand(tabId, "Input.dispatchMouseEvent", {
-    type: "mouseMoved",
-    x: fromX,
-    y: fromY,
-    button: "none",
-  } as Protocol.Input.DispatchMouseEventRequest);
-
-  // 2. Press
-  await sendCommand(tabId, "Input.dispatchMouseEvent", {
-    type: "mousePressed",
-    x: fromX,
-    y: fromY,
-    button,
-    buttons: buttonMask(button),
-    clickCount: 1,
-  } as Protocol.Input.DispatchMouseEventRequest);
-  if (delay) await sleep(delay);
-
-  // 3. Intermediate moves
-  for (let i = 1; i <= steps; i++) {
-    const t = i / steps;
-    const x = fromX + (toX - fromX) * t;
-    const y = fromY + (toY - fromY) * t;
-    await sendCommand(tabId, "Input.dispatchMouseEvent", {
-      type: "mouseMoved",
-      x,
-      y,
-      button,
-      buttons: buttonMask(button),
-    } as Protocol.Input.DispatchMouseEventRequest);
-    if (delay) await sleep(delay);
-  }
-
-  // 4. Release at end
-  await sendCommand(tabId, "Input.dispatchMouseEvent", {
-    type: "mouseReleased",
-    x: toX,
-    y: toY,
-    button,
-    buttons: buttonMask(button),
-    clickCount: 1,
-  } as Protocol.Input.DispatchMouseEventRequest);
-}
-
-const sleep = (ms: number) =>
-  new Promise<void>((r) => (ms > 0 ? setTimeout(r, ms) : r()));
-
-/**
- * Types a string of text.
- * Assumes the target element is already focused.
- */
-export async function TYPE_TEXT(
-  tabId: number,
-  text: string,
-  options?: { delay?: number }
-): Promise<void> {
-  const delay = Math.max(0, options?.delay ?? 0);
-
-  // Helper to send one keystroke (down and up)
-  const keyStroke = async (
-    ch: string,
-    override?: {
-      key?: string;
-      code?: string;
-      windowsVirtualKeyCode?: number;
-    }
-  ) => {
-    if (override) {
-      const base: Protocol.Input.DispatchKeyEventRequest = {
-        type: "keyDown",
-        key: override.key,
-        code: override.code,
-        windowsVirtualKeyCode: override.windowsVirtualKeyCode,
-      } as Protocol.Input.DispatchKeyEventRequest;
-      await sendCommand(tabId, "Input.dispatchKeyEvent", base);
-      await sendCommand(tabId, "Input.dispatchKeyEvent", {
-        ...base,
-        type: "keyUp",
-      } as Protocol.Input.DispatchKeyEventRequest);
-      return;
-    }
-
-    // Printable character
-    const down: Protocol.Input.DispatchKeyEventRequest = {
-      type: "keyDown",
-      text: ch,
-      unmodifiedText: ch,
-    };
-    await sendCommand(tabId, "Input.dispatchKeyEvent", down);
-    await sendCommand(tabId, "Input.dispatchKeyEvent", {
-      type: "keyUp",
-    } as Protocol.Input.DispatchKeyEventRequest);
-  };
-
-  for (const ch of text) {
-    if (ch === "\n" || ch === "\r") {
-      await keyStroke(ch, {
-        key: "Enter",
-        code: "Enter",
-        windowsVirtualKeyCode: 13,
-      });
-    } else if (ch === "\t") {
-      await keyStroke(ch, {
-        key: "Tab",
-        code: "Tab",
-        windowsVirtualKeyCode: 9,
-      });
-    } else {
-      await keyStroke(ch);
-    }
-    if (delay) await sleep(delay);
-  }
 }
 
 // --- Helpers for keyPress ---
@@ -510,117 +115,438 @@ function describeKey(key: string): {
 // --- End helpers for keyPress ---
 
 /**
- * Presses a single key or key combination (e.g., "A", "Enter", "Cmd+C", "Shift+Tab").
- * This is stateless and sends a single keyDown/keyUp pair with modifiers.
+ * A promisified wrapper for browser.debugger.sendCommand.
+ * This is the core function all other utilities will use.
  */
-export async function KEY_PRESS(
+async function sendCommand<T extends object>(
   tabId: number,
-  key: string,
-  options?: { delay?: number }
-): Promise<void> {
-  const delay = Math.max(0, options?.delay ?? 0);
-
-  // Special case: if the entire string is just "+", treat it as the key
-  const tokens = key === "+" ? ["+"] : key.split("+");
-
-  let modifiers = 0;
-  let mainKey = "";
-
-  for (const token of tokens) {
-    const normalized = normalizeModifierKey(token);
-    if (modifierMap[normalized]) {
-      modifiers |= modifierMap[normalized];
-    } else {
-      mainKey = normalized;
-    }
-  }
-
-  // Describe the main key
-  const desc = describeKey(mainKey);
-  const hasNonShiftModifier = (modifiers & ~modifierMap.Shift) > 0;
-
-  // For accelerators (Cmd+C), use "rawKeyDown".
-  // For typing ('A', 'Shift+A'), use "keyDown" with text.
-  const type =
-    hasNonShiftModifier || mainKey.length > 1 ? "rawKeyDown" : "keyDown";
-
-  const keyDownParams: Protocol.Input.DispatchKeyEventRequest = {
-    type,
-    modifiers,
-    key: desc.key,
-    code: desc.code,
-    windowsVirtualKeyCode: desc.vk,
-  } as Protocol.Input.DispatchKeyEventRequest;
-
-  // Only add 'text' if it's the typing path
-  if (type === "keyDown") {
-    keyDownParams.text =
-      modifiers & modifierMap.Shift
-        ? mainKey.toUpperCase()
-        : mainKey.toLowerCase();
-    keyDownParams.unmodifiedText = mainKey.toLowerCase();
-  }
-
-  const keyUpParams: Protocol.Input.DispatchKeyEventRequest = {
-    type: "keyUp",
-    modifiers,
-    key: desc.key,
-    code: desc.code,
-    windowsVirtualKeyCode: desc.vk,
-  } as Protocol.Input.DispatchKeyEventRequest;
-
-  await sendCommand(tabId, "Input.dispatchKeyEvent", keyDownParams);
-  if (delay) await sleep(delay);
-  await sendCommand(tabId, "Input.dispatchKeyEvent", keyUpParams);
+  method: string,
+  params?: Partial<Record<string, any>>
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    browser.debugger.sendCommand({ tabId }, method, params, (result) => {
+      if (browser.runtime.lastError) {
+        reject(browser.runtime.lastError.message);
+      } else if ((result as any)?.error) {
+        reject(new Error((result as any).error.message));
+      } else {
+        resolve(result as T);
+      }
+    });
+  });
 }
+
+/**
+ * Gets the main frame ID for a given tab.
+ * This is necessary for commands that are frame-specific, like `evaluate`.
+ */
+export async function getMainFrameId(tabId: number): Promise<string> {
+  const { frameTree } = await sendCommand<Protocol.Page.GetFrameTreeResponse>(
+    tabId,
+    "Page.getFrameTree"
+  );
+  return frameTree.frame.id;
+}
+
+export const browserAgentActions = {
+  async GOTO_URL(tabId, { url }) {
+    try {
+      await sendCommand(tabId, "Page.navigate", { url });
+      return { success: true, info: "Sent navigation command" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  async RELOAD_TAB(tabId: number, { options }) {
+    try {
+      await sendCommand(tabId, "Page.reload", {
+        ignoreCache: options?.ignoreCache,
+      });
+      return { success: true, info: "Sent reload command" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  async GO_BACK(tabId: number) {
+    try {
+      const { entries, currentIndex } =
+        await sendCommand<Protocol.Page.GetNavigationHistoryResponse>(
+          tabId,
+          "Page.getNavigationHistory"
+        );
+      const prev = entries[currentIndex - 1];
+      if (prev) {
+        await sendCommand(tabId, "Page.navigateToHistoryEntry", {
+          entryId: prev.id,
+        });
+      }
+
+      return { success: true, info: "Sent go back command" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  async GO_FORWARD(tabId: number) {
+    try {
+      const { entries, currentIndex } =
+        await sendCommand<Protocol.Page.GetNavigationHistoryResponse>(
+          tabId,
+          "Page.getNavigationHistory"
+        );
+      const next = entries[currentIndex + 1];
+      if (next) {
+        await sendCommand(tabId, "Page.navigateToHistoryEntry", {
+          entryId: next.id,
+        });
+      }
+      return { success: true, info: "Sent go forward command" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  async CLICK(tabId: number, { x, y, options }) {
+    const button = options?.button ?? "left";
+    const clickCount = options?.clickCount ?? 1;
+
+    try {
+      // Move mouse to position
+      await sendCommand(tabId, "Input.dispatchMouseEvent", {
+        type: "mouseMoved",
+        x,
+        y,
+        button: "none",
+      } as Protocol.Input.DispatchMouseEventRequest);
+
+      // Press
+      await sendCommand(tabId, "Input.dispatchMouseEvent", {
+        type: "mousePressed",
+        x,
+        y,
+        button,
+        clickCount,
+      } as Protocol.Input.DispatchMouseEventRequest);
+
+      // Release
+      await sendCommand(tabId, "Input.dispatchMouseEvent", {
+        type: "mouseReleased",
+        x,
+        y,
+        button,
+        clickCount,
+      } as Protocol.Input.DispatchMouseEventRequest);
+      return { success: true, info: "Dispatched click event" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  DOUBLE_CLICK(tabId: number, { x, y, reasoning }) {
+    return this.CLICK(tabId, {
+      x,
+      y,
+      reasoning,
+      options: { clickCount: 2, button: "left" },
+    });
+  },
+  async SCROLL(tabId: number, { x, y, deltaX, deltaY }) {
+    try {
+      // Move mouse to position
+      await sendCommand(tabId, "Input.dispatchMouseEvent", {
+        type: "mouseMoved",
+        x,
+        y,
+        button: "none",
+      } as Protocol.Input.DispatchMouseEventRequest);
+
+      // Dispatch wheel event
+      await sendCommand(tabId, "Input.dispatchMouseEvent", {
+        type: "mouseWheel",
+        x,
+        y,
+        button: "none",
+        deltaX,
+        deltaY,
+      } as Protocol.Input.DispatchMouseEventRequest);
+      return { success: true, info: "Dispatched scroll event" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  async DRAG_AND_DROP(tabId: number, { fromX, fromY, toX, toY, options }) {
+    const button = options?.button ?? "left";
+    const steps = Math.max(1, Math.floor(options?.steps ?? 1));
+    const delay = Math.max(0, options?.delay ?? 0);
+
+    const buttonMask = (b: typeof button): number => {
+      switch (b) {
+        case "left":
+          return 1;
+        case "right":
+          return 2;
+        case "middle":
+          return 4;
+        default:
+          return 1;
+      }
+    };
+
+    try {
+      // 1. Move to start
+      await sendCommand(tabId, "Input.dispatchMouseEvent", {
+        type: "mouseMoved",
+        x: fromX,
+        y: fromY,
+        button: "none",
+      } as Protocol.Input.DispatchMouseEventRequest);
+
+      // 2. Press
+      await sendCommand(tabId, "Input.dispatchMouseEvent", {
+        type: "mousePressed",
+        x: fromX,
+        y: fromY,
+        button,
+        buttons: buttonMask(button),
+        clickCount: 1,
+      } as Protocol.Input.DispatchMouseEventRequest);
+      if (delay) await waitMs(delay);
+
+      // 3. Intermediate moves
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const x = fromX + (toX - fromX) * t;
+        const y = fromY + (toY - fromY) * t;
+        await sendCommand(tabId, "Input.dispatchMouseEvent", {
+          type: "mouseMoved",
+          x,
+          y,
+          button,
+          buttons: buttonMask(button),
+        } as Protocol.Input.DispatchMouseEventRequest);
+        if (delay) await waitMs(delay);
+      }
+
+      // 4. Release at end
+      await sendCommand(tabId, "Input.dispatchMouseEvent", {
+        type: "mouseReleased",
+        x: toX,
+        y: toY,
+        button,
+        buttons: buttonMask(button),
+        clickCount: 1,
+      } as Protocol.Input.DispatchMouseEventRequest);
+      return { success: true, info: "Dispatched drag and drop event" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  async TYPE_TEXT(tabId: number, { text, options }) {
+    const delay = Math.max(0, options?.delay ?? 0);
+
+    try {
+      // Helper to send one keystroke (down and up)
+      const keyStroke = async (
+        ch: string,
+        override?: {
+          key?: string;
+          code?: string;
+          windowsVirtualKeyCode?: number;
+        }
+      ) => {
+        if (override) {
+          const base: Protocol.Input.DispatchKeyEventRequest = {
+            type: "keyDown",
+            key: override.key,
+            code: override.code,
+            windowsVirtualKeyCode: override.windowsVirtualKeyCode,
+          } as Protocol.Input.DispatchKeyEventRequest;
+          await sendCommand(tabId, "Input.dispatchKeyEvent", base);
+          await sendCommand(tabId, "Input.dispatchKeyEvent", {
+            ...base,
+            type: "keyUp",
+          } as Protocol.Input.DispatchKeyEventRequest);
+          return;
+        }
+
+        // Printable character
+        const down: Protocol.Input.DispatchKeyEventRequest = {
+          type: "keyDown",
+          text: ch,
+          unmodifiedText: ch,
+        };
+        await sendCommand(tabId, "Input.dispatchKeyEvent", down);
+        await sendCommand(tabId, "Input.dispatchKeyEvent", {
+          type: "keyUp",
+        } as Protocol.Input.DispatchKeyEventRequest);
+      };
+
+      for (const ch of text) {
+        if (ch === "\n" || ch === "\r") {
+          await keyStroke(ch, {
+            key: "Enter",
+            code: "Enter",
+            windowsVirtualKeyCode: 13,
+          });
+        } else if (ch === "\t") {
+          await keyStroke(ch, {
+            key: "Tab",
+            code: "Tab",
+            windowsVirtualKeyCode: 9,
+          });
+        } else {
+          await keyStroke(ch);
+        }
+        if (delay) await waitMs(delay);
+      }
+      return { success: true, info: "Dispatched type text events" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  async KEY_PRESS(tabId: number, { key, options }) {
+    const delay = Math.max(0, options?.delay ?? 0);
+
+    // Special case: if the entire string is just "+", treat it as the key
+    const tokens = key === "+" ? ["+"] : key.split("+");
+
+    let modifiers = 0;
+    let mainKey = "";
+
+    for (const token of tokens) {
+      const normalized = normalizeModifierKey(token);
+      if (modifierMap[normalized]) {
+        modifiers |= modifierMap[normalized];
+      } else {
+        mainKey = normalized;
+      }
+    }
+
+    try {
+      // Describe the main key
+      const desc = describeKey(mainKey);
+      const hasNonShiftModifier = (modifiers & ~modifierMap.Shift) > 0;
+
+      // For accelerators (Cmd+C), use "rawKeyDown".
+      // For typing ('A', 'Shift+A'), use "keyDown" with text.
+      const type =
+        hasNonShiftModifier || mainKey.length > 1 ? "rawKeyDown" : "keyDown";
+
+      const keyDownParams: Protocol.Input.DispatchKeyEventRequest = {
+        type,
+        modifiers,
+        key: desc.key,
+        code: desc.code,
+        windowsVirtualKeyCode: desc.vk,
+      } as Protocol.Input.DispatchKeyEventRequest;
+
+      // Only add 'text' if it's the typing path
+      if (type === "keyDown") {
+        keyDownParams.text =
+          modifiers & modifierMap.Shift
+            ? mainKey.toUpperCase()
+            : mainKey.toLowerCase();
+        keyDownParams.unmodifiedText = mainKey.toLowerCase();
+      }
+
+      const keyUpParams: Protocol.Input.DispatchKeyEventRequest = {
+        type: "keyUp",
+        modifiers,
+        key: desc.key,
+        code: desc.code,
+        windowsVirtualKeyCode: desc.vk,
+      } as Protocol.Input.DispatchKeyEventRequest;
+
+      await sendCommand(tabId, "Input.dispatchKeyEvent", keyDownParams);
+      if (delay) await waitMs(delay);
+      await sendCommand(tabId, "Input.dispatchKeyEvent", keyUpParams);
+      return { success: true, info: "Dispatched key press events" };
+    } catch (error) {
+      return {
+        success: false,
+        error: `${error}`,
+      };
+    }
+  },
+  async CAPTURE_SCREENSHOT(tabId: number, { options }) {
+    let data: string;
+
+    if (options?.fullPage) {
+      // 1. Get layout metrics for the full page
+      const { cssContentSize } =
+        await sendCommand<Protocol.Page.GetLayoutMetricsResponse>(
+          tabId,
+          "Page.getLayoutMetrics"
+        );
+
+      // 2. Override device metrics to match full page
+      await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
+        width: cssContentSize.width,
+        height: cssContentSize.height,
+        deviceScaleFactor: 1,
+        mobile: false,
+      } as Protocol.Emulation.SetDeviceMetricsOverrideRequest);
+
+      // 3. Capture screenshot
+      const result = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
+        tabId,
+        "Page.captureScreenshot",
+        { format: "png", captureBeyondViewport: true }
+      );
+      data = result.data;
+
+      // 4. Clear override
+      await sendCommand(tabId, "Emulation.clearDeviceMetricsOverride", {});
+    } else {
+      // Capture screenshot of the visible viewport
+      const result = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
+        tabId,
+        "Page.captureScreenshot",
+        { format: "png" }
+      );
+      data = result.data;
+    }
+
+    const { title, url } = (await browser.tabs.get(tabId))!;
+
+    return {
+      base64: data,
+      pageTitle: title,
+      pageUrl: url,
+    };
+  },
+} as const satisfies {
+  [K in BrowserAgentAction["type"]]: (
+    tabId: number,
+    props: Omit<Extract<BrowserAgentAction, { type: K }>, "type">
+  ) => Promise<object>;
+};
 
 /**
  * Captures a screenshot of the page.
  * @returns A base64-encoded string of the PNG image.
  */
-export async function CAPTURE_SCREENSHOT(
-  tabId: number,
-  options?: { fullPage?: boolean }
-): Promise<string> {
-  let data: string;
-
-  if (options?.fullPage) {
-    // 1. Get layout metrics for the full page
-    const { cssContentSize } =
-      await sendCommand<Protocol.Page.GetLayoutMetricsResponse>(
-        tabId,
-        "Page.getLayoutMetrics"
-      );
-
-    // 2. Override device metrics to match full page
-    await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
-      width: cssContentSize.width,
-      height: cssContentSize.height,
-      deviceScaleFactor: 1,
-      mobile: false,
-    } as Protocol.Emulation.SetDeviceMetricsOverrideRequest);
-
-    // 3. Capture screenshot
-    const result = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
-      tabId,
-      "Page.captureScreenshot",
-      { format: "png", captureBeyondViewport: true }
-    );
-    data = result.data;
-
-    // 4. Clear override
-    await sendCommand(tabId, "Emulation.clearDeviceMetricsOverride", {});
-  } else {
-    // Capture screenshot of the visible viewport
-    const result = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
-      tabId,
-      "Page.captureScreenshot",
-      { format: "png" }
-    );
-    data = result.data;
-  }
-  return data;
-}
 
 /**
  * Sets the viewport size and device scale factor.

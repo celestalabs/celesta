@@ -53,9 +53,20 @@ class InternalMessageContext<T extends BaseAgent> {
     this.contextId = contextId;
     this.handleAfterInitialize = handleAfterInitialize;
     this.handleAfterUserMessage = handleAfterUserMessage;
+
+    this.generalSendMessage(
+      ts({
+        type: "CONTEXT_CREATED",
+        contextId,
+      })
+    );
+
+    log(`Created context ${contextId} for client ${clientId}.`);
+
     createHandlerAgent?.(this).then(async (agent) => {
       this.handlerAgent = agent;
-      this.handleAfterInitialize?.(await this.handlerAgent?.onInitialize());
+      const onInitializeResponse = await this.handlerAgent?.onInitialize();
+      this.handleAfterInitialize?.(onInitializeResponse);
     });
   }
 
@@ -67,8 +78,8 @@ class InternalMessageContext<T extends BaseAgent> {
       `Received message in context ${this.contextId} from client ${this.clientId}: ${message.content}`
     );
     this.messages.push(message);
-    const res = await this.handlerAgent?.onUserMessage();
-    this.handleAfterUserMessage?.(res);
+    const onUserMessageResponse = await this.handlerAgent?.onUserMessage();
+    this.handleAfterUserMessage?.(onUserMessageResponse);
   }
 
   /**

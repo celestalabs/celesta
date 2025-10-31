@@ -59,7 +59,10 @@ class BrowserManager {
     });
   }
 
-  initiateBrowserAgent(clientId: ClientId, goalDescription: string) {
+  initiateBrowserAgent(
+    clientId: ClientId,
+    goalDescription: string
+  ): ReturnType<BrowserAgent["onInitialize"]> {
     return new Promise((resolve, reject) => {
       const browserAgentId = generateId("BROWSER_AGENT");
 

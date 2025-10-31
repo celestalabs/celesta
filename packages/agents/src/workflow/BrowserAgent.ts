@@ -3,11 +3,15 @@ import {
   browserAgentActionSchema,
   browserAgentActionSchemaByName,
   generateId,
+  logger,
   ts,
+  type BrowserAgentAction,
 } from "@celesta/common";
 import type { MessageContext } from "@celesta/session";
 import { generateObject, generateText, tool, type ToolSet } from "ai";
 import z from "zod";
+
+const log = logger("BrowserAgent");
 
 type BrowserAgentConfig = {
   messageContext: MessageContext<BrowserAgent>;
@@ -25,13 +29,15 @@ export class BrowserAgent extends BaseAgent {
 
   onInitialize() {
     return new Promise<
-      { success: true; reasoning: string } | { success: false; error: string }
+      { success: true; data: string } | { success: false; error: string }
     >(async (resolve, reject) => {
       try {
         // add all browser tools
-        for (const [actionName, inputSchema] of Object.entries(
+        for (const [rawActionName, inputSchema] of Object.entries(
           browserAgentActionSchemaByName
         )) {
+          const actionName = rawActionName as BrowserAgentAction["type"];
+
           this.tools[actionName] = tool({
             description:
               inputSchema.description ??
@@ -39,6 +45,8 @@ export class BrowserAgent extends BaseAgent {
             inputSchema: inputSchema as z.ZodObject,
             execute: (input) =>
               new Promise((resolve, reject) => {
+                log(`Executing browser action: ${actionName}`);
+
                 try {
                   const parsedInput = browserAgentActionSchema.parse(input);
                   const requestId = generateId("REQUEST");
@@ -82,6 +90,19 @@ export class BrowserAgent extends BaseAgent {
                   }
                 }
               }),
+            toModelOutput:
+              actionName === "CAPTURE_SCREENSHOT"
+                ? (result) => ({
+                    type: "content",
+                    value: [
+                      {
+                        type: "media",
+                        mediaType: "image/png",
+                        data: result.base64,
+                      },
+                    ],
+                  })
+                : undefined,
           });
         }
 
@@ -118,7 +139,7 @@ export class BrowserAgent extends BaseAgent {
         if (responseObject.goalCompleted) {
           resolve({
             success: true,
-            reasoning: responseObject.goalCompletionInformation,
+            data: responseObject.goalCompletionInformation,
           });
         } else {
           reject({

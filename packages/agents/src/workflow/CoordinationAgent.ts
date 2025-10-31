@@ -23,7 +23,7 @@ const log = logger("CoordinationAgent");
 
 type CoordinationAgentConfig = {
   prompt: string;
-  messageContext: MessageContext;
+  messageContext: MessageContext<any>;
   tools: ToolSet;
 };
 
@@ -66,6 +66,7 @@ export class CoordinationAgent extends BaseAgent {
   private processedTaskResults: WorkflowTaskResult[] = [];
 
   constructor({ prompt, messageContext, tools }: CoordinationAgentConfig) {
+    log("Hello", prompt);
     super(messageContext);
     this.prompt = prompt;
     this.tools = {
@@ -157,6 +158,8 @@ export class CoordinationAgent extends BaseAgent {
   }
 
   async onInitialize() {
+    log("Hello on initialize", this.prompt);
+
     this.toolMetadata = getMetadataFromToolSet(this.tools);
 
     log("Starting workflow loop for task", this.prompt, [

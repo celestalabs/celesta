@@ -1,4 +1,5 @@
 import type {
+  BrowserAgentId,
   ContextId,
   UIWorkflowTask,
   WorkflowId,
@@ -33,6 +34,9 @@ type Store = {
     taskSlug: string,
     taskStatus: WorkflowStatus
   ) => void;
+
+  tabIdByBrowserAgent: Partial<Record<BrowserAgentId, number>>;
+  addBrowserAgentTabId: (browserAgentId: BrowserAgentId, tabId: number) => void;
 };
 
 export const useStore = create<Store>()((set) => ({
@@ -115,4 +119,14 @@ export const useStore = create<Store>()((set) => ({
         },
       };
     }),
+
+  tabIdByBrowserAgent: {},
+  addBrowserAgentTabId: (browserAgentId: BrowserAgentId, tabId: number) =>
+    set((state) => ({
+      ...state,
+      tabIdByBrowserAgent: {
+        ...state.tabIdByBrowserAgent,
+        [browserAgentId]: tabId,
+      },
+    })),
 }));

@@ -91,11 +91,10 @@ export async function executeCustomIntegration(
       }
 
       case NonPieceIntegrationName.AGENTIC_BROWSING: {
-        browserManager.executeAction(clientId, (props as any).goalDescription);
-        return {
-          success: false,
-          error: "This feature has not yet been implemented.",
-        };
+        return browserManager.initiateBrowserAgent(
+          clientId,
+          (props as any).goalDescription
+        );
       }
 
       default: {

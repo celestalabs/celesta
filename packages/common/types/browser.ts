@@ -11,6 +11,7 @@ export type BrowserContextAction =
 export const goToUrlSchema = z
   .object({
     type: z.literal("GOTO_URL"),
+    reasoning: z.string().describe("Why are you performing this action?"),
     url: z.string().describe("URL to navigate to"),
   })
   .describe("Navigate the tab to a new URL.");
@@ -18,40 +19,36 @@ export const goToUrlSchema = z
 export const reloadTabSchema = z
   .object({
     type: z.literal("RELOAD_TAB"),
-    tabId: z.number().describe("ID of the tab to reload"),
+    reasoning: z.string().describe("Why are you performing this action?"),
+    options: z
+      .object({
+        ignoreCache: z
+          .boolean()
+          .describe("Whether to ignore the cache")
+          .optional(),
+      })
+      .optional(),
   })
   .describe("Reloads the tab, optionally ignoring the cache.");
 
 export const goBackSchema = z
   .object({
     type: z.literal("GO_BACK"),
-    tabId: z.number().describe("ID of the tab to go back in history"),
+    reasoning: z.string().describe("Why are you performing this action?"),
   })
   .describe("Navigates back in the tab's history.");
 
 export const goForwardSchema = z
   .object({
     type: z.literal("GO_FORWARD"),
-    tabId: z.number().describe("ID of the tab to go forward in history"),
+    reasoning: z.string().describe("Why are you performing this action?"),
   })
   .describe("Navigates forward in the tab's history.");
-
-export const waitForLoadStateSchema = z
-  .object({
-    type: z.literal("WAIT_FOR_LOAD_STATE"),
-    tabId: z.number().describe("ID of the tab to wait for"),
-    state: z
-      .enum(["load", "domcontentloaded"])
-      .describe("Load state to wait for"),
-  })
-  .describe(
-    "Waits for the page to reach a specific load state (e.g., 'load' or 'domcontentloaded')."
-  );
 
 export const clickSchema = z
   .object({
     type: z.literal("CLICK"),
-    tabId: z.number().describe("ID of the tab to click in"),
+    reasoning: z.string().describe("Why are you performing this action?"),
     x: z.number().describe("X coordinate for click"),
     y: z.number().describe("Y coordinate for click"),
     options: z
@@ -72,7 +69,7 @@ export const clickSchema = z
 export const doubleClickSchema = z
   .object({
     type: z.literal("DOUBLE_CLICK"),
-    tabId: z.number().describe("ID of the tab to double click in"),
+    reasoning: z.string().describe("Why are you performing this action?"),
     x: z.number().describe("X coordinate for double click"),
     y: z.number().describe("Y coordinate for double click"),
   })
@@ -81,7 +78,7 @@ export const doubleClickSchema = z
 export const scrollSchema = z
   .object({
     type: z.literal("SCROLL"),
-    tabId: z.number().describe("ID of the tab to scroll in"),
+    reasoning: z.string().describe("Why are you performing this action?"),
     x: z.number().describe("X coordinate to scroll to"),
     y: z.number().describe("Y coordinate to scroll to"),
     deltaX: z.number().describe("Amount to scroll horizontally"),
@@ -94,7 +91,7 @@ export const scrollSchema = z
 export const dragAndDropSchema = z
   .object({
     type: z.literal("DRAG_AND_DROP"),
-    tabId: z.number().describe("ID of the tab to drag in"),
+    reasoning: z.string().describe("Why are you performing this action?"),
     fromX: z.number().describe("Start X coordinate"),
     fromY: z.number().describe("Start Y coordinate"),
     toX: z.number().describe("End X coordinate"),
@@ -118,7 +115,7 @@ export const dragAndDropSchema = z
 export const typeTextSchema = z
   .object({
     type: z.literal("TYPE_TEXT"),
-    tabId: z.number().describe("ID of the tab to type in"),
+    reasoning: z.string().describe("Why are you performing this action?"),
     text: z.string().describe("Text to type"),
     options: z
       .object({
@@ -134,7 +131,8 @@ export const typeTextSchema = z
 export const keyPressSchema = z
   .object({
     type: z.literal("KEY_PRESS"),
-    tabId: z.number().describe("ID of the tab to send key press to"),
+    reasoning: z.string().describe("Why are you performing this action?"),
+
     key: z.string().describe("Key to press"),
     options: z
       .object({
@@ -153,7 +151,7 @@ export const keyPressSchema = z
 export const captureScreenshotSchema = z
   .object({
     type: z.literal("CAPTURE_SCREENSHOT"),
-    tabId: z.number().describe("ID of the tab to capture screenshot from"),
+    reasoning: z.string().describe("Why are you performing this action?"),
     options: z
       .object({
         fullPage: z
@@ -179,7 +177,7 @@ export const browserAgentActionSchemaByName = {
   KEY_PRESS: keyPressSchema,
   RELOAD_TAB: reloadTabSchema,
   TYPE_TEXT: typeTextSchema,
-  WAIT_FOR_LOAD_STATE: waitForLoadStateSchema,
+  // WAIT_FOR_LOAD_STATE: waitForLoadStateSchema,
   SCROLL: scrollSchema,
 } as const;
 
@@ -194,7 +192,7 @@ export const browserAgentActionSchema = z.discriminatedUnion("type", [
   keyPressSchema,
   reloadTabSchema,
   typeTextSchema,
-  waitForLoadStateSchema,
+  // waitForLoadStateSchema,
   scrollSchema,
 ]);
 
