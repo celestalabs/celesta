@@ -109,7 +109,7 @@ export const MessageCard = React.memo(
           <ItemMedia>
             <span className="text-xl">{statusEmojiMap[message.status]}</span>
           </ItemMedia>
-          <ItemContent>
+          <ItemContent className="overflow-x-hidden">
             <ItemTitle>
               {message.status === "completed"
                 ? "Completed"
@@ -137,7 +137,7 @@ export const MessageCard = React.memo(
             : undefined
         }
       >
-        <ItemContent>
+        <ItemContent className="overflow-x-hidden">
           <ItemTitle>
             {message.type === "agent" ? "Celesta ✨" : "You"}
           </ItemTitle>
