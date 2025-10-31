@@ -8,7 +8,7 @@ import { ButtonGroup } from "./components/ui/button-group";
 import { useAgentServer } from "./hooks/useAgentServer";
 import { useOAuth } from "./hooks/useOAuth";
 import { useStore } from "./store";
-import { browserActions } from "./utils/browserActions";
+import { browserContextActions } from "./utils/browerContextActions";
 import { AssistantView } from "./views/AssistantView";
 import { WorkflowListView } from "./views/WorkflowListView";
 import { WorkflowView } from "./views/WorkflowView";
@@ -97,7 +97,7 @@ const App = React.memo(() => {
         ts({
           type: "PROVIDE_BROWSER_CONTEXT_ACTION",
           requestId,
-          response: await browserActions[action.type](action as any),
+          response: await browserContextActions[action.type](action as any),
         })
       );
     },

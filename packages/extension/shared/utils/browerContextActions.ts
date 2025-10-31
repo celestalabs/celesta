@@ -1,9 +1,9 @@
 import { BrowserContextAction, logger } from "@celesta/common";
 import { AgentActionWebMessage, sendWebMessage } from "./webMessages";
 
-const log = logger("browserActions");
+const log = logger("browserContextActions");
 
-export const browserActions: {
+export const browserContextActions: {
   [K in BrowserContextAction["type"]]: (
     props: Extract<BrowserContextAction, { type: K }>
   ) => Promise<object>;

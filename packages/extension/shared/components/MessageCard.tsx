@@ -74,7 +74,7 @@ export const MessageCard = React.memo(
         <Item variant="muted">
           <ItemContent>
             <ItemTitle>Start a workflow?</ItemTitle>
-            <ItemDescription className="!line-clamp-none !text-wrap">
+            <ItemDescription className="line-clamp-none! text-wrap!">
               {message.prompt}
             </ItemDescription>
           </ItemContent>
@@ -142,7 +142,7 @@ export const MessageCard = React.memo(
             {message.type === "agent" ? "Celesta ✨" : "You"}
           </ItemTitle>
           <ItemDescription
-            className={`${contextId !== "CHAT" && message.type === "agent" && message.messageType !== "final" ? "!line-clamp-10" : "!line-clamp-none"} !text-wrap`}
+            className={`${contextId !== "CHAT" && message.type === "agent" && message.messageType !== "final" ? "line-clamp-10!" : "line-clamp-none!"} text-wrap!`}
           >
             <ReactMarkdown
               components={{

@@ -250,6 +250,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      devtools-protocol:
+        specifier: ^0.0.1537100
+        version: 0.0.1537100
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.0)
@@ -2699,6 +2702,9 @@ packages:
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
+
+  devtools-protocol@0.0.1537100:
+    resolution: {integrity: sha512-kTLCHNz6y0/2iR5x9pknItV/+0HqvW1WdQw0FM52vAHsls8idz4aulnp5346bKu2QZnyEJWNxSrujArNKPqW0A==}
 
   diff-match-patch@1.0.5:
     resolution: {integrity: sha512-IayShXAgj/QMXgB0IWmKx+rOPuGMhqm5w6jvFxmVenXKIzRqTAAsbBPT3kWQeGANj3jGgvcvv4yK6SxqYmikgw==}
@@ -7551,6 +7557,8 @@ snapshots:
   devlop@1.1.0:
     dependencies:
       dequal: 2.0.3
+
+  devtools-protocol@0.0.1537100: {}
 
   diff-match-patch@1.0.5: {}
 
