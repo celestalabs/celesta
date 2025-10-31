@@ -177,7 +177,7 @@ Be conversational, natural, and supportive in all responses.`,
       return response.object;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      log(`[ChatAgent] Error detecting workflow intent: ${errorMsg}`);
+      log(`Error detecting workflow intent: ${errorMsg}`);
 
       // Default to no workflow on error
       return {
@@ -201,9 +201,6 @@ Be conversational, natural, and supportive in all responses.`,
       let latestMessage = this.messageContext.messages.at(-1)?.content;
 
       if (!latestMessage) {
-        log(
-          `No latest message found for client ${this.messageContext.clientId}`
-        );
         return;
       }
 

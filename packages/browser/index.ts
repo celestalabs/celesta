@@ -4,8 +4,11 @@ import {
   generateId,
   type RequestId,
   ts,
+  logger,
 } from "@celesta/common";
 import { createMessageContext, type MessageContext } from "@celesta/session";
+
+const log = logger("BrowserManager");
 
 class BrowserManager {
   messageContexts: Map<ClientId, MessageContext> = new Map();
@@ -46,6 +49,15 @@ class BrowserManager {
         })
       );
     });
+  }
+
+  async initiateBrowserAgent(clientId: ClientId, goalDescription: string) {
+    log(
+      "Received browser agent request for",
+      clientId,
+      "with goal",
+      goalDescription
+    );
   }
 }
 

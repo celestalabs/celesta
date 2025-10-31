@@ -25,8 +25,9 @@ export type IntegrationMetadata = {
 
 const nonPieceIntegrationMetadata = {
   [NonPieceIntegrationName.BROWSER_CONTEXT]: {
-    name: "Browser Use Agent",
-    description: "Interact directly with the user's browser.",
+    name: "Browser Context",
+    description:
+      "Read and open information through the user's browsing context, such as their tabs and page content.",
     logoUrl: null,
     requiresUserAuth: false,
     actions: [
@@ -49,6 +50,27 @@ const nonPieceIntegrationMetadata = {
           "Open a URL in a new tab. Useful for navigating to a specific page for further interactions.",
         props: z.object({ url: z.string() }),
         mode: "all",
+      },
+    ],
+  },
+  [NonPieceIntegrationName.AGENTIC_BROWSING]: {
+    name: "Agentic Browsing",
+    description:
+      "Directly control the user's browser to complete goals or actions",
+    logoUrl: null,
+    requiresUserAuth: false,
+    actions: [
+      {
+        name: "complete_goal_with_browser",
+        description: "Use the user's browser to complete an actionable goal.",
+        props: z.object({
+          goalDescription: z
+            .string()
+            .describe(
+              "What is the goal which needs to be completed? Detail as much as possible."
+            ),
+        }),
+        mode: "workflow",
       },
     ],
   },

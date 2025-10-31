@@ -5,6 +5,7 @@ export enum PieceName {
 
 export enum NonPieceIntegrationName {
   BROWSER_CONTEXT = "browser_context",
+  AGENTIC_BROWSING = "agentic_browsing",
   GMAIL = "gmail",
   GOOGLE_CALENDAR = "google_calendar",
   WEB_SEARCH = "web_search",
