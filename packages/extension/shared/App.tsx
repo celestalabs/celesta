@@ -1,4 +1,4 @@
-import { ts } from "@celesta/common";
+import { isChatId, ts } from "@celesta/common";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
@@ -101,6 +101,7 @@ const App = React.memo(() => {
         })
       );
     },
+    REQUEST_BROWSER_AGENT_ACTION: () => {},
   });
 
   const currentView = useStore((state) => state.currentView);
@@ -113,21 +114,21 @@ const App = React.memo(() => {
         <ButtonGroup className="flex w-full px-4">
           <Button
             className="flex-auto"
-            variant={currentView === "CHAT" ? "default" : "secondary"}
+            variant={isChatId(currentView) ? "default" : "secondary"}
             onClick={() => routeToView("CHAT")}
           >
             Assistant
           </Button>
           <Button
             className="flex-auto"
-            variant={currentView !== "CHAT" ? "default" : "secondary"}
+            variant={!isChatId(currentView) ? "default" : "secondary"}
             onClick={() => routeToView("WORKFLOW_LIST")}
           >
             Workflows
           </Button>
         </ButtonGroup>
 
-        {currentView === "CHAT" ? (
+        {isChatId(currentView) ? (
           <AssistantView sendMessage={sendMessage} />
         ) : currentView === "WORKFLOW_LIST" ? (
           <WorkflowListView />

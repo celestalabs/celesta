@@ -4,10 +4,6 @@ import { Protocol } from "devtools-protocol";
 const log = logger("browserAgentActions");
 
 /**
- * A helper type for the target, matching browser.debugger.sendCommand.
- */
-
-/**
  * Attaches the debugger to a specific tab.
  * You MUST call this before any other CDP command.
  * @param tabId The ID of the tab to attach to.
@@ -78,14 +74,14 @@ export async function getMainFrameId(tabId: number): Promise<string> {
 /**
  * Navigates the tab to a new URL.
  */
-export async function goto(tabId: number, url: string): Promise<void> {
+export async function GOTO(tabId: number, url: string): Promise<void> {
   await sendCommand(tabId, "Page.navigate", { url });
 }
 
 /**
  * Reloads the tab, optionally ignoring the cache.
  */
-export async function reload(
+export async function RELOAD_TAB(
   tabId: number,
   ignoreCache = false
 ): Promise<void> {
@@ -95,7 +91,7 @@ export async function reload(
 /**
  * Navigates back in the tab's history.
  */
-export async function goBack(tabId: number): Promise<void> {
+export async function GO_BACK(tabId: number): Promise<void> {
   const { entries, currentIndex } =
     await sendCommand<Protocol.Page.GetNavigationHistoryResponse>(
       tabId,
@@ -112,7 +108,7 @@ export async function goBack(tabId: number): Promise<void> {
 /**
  * Navigates forward in the tab's history.
  */
-export async function goForward(tabId: number): Promise<void> {
+export async function GO_FORWARD(tabId: number): Promise<void> {
   const { entries, currentIndex } =
     await sendCommand<Protocol.Page.GetNavigationHistoryResponse>(
       tabId,
@@ -130,7 +126,7 @@ export async function goForward(tabId: number): Promise<void> {
  * Waits for the page to reach a specific load state (e.g., "load" or "domcontentloaded").
  * This is a simplified version of the LifecycleWatcher.
  */
-export async function waitForLoadState(
+export async function WAIT_FOR_LOAD_STATE(
   tabId: number,
   mainFrameId: string,
   state: "load" | "domcontentloaded" = "load",
@@ -209,7 +205,7 @@ export async function waitForLoadState(
 /**
  * Dispatches a click (mouse press and release).
  */
-export async function click(
+export async function CLICK(
   tabId: number,
   x: number,
   y: number,
@@ -251,18 +247,18 @@ export async function click(
 /**
  * Dispatches a double click.
  */
-export async function doubleClick(
+export async function DOUBLE_CLICK(
   tabId: number,
   x: number,
   y: number
 ): Promise<void> {
-  await click(tabId, x, y, { clickCount: 2, button: "left" });
+  await CLICK(tabId, x, y, { clickCount: 2, button: "left" });
 }
 
 /**
  * Dispatches a mouse wheel (scroll) event.
  */
-export async function scroll(
+export async function SCROLL(
   tabId: number,
   x: number,
   y: number,
@@ -291,7 +287,7 @@ export async function scroll(
 /**
  * Simulates a drag-and-drop operation.
  */
-export async function dragAndDrop(
+export async function DRAG_AND_DROP(
   tabId: number,
   fromX: number,
   fromY: number,
@@ -375,7 +371,7 @@ const sleep = (ms: number) =>
  * Types a string of text.
  * Assumes the target element is already focused.
  */
-export async function type(
+export async function TYPE_TEXT(
   tabId: number,
   text: string,
   options?: { delay?: number }
@@ -517,7 +513,7 @@ function describeKey(key: string): {
  * Presses a single key or key combination (e.g., "A", "Enter", "Cmd+C", "Shift+Tab").
  * This is stateless and sends a single keyDown/keyUp pair with modifiers.
  */
-export async function keyPress(
+export async function KEY_PRESS(
   tabId: number,
   key: string,
   options?: { delay?: number }
@@ -582,7 +578,7 @@ export async function keyPress(
  * Captures a screenshot of the page.
  * @returns A base64-encoded string of the PNG image.
  */
-export async function screenshot(
+export async function CAPTURE_SCREENSHOT(
   tabId: number,
   options?: { fullPage?: boolean }
 ): Promise<string> {
@@ -590,7 +586,7 @@ export async function screenshot(
 
   if (options?.fullPage) {
     // 1. Get layout metrics for the full page
-    const { contentSize } =
+    const { cssContentSize } =
       await sendCommand<Protocol.Page.GetLayoutMetricsResponse>(
         tabId,
         "Page.getLayoutMetrics"
@@ -598,8 +594,8 @@ export async function screenshot(
 
     // 2. Override device metrics to match full page
     await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
-      width: contentSize.width,
-      height: contentSize.height,
+      width: cssContentSize.width,
+      height: cssContentSize.height,
       deviceScaleFactor: 1,
       mobile: false,
     } as Protocol.Emulation.SetDeviceMetricsOverrideRequest);
@@ -629,77 +625,77 @@ export async function screenshot(
 /**
  * Sets the viewport size and device scale factor.
  */
-export async function setViewportSize(
-  tabId: number,
-  width: number,
-  height: number,
-  options?: { deviceScaleFactor?: number }
-): Promise<void> {
-  const dsf = Math.max(0.01, options?.deviceScaleFactor ?? 1);
-  await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
-    width,
-    height,
-    deviceScaleFactor: dsf,
-    mobile: false,
-    screenWidth: width,
-    screenHeight: height,
-  } as Protocol.Emulation.SetDeviceMetricsOverrideRequest);
-}
+// export async function setViewportSize(
+//   tabId: number,
+//   width: number,
+//   height: number,
+//   options?: { deviceScaleFactor?: number }
+// ): Promise<void> {
+//   const dsf = Math.max(0.01, options?.deviceScaleFactor ?? 1);
+//   await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
+//     width,
+//     height,
+//     deviceScaleFactor: dsf,
+//     mobile: false,
+//     screenWidth: width,
+//     screenHeight: height,
+//   } as Protocol.Emulation.SetDeviceMetricsOverrideRequest);
+// }
 
 /**
  * Evaluates a function in the main frame of the page.
  * The function is executed in an isolated world.
  */
-export async function evaluate<R, Arg>(
-  tabId: number,
-  mainFrameId: string,
-  pageFunction: (arg: Arg) => R | Promise<R>,
-  arg?: Arg
-): Promise<R> {
-  // 1. Create an isolated world
-  const { executionContextId } =
-    await sendCommand<Protocol.Page.CreateIsolatedWorldResponse>(
-      tabId,
-      "Page.createIsolatedWorld",
-      { frameId: mainFrameId, worldName: "v3-utility-world" }
-    );
+// export async function evaluate<R, Arg>(
+//   tabId: number,
+//   mainFrameId: string,
+//   pageFunction: (arg: Arg) => R | Promise<R>,
+//   arg?: Arg
+// ): Promise<R> {
+//   // 1. Create an isolated world
+//   const { executionContextId } =
+//     await sendCommand<Protocol.Page.CreateIsolatedWorldResponse>(
+//       tabId,
+//       "Page.createIsolatedWorld",
+//       { frameId: mainFrameId, worldName: "v3-utility-world" }
+//     );
 
-  // 2. Build the expression to execute
-  const fnSrc = pageFunction.toString();
-  const argJson = JSON.stringify(arg);
-  const expression = `(() => {
-    const __fn = ${fnSrc};
-    const __arg = ${argJson};
-    try {
-      const __res = __fn(__arg);
-      // Handle both sync and async return values
-      return Promise.resolve(__res).then(v => {
-        // Try to deep-serialize the result
-        try { return JSON.parse(JSON.stringify(v)); } catch { return v; }
-      });
-    } catch (e) { throw e; }
-  })()`;
+//   // 2. Build the expression to execute
+//   const fnSrc = pageFunction.toString();
+//   const argJson = JSON.stringify(arg);
+//   const expression = `(() => {
+//     const __fn = ${fnSrc};
+//     const __arg = ${argJson};
+//     try {
+//       const __res = __fn(__arg);
+//       // Handle both sync and async return values
+//       return Promise.resolve(__res).then(v => {
+//         // Try to deep-serialize the result
+//         try { return JSON.parse(JSON.stringify(v)); } catch { return v; }
+//       });
+//     } catch (e) { throw e; }
+//   })()`;
 
-  // 3. Evaluate the expression
-  const { result, exceptionDetails } =
-    await sendCommand<Protocol.Runtime.EvaluateResponse>(
-      tabId,
-      "Runtime.evaluate",
-      {
-        expression,
-        contextId: executionContextId,
-        returnByValue: true,
-        awaitPromise: true,
-      }
-    );
+//   // 3. Evaluate the expression
+//   const { result, exceptionDetails } =
+//     await sendCommand<Protocol.Runtime.EvaluateResponse>(
+//       tabId,
+//       "Runtime.evaluate",
+//       {
+//         expression,
+//         contextId: executionContextId,
+//         returnByValue: true,
+//         awaitPromise: true,
+//       }
+//     );
 
-  if (exceptionDetails) {
-    const msg =
-      exceptionDetails.text ||
-      exceptionDetails.exception?.description ||
-      "Evaluation failed";
-    throw new Error(msg);
-  }
+//   if (exceptionDetails) {
+//     const msg =
+//       exceptionDetails.text ||
+//       exceptionDetails.exception?.description ||
+//       "Evaluation failed";
+//     throw new Error(msg);
+//   }
 
-  return result?.value as R;
-}
+//   return result?.value as R;
+// }

@@ -1,6 +1,7 @@
 import {
   type ContextId,
   type FrontendWSMessage,
+  isChatId,
   type RequestId,
   ts,
   type WorkflowTaskStatus,
@@ -142,7 +143,7 @@ export const MessageCard = React.memo(
             {message.type === "agent" ? "Celesta ✨" : "You"}
           </ItemTitle>
           <ItemDescription
-            className={`${contextId !== "CHAT" && message.type === "agent" && message.messageType !== "final" ? "line-clamp-10!" : "line-clamp-none!"} text-wrap!`}
+            className={`${isChatId(contextId) && message.type === "agent" && message.messageType !== "final" ? "line-clamp-10!" : "line-clamp-none!"} text-wrap!`}
           >
             <ReactMarkdown
               components={{

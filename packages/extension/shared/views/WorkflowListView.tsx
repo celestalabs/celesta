@@ -1,4 +1,9 @@
-import type { ContextId, WorkflowId, WorkflowStatus } from "@celesta/common";
+import {
+  isWorkflowId,
+  type ContextId,
+  type WorkflowId,
+  type WorkflowStatus,
+} from "@celesta/common";
 import React from "react";
 import { WorkflowListCard } from "../components/WorkflowListCard";
 import { useStore } from "../store";
@@ -12,7 +17,7 @@ export const WorkflowListView = React.memo((/*{}: Props*/) => {
   const workflowIds: WorkflowId[] = useMemo(
     () =>
       (Object.keys(messagesByContext) as ContextId[])
-        .filter((id) => id !== "CHAT" && id !== "BROWSER")
+        .filter(isWorkflowId)
         .filter((id) => id in workflowMetadata),
     [messagesByContext, workflowMetadata]
   );

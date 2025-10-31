@@ -16,7 +16,7 @@ class BrowserManager {
   registerClientId(clientId: ClientId) {
     this.messageContexts.set(
       clientId,
-      createMessageContext(clientId, "BROWSER")
+      createMessageContext(clientId, "BROWSER_CONTEXT")
     );
   }
 

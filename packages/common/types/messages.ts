@@ -1,10 +1,10 @@
-import type { BrowserContextAction } from "./browser.js";
+import type { BrowserAgentAction, BrowserContextAction } from "./browser.js";
 import type { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
 import type {
   UIWorkflowTask,
   WorkflowMetadata,
   WorkflowStatus,
-  WorkflowTaskStatus
+  WorkflowTaskStatus,
 } from "./workflow.js";
 
 export type FrontendWSUserMessage = {
@@ -38,6 +38,13 @@ export type FrontendWSResponseMessage =
     }
   | {
       type: "PROVIDE_BROWSER_CONTEXT_ACTION";
+      requestId: RequestId;
+      response: object;
+      timestamp: number;
+    }
+  | {
+      type: "PROVIDE_BROWSER_AGENT_ACTION";
+      contextId: ContextId;
       requestId: RequestId;
       response: object;
       timestamp: number;
@@ -102,6 +109,13 @@ export type ServerRequestWSMessage =
       type: "REQUEST_BROWSER_CONTEXT_ACTION";
       requestId: RequestId;
       action: BrowserContextAction;
+      timestamp: number;
+    }
+  | {
+      type: "REQUEST_BROWSER_AGENT_ACTION";
+      contextId: ContextId;
+      requestId: RequestId;
+      action: BrowserAgentAction;
       timestamp: number;
     };
 
