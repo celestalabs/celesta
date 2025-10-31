@@ -16,42 +16,59 @@ import { sessionManager } from "./sessionManager.js";
 
 const log = logger("messageContext");
 
-export type HandlerAgentCreator = (
-  ctx: InternalMessageContext
-) => Promise<BaseAgent>;
+export type HandlerAgentCreator<T extends BaseAgent> = (
+  ctx: InternalMessageContext<T>
+) => Promise<T>;
+
+type MessageContextConfig<T extends BaseAgent> = {
+  clientId: ClientId;
+  contextId: ContextId;
+  createHandlerAgent?: HandlerAgentCreator<T>;
+  handleAfterInitialize?: (res: Awaited<ReturnType<T["onInitialize"]>>) => void;
+  handleAfterUserMessage?: (
+    res: Awaited<ReturnType<T["onUserMessage"]>>
+  ) => void;
+};
 
 /**
  * Internal implementation of MessageContext.
  */
 
-class InternalMessageContext {
+class InternalMessageContext<T extends BaseAgent> {
   clientId: ClientId;
   contextId: ContextId;
   messages: ConversationWSMessage[] = [];
-  private handlerAgent: BaseAgent | undefined;
+  private handlerAgent: T | undefined;
+  private handleAfterInitialize?: MessageContextConfig<T>["handleAfterInitialize"];
+  private handleAfterUserMessage?: MessageContextConfig<T>["handleAfterUserMessage"];
 
-  constructor(
-    clientId: ClientId,
-    contextId: ContextId,
-    createHandlerAgent?: HandlerAgentCreator
-  ) {
+  constructor({
+    clientId,
+    contextId,
+    createHandlerAgent,
+    handleAfterInitialize,
+    handleAfterUserMessage,
+  }: MessageContextConfig<T>) {
     this.clientId = clientId;
     this.contextId = contextId;
-    createHandlerAgent?.(this).then((agent) => {
+    this.handleAfterInitialize = handleAfterInitialize;
+    this.handleAfterUserMessage = handleAfterUserMessage;
+    createHandlerAgent?.(this).then(async (agent) => {
       this.handlerAgent = agent;
-      this.handlerAgent?.onInitialize();
+      this.handleAfterInitialize?.(await this.handlerAgent?.onInitialize());
     });
   }
 
   /**
    * Handle an frontend message for this context.
    */
-  handleFrontendUserMessage(message: FrontendWSUserMessage) {
+  async handleFrontendUserMessage(message: FrontendWSUserMessage) {
     log(
       `Received message in context ${this.contextId} from client ${this.clientId}: ${message.content}`
     );
     this.messages.push(message);
-    this.handlerAgent?.onUserMessage();
+    const res = await this.handlerAgent?.onUserMessage();
+    this.handleAfterUserMessage?.(res);
   }
 
   /**
@@ -182,10 +199,10 @@ class InternalMessageContext {
   }
 }
 
-export const createMessageContext = (
-  clientId: ClientId,
-  contextId: ContextId,
-  createHandlerAgent?: (ctx: InternalMessageContext) => Promise<BaseAgent>
-) => new InternalMessageContext(clientId, contextId, createHandlerAgent);
+export const createMessageContext = <T extends BaseAgent>(
+  config: MessageContextConfig<T>
+) => new InternalMessageContext(config);
 
-export type MessageContext = ReturnType<typeof createMessageContext>;
+export type MessageContext<T extends BaseAgent> = ReturnType<
+  typeof createMessageContext<T>
+>;

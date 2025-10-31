@@ -7,7 +7,7 @@ import { ListIntegrationsHandler } from "../routes/listIntegrations.ts";
 const log = logger("gatherTools");
 
 export async function gatherTools(
-  messageContext: MessageContext,
+  messageContext: MessageContext<any>,
   systemTools: Partial<Record<string, Tool>> = {}
 ): Promise<ToolSet> {
   const rawIntegrationsResponse = await ListIntegrationsHandler({

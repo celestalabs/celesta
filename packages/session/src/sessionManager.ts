@@ -44,7 +44,8 @@ class SessionManager {
   > = new Map();
 
   // Tracks active message contexts per client
-  messageContexts: Map<ClientId, Map<ContextId, MessageContext>> = new Map();
+  messageContexts: Map<ClientId, Map<ContextId, MessageContext<any>>> =
+    new Map();
 
   /**
    * Creates a new message context for the specified client.
@@ -52,13 +53,13 @@ class SessionManager {
   async createContext(
     clientId: ClientId,
     contextId: ContextId,
-    createHandlerAgent: HandlerAgentCreator
+    createHandlerAgent: HandlerAgentCreator<any>
   ) {
     this.messageContexts
       .get(clientId)
       ?.set(
         contextId,
-        createMessageContext(clientId, contextId, createHandlerAgent)
+        createMessageContext({ clientId, contextId, createHandlerAgent })
       );
     log(`Created context ${contextId} for client ${clientId}.`);
 

@@ -1,3 +1,4 @@
+import { BrowserAgent } from "@celesta/agents";
 import {
   type ClientId,
   type BrowserContextAction,
@@ -5,18 +6,25 @@ import {
   type RequestId,
   ts,
   logger,
+  type ContextId,
+  BaseAgent,
 } from "@celesta/common";
 import { createMessageContext, type MessageContext } from "@celesta/session";
 
 const log = logger("BrowserManager");
 
 class BrowserManager {
-  messageContexts: Map<ClientId, MessageContext> = new Map();
+  messageContexts: Map<ClientId, Map<ContextId, MessageContext<BaseAgent>>> =
+    new Map();
 
   registerClientId(clientId: ClientId) {
-    this.messageContexts.set(
-      clientId,
-      createMessageContext(clientId, "BROWSER_CONTEXT")
+    this.messageContexts.set(clientId, new Map());
+    this.messageContexts.get(clientId)!.set(
+      "BROWSER_CONTEXT",
+      createMessageContext({
+        clientId,
+        contextId: "BROWSER_CONTEXT",
+      })
     );
   }
 
@@ -24,7 +32,7 @@ class BrowserManager {
     clientId: ClientId,
     action: BrowserContextAction
   ): Promise<object> {
-    const ctx = this.messageContexts.get(clientId)!;
+    const ctx = this.messageContexts.get(clientId)!.get("BROWSER_CONTEXT")!;
     const requestId: RequestId = generateId("REQUEST");
 
     return new Promise((resolve, reject) => {
@@ -51,13 +59,32 @@ class BrowserManager {
     });
   }
 
-  async initiateBrowserAgent(clientId: ClientId, goalDescription: string) {
-    log(
-      "Received browser agent request for",
-      clientId,
-      "with goal",
-      goalDescription
-    );
+  initiateBrowserAgent(clientId: ClientId, goalDescription: string) {
+    return new Promise((resolve, reject) => {
+      const browserAgentId = generateId("BROWSER_AGENT");
+
+      log(
+        "Received browser agent request for",
+        clientId,
+        "with goal",
+        goalDescription
+      );
+
+      this.messageContexts.get(clientId)!.set(
+        browserAgentId,
+        createMessageContext<BrowserAgent>({
+          clientId,
+          contextId: browserAgentId,
+          createHandlerAgent: async (messageContext) =>
+            new BrowserAgent({
+              messageContext,
+              goalDescription,
+            }),
+          handleAfterInitialize: (response) =>
+            response.success ? resolve(response) : reject(response),
+        })
+      );
+    });
   }
 }
 

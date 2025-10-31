@@ -9,13 +9,13 @@ import type { MessageContext } from "../../session/src/messageContext.js";
  */
 export abstract class BaseAgent {
   protected model: LanguageModel;
-  protected messageContext: MessageContext;
+  protected messageContext: MessageContext<typeof this>;
 
   // Logic inputs are initialize and user-message
   abstract onInitialize(): Promise<any>;
-  abstract onUserMessage(): Promise<void>;
+  abstract onUserMessage(): Promise<any>;
 
-  constructor(messageContext: MessageContext) {
+  constructor(messageContext: MessageContext<any>) {
     this.messageContext = messageContext;
 
     this.model = createGoogleGenerativeAI({
