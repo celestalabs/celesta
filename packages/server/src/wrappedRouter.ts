@@ -1,5 +1,8 @@
+import { logger } from "@celesta/common";
 import { TypedFetcher } from "@celesta/integrations";
 import type { Router } from "express";
+
+const log = logger("wrappedRouter");
 
 export class WrappedRouter {
   private router: Router;
@@ -20,7 +23,7 @@ export class WrappedRouter {
   ) {
     this.router[method](path, async (req, res) => {
       try {
-        console.log("Request received:", {
+        log("Request received:", {
           method,
           path,
           body: req.body,

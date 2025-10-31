@@ -1,6 +1,8 @@
-import { FrontendWSMessage, ServerWSMessage } from "@celesta/common";
+import { FrontendWSMessage, logger, ServerWSMessage } from "@celesta/common";
 import useWebSocket from "react-use-websocket";
 import { useStore } from "../store";
+
+const log = logger("useAgentServer");
 
 // Map each ServerWSMessage type to its specific message shape
 type ServerWSMessageByType = {
@@ -25,7 +27,7 @@ export function useAgentServer(handlerByType: {
   );
 
   const handleOpen = useCallback(() => {
-    console.log("WebSocket connection opened");
+    log("WebSocket connection opened");
   }, []);
 
   const handleMessage = useCallback(
@@ -34,7 +36,7 @@ export function useAgentServer(handlerByType: {
       const send = (ms: FrontendWSMessage) => ws.send(JSON.stringify(ms));
 
       const message: ServerWSMessage = JSON.parse(event.data);
-      console.log(message);
+      log(message);
 
       // State management based on message type
       switch (message.type) {

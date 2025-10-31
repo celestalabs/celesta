@@ -1,3 +1,7 @@
+import { logger } from "@celesta/common";
+
+const log = logger("devModeGlobals");
+
 /** Registering under {name} would give you window.celesta__{name} */
 export function registerGlobalForDevMode(name: string, item: any) {
   if (import.meta.env.DEV) {
@@ -6,7 +10,7 @@ export function registerGlobalForDevMode(name: string, item: any) {
       window[`celesta__${name}`] = item;
     } catch (ex) {
       // Background worker compat; doesn't register there
-      console.log("Didn't register", name, ex);
+      log("Didn't register", name, ex);
     }
   }
 }

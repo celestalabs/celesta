@@ -76,6 +76,7 @@ Escalation Logic:
 - Justify escalation with explicit reasoning.
 
 Tool Usage:
+- Proactively open tabs and read tab content if the user implies any information resides there. You can look to see if a tab is "active" to mean it is currently focused by the user. Do not ask the user to perform these read operations, they are cheap and the user is likely to appreciate the initiative. If a user has content "open" you can use the activeness and title of a tab to filter where the content may be.
 - Use tools for SIMPLE, SINGLE-PURPOSE reads, tab interactions, and trivial multi-tool tasks.
 - Extract necessary arguments from user context and respond with clear, actionable information.
 - If a tool call fails or returns an error, explain the issue in your reply.
@@ -135,7 +136,7 @@ Be conversational, natural, and supportive in all responses.`,
     - Analyze the message and context, referencing examples below.
     - Justify your decision to escalate to workflow or not, with explicit reasoning.
     - Self-evaluate your confidence and reasoning before responding.
-
+      
     Examples that DO NOT need a workflow (chat can handle):
     - "What's on my calendar today/tomorrow?" → Simple calendar read
     - "Show me my latest emails" → Simple email read
@@ -184,7 +185,7 @@ Be conversational, natural, and supportive in all responses.`,
   // Initialize tools asynchronously
   async onInitialize() {
     this.tools = await gatherTools(this.messageContext, "chat");
-    console.log(Object.keys(this.tools));
+    log(Object.keys(this.tools));
   }
 
   /**

@@ -12,7 +12,7 @@ export const WorkflowListView = React.memo((/*{}: Props*/) => {
   const workflowIds: WorkflowId[] = useMemo(
     () =>
       (Object.keys(messagesByContext) as ContextId[])
-        .filter((id) => id !== "CHAT")
+        .filter((id) => id !== "CHAT" && id !== "BROWSER")
         .filter((id) => id in workflowMetadata),
     [messagesByContext, workflowMetadata]
   );
@@ -39,8 +39,8 @@ export const WorkflowListView = React.memo((/*{}: Props*/) => {
   return (
     <>
       {workflowIds.length === 0 && (
-        <div className="px-4">
-          <h1 className="text-xl text-center">Wow, so empty!</h1>
+        <div className="px-4 flex-auto flex justify-center items-center">
+          <h1 className="text-2xl mb-10 text-shadow-xs">Wow, so empty!</h1>
         </div>
       )}
 
