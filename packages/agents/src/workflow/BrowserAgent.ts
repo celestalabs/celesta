@@ -6,7 +6,7 @@ import {
   ts,
 } from "@celesta/common";
 import type { MessageContext } from "@celesta/session";
-import { generateObject, tool, type ToolSet } from "ai";
+import { generateObject, generateText, tool, type ToolSet } from "ai";
 import z from "zod";
 
 type BrowserAgentConfig = {
@@ -86,7 +86,23 @@ export class BrowserAgent extends BaseAgent {
         }
 
         // init goal oriented browsing
+        const { text } = await generateText({
+          prompt: `You are a goal-oriented browsing agent. Your task is to use browser actions to achieve the user's stated goal as efficiently and accurately as possible. Consider the current context, available tools, and any constraints. At each step, reason about the best action to take, and only mark the goal as completed when you are certain it has been achieved. If the goal cannot be completed, provide a clear explanation. Be concise, logical, and avoid unnecessary actions.
+          
+          The user has provided the following goal for your to complete using the browser:
+          
+          # ${this.goalDescription}.
+          
+          Upon completion of the task, respond with clear details as to whether the goal was completed or not, along with reasoning for that decision.`,
+          model: this.model,
+          tools: this.tools,
+        });
+
         const { object: responseObject } = await generateObject({
+          model: this.model,
+          prompt:
+            "You are an expert evaluator of task completion. A browser use agent has just completed a goal, and has provided a response regarding whether the goal was completed or not, along with reasoning for that decision. Based on the provided response, determine if the goal was indeed completed successfully or not. Be objective and consider all aspects of the response in your evaluation. Your output should be a structured object indicating whether the goal was completed and the reasoning behind your evaluation.\n\nHere is the agent's response:\n\n" +
+            text,
           schema: z.object({
             goalCompleted: z
               .boolean()
@@ -97,13 +113,6 @@ export class BrowserAgent extends BaseAgent {
                 "Reasoning regarding why the goal was completed, else why it was not completed or cannot be completed"
               ),
           }),
-          prompt: `You are a goal-oriented browsing agent. Your task is to use browser actions to achieve the user's stated goal as efficiently and accurately as possible. Consider the current context, available tools, and any constraints. At each step, reason about the best action to take, and only mark the goal as completed when you are certain it has been achieved. If the goal cannot be completed, provide a clear explanation. Be concise, logical, and avoid unnecessary actions.
-          
-          The user has provided the following goal for your to complete using the browser:
-          
-          # ${this.goalDescription}`,
-          model: this.model,
-          tools: this.tools,
         });
 
         if (responseObject.goalCompleted) {
