@@ -43,6 +43,7 @@ export class MastraBaseAgent<
     const res = await this.agent.generate(
       this.messageContext.messages.map(({ data }) => data),
       {
+        runtimeContext: this.runtimeContext,
         onError: (error) => {
           const errorMsg =
             error instanceof Error ? error.message : String(error);
