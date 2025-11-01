@@ -15,7 +15,7 @@ export abstract class BaseAgent {
   abstract onInitialize(): Promise<any>;
   abstract onUserMessage(): Promise<any>;
 
-  constructor(messageContext: MessageContext<any>) {
+  constructor(messageContext: MessageContext) {
     this.messageContext = messageContext;
 
     this.model = createGoogleGenerativeAI({

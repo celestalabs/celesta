@@ -217,6 +217,6 @@ export const createMessageContext = <T extends BaseAgent>(
   config: MessageContextConfig<T>
 ) => new InternalMessageContext(config);
 
-export type MessageContext<T extends BaseAgent> = ReturnType<
+export type MessageContext<T extends BaseAgent = any> = ReturnType<
   typeof createMessageContext<T>
 >;

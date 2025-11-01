@@ -1,8 +1,8 @@
-import { jsonSchemaToZod } from "json-schema-to-zod";
-import { ListIntegrationsHandler } from "../routes/listIntegrations.ts";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { jsonSchemaToZod } from "json-schema-to-zod";
+import { ListIntegrationsHandler } from "../routes/listIntegrations.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

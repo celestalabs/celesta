@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 import { createServer } from "http";
-import { ChatAgent } from "@celesta/agents";
+import { ChatAgent, toolStore } from "@celesta/agents";
 import { browserManager } from "@celesta/browser";
 import { generateId, logger } from "@celesta/common";
 import {
@@ -62,14 +62,16 @@ agentServer.on("connection", async (ws) => {
   sessionManager.registerClientId(clientId, ws);
   browserManager.registerClientId(clientId);
 
-  sessionManager.createContext({
-    clientId,
-    contextId: "CHAT",
-    createHandlerAgent: async (messageContext) => {
-      const tools = await gatherTools(messageContext);
-      const agent = new ChatAgent({ messageContext, tools });
-      return agent;
-    },
+  gatherTools().then((createTools) => {
+    toolStore.registerClientId(clientId, createTools);
+    sessionManager.createContext({
+      clientId,
+      contextId: "CHAT",
+      createHandlerAgent: async (messageContext) => {
+        const agent = new ChatAgent({ messageContext });
+        return agent;
+      },
+    });
   });
 
   ws.on("message", (message) => {

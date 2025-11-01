@@ -2,6 +2,7 @@ import {
   NonPieceIntegrationName,
   isPieceName,
   isIntegrationName,
+  type ToolMode,
 } from "@celesta/common";
 import z, { ZodObject, ZodOptional } from "zod";
 import { pieceByName } from "../pieces/pieceData.ts";
@@ -19,7 +20,7 @@ export type IntegrationMetadata = {
     name: string;
     description: string;
     props: ZodObject;
-    mode: "chat" | "workflow" | "all";
+    mode: ToolMode[];
   }[];
 };
 
@@ -36,20 +37,20 @@ const nonPieceIntegrationMetadata = {
         description:
           "Extract the page's content as HTML. Useful for determining XPaths of elements to interact with on the page, as well as getting general context of the current page's purpose and offerings.",
         props: z.object({ titleOfOpenTab: z.string() }),
-        mode: "all",
+        mode: ["browser", "chat", "workflow"],
       },
       {
         name: "list_open_tabs",
         description: "List all open tabs (title + URL + is active/current)",
         props: z.object({}),
-        mode: "all",
+        mode: ["browser", "chat", "workflow"],
       },
       {
         name: "open_url",
         description:
           "Open a URL in a new tab. Useful for navigating to a specific page for further interactions.",
         props: z.object({ url: z.string() }),
-        mode: "all",
+        mode: ["browser", "chat", "workflow"],
       },
     ],
   },
@@ -70,14 +71,14 @@ const nonPieceIntegrationMetadata = {
               "What is the goal which needs to be completed? Detail as much as possible."
             ),
         }),
-        mode: "workflow",
+        mode: ["workflow"],
       },
     ],
   },
   [NonPieceIntegrationName.GMAIL]: gmailIntegration,
   [NonPieceIntegrationName.GOOGLE_CALENDAR]: calendarIntegration,
   [NonPieceIntegrationName.WEB_SEARCH]: webSearchIntegration,
-} satisfies Record<NonPieceIntegrationName, IntegrationMetadata>;
+} as const satisfies Record<NonPieceIntegrationName, IntegrationMetadata>;
 
 export function readIntegrationMetadata(
   integrationName: string
@@ -171,7 +172,7 @@ export function readIntegrationMetadata(
         name: action.name,
         description: action.description,
         props: zodProps,
-        mode: "workflow" as const, // Default all piece actions to workflow-only
+        mode: ["chat", "workflow"],
       });
     }
 

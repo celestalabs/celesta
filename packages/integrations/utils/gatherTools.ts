@@ -1,96 +1,75 @@
-import { type IntegrationName, logger } from "@celesta/common";
-import { type MessageContext } from "@celesta/session";
-import { type ToolSet } from "@celesta/agents/mastra";
+import {
+  type FullToolSet,
+  type IntegrationName,
+  isIntegrationName,
+  logger,
+} from "@celesta/common";
+import { wrappedToolExecutor, type MessageContext } from "@celesta/session";
+import { createTool, type ToolExecutionContext } from "@mastra/core/tools";
 import { ExecuteIntegrationHandler } from "../routes/executeIntegration.ts";
 import { ListIntegrationsHandler } from "../routes/listIntegrations.ts";
-import { createTool, type Tool } from "@celesta/agents/mastra";
-import { allIntegrationSchemas } from "../schemas/index.ts";
 
 const log = logger("gatherTools");
 
-export async function gatherTools(
-  messageContext: MessageContext<any>,
-  systemTools: Partial<Record<string, Tool>> = {}
-): Promise<ToolSet> {
-  const rawIntegrationsResponse = await ListIntegrationsHandler({
-    params: {},
-  });
+export async function gatherTools(): Promise<
+  (messageContext: MessageContext) => FullToolSet
+> {
+  const rawIntegrationsResponse = await ListIntegrationsHandler({});
 
-  if (!rawIntegrationsResponse.success) {
-    log("Failed to list integrations:", rawIntegrationsResponse.error);
-    return {};
-  }
+  function formatIntegrationsIntoTools(messageContext: MessageContext) {
+    if (!rawIntegrationsResponse.success) {
+      log("Failed to list integrations:", rawIntegrationsResponse.error);
+      return { chat: {}, workflow: {}, browser: {} };
+    }
 
-  const integrations = Object.fromEntries(
-    Object.entries(rawIntegrationsResponse.integrations).flatMap(
-      ([integrationName, integrationMetadata]) =>
-        integrationMetadata.actions.map((action) => {
-          const toolName = `${integrationName}__${action.name}`;
-          return [
-            toolName,
-            createTool({
-              id: toolName,
-              description:
-                integrationMetadata.description + " - " + action.description,
-              inputSchema: allIntegrationSchemas[toolName] as any,
-              async execute({ context }) {
-                log("Executing tool:", toolName);
-                console.log(context);
-                const handleToolResponse =
-                  messageContext.sendToolInvocationMessage(toolName, context);
+    const tools = { chat: {}, workflow: {}, browser: {} } as FullToolSet;
 
-                const toolResponse = await ExecuteIntegrationHandler({
-                  body: {
-                    clientId: messageContext.clientId,
-                    integrationName,
-                    actionName: action.name,
-                    props: context as Record<string, unknown>,
-                    auth: integrationMetadata.requiresUserAuth
-                      ? {
-                          access_token:
-                            await messageContext.retrieveCredentials(
-                              integrationName as IntegrationName
-                            ),
-                        }
-                      : undefined,
-                  },
-                });
+    for (const integrationName in rawIntegrationsResponse.integrations) {
+      if (!isIntegrationName(integrationName)) {
+        continue;
+      }
 
-                console.log("RESPONSE ", toolResponse);
+      const integrationMetadata =
+        rawIntegrationsResponse.integrations[integrationName];
 
-                handleToolResponse(toolResponse);
+      for (const action of integrationMetadata.actions) {
+        const toolName = `${integrationName}__${action.name}`;
+        const toolInstance = createTool({
+          id: toolName,
+          description:
+            integrationMetadata.description + " - " + action.description,
+          inputSchema: action.props as any,
+          execute: wrappedToolExecutor<ToolExecutionContext, object>(
+            messageContext,
+            toolName
+          )(async ({ context }) => {
+            log("Executing tool:", toolName, "context:", context);
 
-                return toolResponse;
+            return ExecuteIntegrationHandler({
+              body: {
+                clientId: messageContext.clientId,
+                integrationName,
+                actionName: action.name,
+                props: context as Record<string, unknown>,
+                auth: integrationMetadata.requiresUserAuth
+                  ? {
+                      access_token: await messageContext.retrieveCredentials(
+                        integrationName as IntegrationName
+                      ),
+                    }
+                  : undefined,
               },
-            }),
-          ] as [string, Tool];
-        })
-    )
-  );
+            });
+          }),
+        });
+        for (const mode of action.mode) {
+          tools[mode][toolName] = toolInstance;
+        }
+      }
+    }
 
-  for (const [toolName, toolInstance] of Object.entries(systemTools)) {
-    const fullToolName = `system__${toolName}`;
-    if (toolInstance == null) continue;
-
-    integrations[fullToolName] = createTool({
-      ...toolInstance,
-      id: fullToolName,
-      execute: async ({ context }) => {
-        log("Executing tool:", toolName);
-
-        const handleToolResponse = messageContext.sendToolInvocationMessage(
-          fullToolName,
-          context
-        );
-        const toolResponse = (await Promise.resolve(
-          toolInstance.execute?.({ context } as any)
-        )) as object;
-
-        handleToolResponse(toolResponse);
-        return toolResponse;
-      },
-    });
+    return tools;
   }
 
-  return integrations;
+  return formatIntegrationsIntoTools;
 }

@@ -1,3 +1,5 @@
+import type { ToolSet } from "@mastra/core/tools";
+
 export enum PieceName {
   GOOGLE_DRIVE = "google_drive",
   GOOGLE_CONTACTS = "google_contacts",
@@ -35,3 +37,6 @@ export function isIntegrationName(
     isPieceName(integrationName) || isNonPieceIntegrationName(integrationName)
   );
 }
+
+export type ToolMode = "chat" | "workflow" | "browser";
+export type FullToolSet = Record<ToolMode, ToolSet>;

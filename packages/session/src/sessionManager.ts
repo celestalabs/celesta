@@ -44,7 +44,7 @@ class SessionManager {
   > = new Map();
 
   // Tracks active message contexts per client
-  messageContexts: Map<ClientId, Map<ContextId, MessageContext<any>>> =
+  messageContexts: Map<ClientId, Map<ContextId, MessageContext>> =
     new Map();
 
   /**

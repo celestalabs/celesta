@@ -5,12 +5,12 @@ import { Agent } from "@mastra/core/agent";
 import type { ToolSet } from "@mastra/core/tools";
 import dedent from "dedent";
 import { MastraBaseAgent } from "./mastra/MastraAgent.js";
+import { toolStore } from "./utils/toolStore.js";
 
 const log = logger("ChatAgent");
 
 type ChatAgentConfig = {
-  messageContext: MessageContext<any>;
-  tools: ToolSet;
+  messageContext: MessageContext;
 };
 
 /**
@@ -66,14 +66,37 @@ You are Celesta Agent, created by Celesta Labs. You are a browser sidebar assist
 - For information-oriented tasks like search, summarization, simplification, or basic browser actions, handle them yourself using your capabilities or available tools
 - Always anticipate the next step and move the user forward
 
-Respond to the user's message following these guidelines. Use the browser context when relevant and leverage your tools appropriately to provide the most helpful and contextually appropriate response.`;
+Respond to the user's message following these guidelines. Use the browser context when relevant and leverage your tools appropriately to provide the most helpful and contextually appropriate response. The date is ${runtimeContext.get("global.date")}`;
     },
   });
 
 export class ChatAgent extends MastraBaseAgent {
-  constructor({ messageContext, tools }: ChatAgentConfig) {
+  constructor({ messageContext }: ChatAgentConfig) {
     //@TODO figure out if this messes up mastra logging/observe etc...
-    super({ messageContext, agent: buildChatAgent(tools) });
+    const tools =
+      toolStore.getTools(messageContext.clientId, messageContext, "chat") ?? {};
+    super({
+      messageContext,
+      agent: buildChatAgent(tools),
+    });
     log("ChatAgent initialized with tools:", Object.keys(tools));
+  }
+
+  async onUserMessage(): Promise<any> {
+    const res = await this.agent.generate(
+      this.messageContext.messages.map(({ data }) => data),
+      {
+        runtimeContext: this.runtimeContext,
+        onError: (error) => {
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          log(`Error generating response: ${errorMsg}`);
+          this.sendError(
+            "I apologize, but I encountered an error processing your message. Could you please try again?"
+          );
+        },
+      }
+    );
+    this.sendChat(res.text);
   }
 }

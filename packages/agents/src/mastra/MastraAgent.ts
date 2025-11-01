@@ -5,7 +5,7 @@ import { Agent } from "@mastra/core/agent";
 import { RuntimeContext } from "@mastra/core/runtime-context";
 
 interface MastraBaseAgentConfig {
-  messageContext: MessageContext<any>;
+  messageContext: MessageContext;
   agent: Agent;
 }
 
@@ -13,11 +13,11 @@ export interface MastraBaseAgentRuntimeContext {
   "global.date": string;
 }
 
-export class MastraBaseAgent<
+export abstract class MastraBaseAgent<
   RuntimeContextT extends
     MastraBaseAgentRuntimeContext = MastraBaseAgentRuntimeContext,
 > extends BaseAgent {
-  private agent: Agent;
+  agent: Agent;
   runtimeContext: RuntimeContext<MastraBaseAgentRuntimeContext>;
   private log: (msg: string) => void;
 
@@ -38,22 +38,5 @@ export class MastraBaseAgent<
         day: "numeric",
       })
     );
-  }
-  async onUserMessage() {
-    const res = await this.agent.generate(
-      this.messageContext.messages.map(({ data }) => data),
-      {
-        runtimeContext: this.runtimeContext,
-        onError: (error) => {
-          const errorMsg =
-            error instanceof Error ? error.message : String(error);
-          this.log(`Error generating response: ${errorMsg}`);
-          this.sendError(
-            "I apologize, but I encountered an error processing your message. Could you please try again?"
-          );
-        },
-      }
-    );
-    this.sendChat(res.text);
   }
 }
