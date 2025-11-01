@@ -109,13 +109,16 @@ importers:
 
   packages/common:
     dependencies:
+      '@ai-sdk/google':
+        specifier: ^2.0.25
+        version: 2.0.25(zod@4.1.12)
+      ai:
+        specifier: ^5.0.82
+        version: 5.0.82(zod@4.1.12)
       zod:
         specifier: ^4.1.12
         version: 4.1.12
     devDependencies:
-      '@ai-sdk/google':
-        specifier: ^2.0.25
-        version: 2.0.25(zod@4.1.12)
       '@types/node':
         specifier: ^22.18.13
         version: 22.18.13
@@ -125,9 +128,6 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.41.0
         version: 8.46.2(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3)
-      ai:
-        specifier: ^5.0.82
-        version: 5.0.82(zod@4.1.12)
       eslint:
         specifier: ^9.34.0
         version: 9.38.0(jiti@2.6.1)

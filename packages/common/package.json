@@ -5,11 +5,9 @@
   "main": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@ai-sdk/google": "^2.0.25",
     "@types/node": "^22.18.13",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
-    "ai": "^5.0.82",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -25,6 +23,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "@ai-sdk/google": "^2.0.25",
+    "ai": "^5.0.82"
   }
 }
