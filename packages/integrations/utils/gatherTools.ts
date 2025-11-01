@@ -1,8 +1,10 @@
 import { type IntegrationName, logger } from "@celesta/common";
 import { type MessageContext } from "@celesta/session";
-import { jsonSchema, tool, type Tool, type ToolSet } from "ai";
+import { type ToolSet } from "@celesta/agents/mastra";
 import { ExecuteIntegrationHandler } from "../routes/executeIntegration.ts";
 import { ListIntegrationsHandler } from "../routes/listIntegrations.ts";
+import { createTool, type Tool } from "@celesta/agents/mastra";
+import { allIntegrationSchemas } from "../schemas/index.ts";
 
 const log = logger("gatherTools");
 
@@ -26,21 +28,23 @@ export async function gatherTools(
           const toolName = `${integrationName}__${action.name}`;
           return [
             toolName,
-            tool({
+            createTool({
+              id: toolName,
               description:
                 integrationMetadata.description + " - " + action.description,
-              inputSchema: jsonSchema(action.props),
-              async execute(input) {
+              inputSchema: allIntegrationSchemas[toolName] as any,
+              async execute({ context }) {
                 log("Executing tool:", toolName);
+                console.log(context);
                 const handleToolResponse =
-                  messageContext.sendToolInvocationMessage(toolName, input);
+                  messageContext.sendToolInvocationMessage(toolName, context);
 
                 const toolResponse = await ExecuteIntegrationHandler({
                   body: {
                     clientId: messageContext.clientId,
                     integrationName,
                     actionName: action.name,
-                    props: input as Record<string, unknown>,
+                    props: context as Record<string, unknown>,
                     auth: integrationMetadata.requiresUserAuth
                       ? {
                           access_token:
@@ -51,6 +55,8 @@ export async function gatherTools(
                       : undefined,
                   },
                 });
+
+                console.log("RESPONSE ", toolResponse);
 
                 handleToolResponse(toolResponse);
 
@@ -66,18 +72,20 @@ export async function gatherTools(
     const fullToolName = `system__${toolName}`;
     if (toolInstance == null) continue;
 
-    integrations[fullToolName] = tool({
+    integrations[fullToolName] = createTool({
       ...toolInstance,
-      execute: async (input, context) => {
+      id: fullToolName,
+      execute: async ({ context }) => {
         log("Executing tool:", toolName);
 
         const handleToolResponse = messageContext.sendToolInvocationMessage(
           fullToolName,
-          input
+          context
         );
-        const toolResponse = await Promise.resolve(
-          toolInstance.execute?.(input, context)
-        );
+        const toolResponse = (await Promise.resolve(
+          toolInstance.execute?.({ context } as any)
+        )) as object;
+
         handleToolResponse(toolResponse);
         return toolResponse;
       },

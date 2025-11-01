@@ -9,3 +9,4 @@ export * from "./utils/logger.js";
 export * from "./utils/generateId.js";
 
 export * from "./base/BaseAgent.js";
+export * from "./base/MastraAgent.js";

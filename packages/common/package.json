@@ -4,6 +4,10 @@
   "description": "",
   "main": "index.ts",
   "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./ai": "./ai.ts"
+  },
   "devDependencies": {
     "@ai-sdk/google": "^2.0.25",
     "@types/node": "^22.18.13",

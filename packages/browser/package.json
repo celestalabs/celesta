@@ -22,6 +22,7 @@
   "dependencies": {
     "ws": "^8.18.3",
     "@celesta/common": "workspace:*",
-    "@celesta/session": "workspace:*"
+    "@celesta/session": "workspace:*",
+    "@celesta/agents": "workspace:*"
   }
 }

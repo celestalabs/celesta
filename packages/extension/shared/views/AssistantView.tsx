@@ -22,7 +22,10 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
       sendMessage(
         ts({
           type: "USER_MESSAGE",
-          content: chatInput.trim(),
+          data: {
+            role: "user",
+            content: chatInput.trim(),
+          },
           contextId: "CHAT",
         })
       );

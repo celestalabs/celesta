@@ -6,11 +6,12 @@ import type {
   WorkflowStatus,
   WorkflowTaskStatus,
 } from "./workflow.js";
+import type { ModelMessage } from "ai";
 
 export type FrontendWSUserMessage = {
   type: "USER_MESSAGE";
   contextId: ContextId;
-  content: string;
+  data: ModelMessage;
   timestamp: number;
 };
 
@@ -60,7 +61,7 @@ export type ServerWSAgentMessage = {
   type: "AGENT_MESSAGE";
   messageType: AgentMessageType;
   contextId: ContextId;
-  content: string;
+  data: ModelMessage;
   timestamp: number;
 };
 

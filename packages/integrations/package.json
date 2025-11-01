@@ -9,16 +9,22 @@
     "@activepieces/piece-google-contacts": "^0.3.14",
     "@activepieces/piece-google-drive": "^0.5.49",
     "@activepieces/pieces-framework": "^0.20.1",
+    "@celesta/agents": "workspace:*",
+    "@celesta/browser": "workspace:*",
+    "@celesta/common": "workspace:*",
+    "@celesta/session": "workspace:*",
     "@types/node": "^22.18.13",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
     "axios": "^1.11.0",
     "exa-js": "^1.9.3",
     "googleapis": "^144.0.0",
+    "json-schema-to-zod": "^2.6.1",
     "marked": "^16.4.1",
-    "zod": "^4.1.5",
-    "@celesta/common": "workspace:*",
-    "@celesta/browser": "workspace:*"
+    "zod": "^4.1.5"
+  },
+  "scripts": {
+    "build:schemas": "tsx scripts/buildSchemas.ts"
   },
   "devDependencies": {
     "eslint": "^9.34.0",
@@ -27,6 +33,7 @@
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.4.0",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0"
   }
