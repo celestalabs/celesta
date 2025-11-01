@@ -1,13 +1,12 @@
 import { logger } from "@celesta/common";
-import { sessionManager, type MessageContext } from "@celesta/session";
 import { google } from "@celesta/common/ai";
-
-const log = logger("ChatAgent");
-
+import { type MessageContext } from "@celesta/session";
 import { Agent } from "@mastra/core/agent";
+import type { ToolSet } from "@mastra/core/tools";
 import dedent from "dedent";
 import { MastraBaseAgent } from "./mastra/MastraAgent.js";
-import type { ToolSet } from "@mastra/core/tools";
+
+const log = logger("ChatAgent");
 
 type ChatAgentConfig = {
   messageContext: MessageContext<any>;

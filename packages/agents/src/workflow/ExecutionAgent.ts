@@ -1,17 +1,17 @@
 import {
-  WorkflowTask,
-  WorkflowTaskResult,
+  type WorkflowTask,
+  type WorkflowTaskResult,
   BaseAgent,
   logger,
 } from "@celesta/common";
-import { MessageContext } from "@celesta/session";
-import { generateText, stepCountIs, ToolSet } from "ai";
+import type { MessageContext } from "@celesta/session";
+import { generateText, stepCountIs, type ToolSet } from "ai";
 
 const log = logger("ExecutionAgent");
 
 type ExecutionAgentConfig = {
   // Configuration options for ExecutionAgent can be added here
-  messageContext: MessageContext;
+  messageContext: MessageContext<any>;
   tools: ToolSet;
   task: WorkflowTask;
   taskResults: WorkflowTaskResult[];

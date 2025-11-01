@@ -62,10 +62,14 @@ agentServer.on("connection", async (ws) => {
   sessionManager.registerClientId(clientId, ws);
   browserManager.registerClientId(clientId);
 
-  sessionManager.createContext(clientId, "CHAT", async (messageContext) => {
-    const tools = await gatherTools(messageContext);
-    const agent = new ChatAgent({ messageContext, tools });
-    return agent;
+  sessionManager.createContext({
+    clientId,
+    contextId: "CHAT",
+    createHandlerAgent: async (messageContext) => {
+      const tools = await gatherTools(messageContext);
+      const agent = new ChatAgent({ messageContext, tools });
+      return agent;
+    },
   });
 
   ws.on("message", (message) => {

@@ -8,7 +8,13 @@ import {
   type BrowserAgentAction,
 } from "@celesta/common";
 import type { MessageContext } from "@celesta/session";
-import { generateObject, generateText, tool, type ToolSet } from "ai";
+import {
+  generateObject,
+  generateText,
+  stepCountIs,
+  tool,
+  type ToolSet,
+} from "ai";
 import z from "zod";
 
 const log = logger("BrowserAgent");
@@ -30,7 +36,7 @@ export class BrowserAgent extends BaseAgent {
   onInitialize() {
     return new Promise<
       { success: true; data: string } | { success: false; error: string }
-    >(async (resolve, reject) => {
+    >(async (resolve) => {
       try {
         // add all browser tools
         for (const [rawActionName, inputSchema] of Object.entries(
@@ -44,7 +50,7 @@ export class BrowserAgent extends BaseAgent {
               actionName.replaceAll("_", " ").toLowerCase(),
             inputSchema: inputSchema as z.ZodObject,
             execute: (input) =>
-              new Promise((resolve, reject) => {
+              new Promise((resolve) => {
                 log(`Executing browser action: ${actionName}`);
 
                 try {
@@ -54,16 +60,18 @@ export class BrowserAgent extends BaseAgent {
                   this.messageContext
                     .generalExpectResponse(requestId)
                     .then((response) => {
-                      response.type === "PROVIDE_BROWSER_AGENT_ACTION"
-                        ? resolve(response.response)
-                        : reject(
-                            new Error(
-                              "Invalid response received from browser agent."
-                            )
-                          );
+                      log("Received response from browser agent.", response);
+
+                      if (response.type === "PROVIDE_BROWSER_AGENT_ACTION") {
+                        resolve(response.response);
+                      } else {
+                        resolve(
+                          "Invalid response received from browser agent."
+                        );
+                      }
                     })
                     .catch((err) => {
-                      reject(new Error("Response timed out. " + err));
+                      resolve("Response timed out. " + err);
                     });
 
                   this.messageContext.generalSendMessage(
@@ -76,16 +84,10 @@ export class BrowserAgent extends BaseAgent {
                   );
                 } catch (error) {
                   if (error instanceof z.ZodError) {
-                    reject(
-                      new Error(
-                        `Invalid input for action ${actionName}: ${error}`
-                      )
-                    );
+                    resolve(`Invalid input for action ${actionName}: ${error}`);
                   } else {
-                    reject(
-                      new Error(
-                        `Received error during execution of action ${actionName}: ${error}`
-                      )
+                    resolve(
+                      `Received error during execution of action ${actionName}: ${error}`
                     );
                   }
                 }
@@ -117,7 +119,10 @@ export class BrowserAgent extends BaseAgent {
           Upon completion of the task, respond with clear details as to whether the goal was completed or not, along with reasoning for that decision.`,
           model: this.model,
           tools: this.tools,
+          stopWhen: stepCountIs(100),
         });
+
+        log("Browser agent completed goal-oriented browsing.", text);
 
         const { object: responseObject } = await generateObject({
           model: this.model,
@@ -142,13 +147,13 @@ export class BrowserAgent extends BaseAgent {
             data: responseObject.goalCompletionInformation,
           });
         } else {
-          reject({
+          resolve({
             success: false,
             error: responseObject.goalCompletionInformation,
           });
         }
       } catch (err) {
-        reject({ success: false, error: (err as Error).message });
+        resolve({ success: false, error: (err as Error).message });
       }
     });
   }

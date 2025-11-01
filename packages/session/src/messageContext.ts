@@ -20,7 +20,7 @@ export type HandlerAgentCreator<T extends BaseAgent> = (
   ctx: InternalMessageContext<T>
 ) => Promise<T>;
 
-type MessageContextConfig<T extends BaseAgent> = {
+export type MessageContextConfig<T extends BaseAgent> = {
   clientId: ClientId;
   contextId: ContextId;
   createHandlerAgent?: HandlerAgentCreator<T>;
