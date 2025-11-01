@@ -1,3 +1,4 @@
+import type { ModelMessage } from "ai";
 import type { BrowserAgentAction, BrowserContextAction } from "./browser.js";
 import type { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
 import type {
@@ -6,7 +7,6 @@ import type {
   WorkflowStatus,
   WorkflowTaskStatus,
 } from "./workflow.js";
-import type { ModelMessage } from "ai";
 
 export type FrontendWSUserMessage = {
   type: "USER_MESSAGE";
