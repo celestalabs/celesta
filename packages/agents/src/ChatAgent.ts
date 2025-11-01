@@ -82,6 +82,9 @@ export class ChatAgent extends MastraBaseAgent {
     log("ChatAgent initialized with tools:", Object.keys(tools));
   }
 
+  // stub unused method
+  async onInitialize() {}
+
   async onUserMessage(): Promise<any> {
     const res = await this.agent.generate(
       this.messageContext.messages.map(({ data }) => data),

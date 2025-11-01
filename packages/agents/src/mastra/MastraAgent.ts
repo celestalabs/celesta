@@ -26,9 +26,7 @@ export abstract class MastraBaseAgent<
     this.agent = agent;
     this.log = logger(agent.name);
     this.runtimeContext = new RuntimeContext<RuntimeContextT>();
-  }
 
-  async onInitialize() {
     this.runtimeContext.set(
       "global.date",
       new Date().toLocaleDateString("en-US", {
