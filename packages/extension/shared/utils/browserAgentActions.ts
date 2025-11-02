@@ -1,4 +1,5 @@
 import { logger, type BrowserAgentAction } from "@celesta/common";
+import { registerGlobalForDevMode } from "./devModeGlobals";
 import { type Protocol } from "./devToolsProtocol";
 import { waitMs } from "./waitMs";
 
@@ -148,12 +149,22 @@ export async function getMainFrameId(tabId: number): Promise<string> {
   return frameTree.frame.id;
 }
 
-function normalizeCoordinates(x: number, y: number): { x: number; y: number } {
+type Pair = { x: number; y: number };
+async function normalizeCoordinates(
+  tabId: number,
+  { x, y }: Pair
+): Promise<Pair> {
+  const { cssContentSize } =
+    await sendCommand<Protocol.Page.GetLayoutMetricsResponse>(
+      tabId,
+      "Page.getLayoutMetrics"
+    );
+
   x = Math.min(999, Math.max(0, x));
   y = Math.min(999, Math.max(0, y));
   return {
-    x: Math.floor((x / 1000) * window.innerWidth),
-    y: Math.floor((y / 1000) * window.innerHeight),
+    x: Math.floor((x / 1000) * cssContentSize.width),
+    y: Math.floor((y / 1000) * cssContentSize.height),
   };
 }
 
@@ -226,7 +237,7 @@ export const browserAgentActions = {
     }
   },
   async CLICK(tabId: number, { x, y, options }) {
-    const coords = normalizeCoordinates(x, y);
+    const coords = await normalizeCoordinates(tabId, { x, y });
 
     const button = options?.button ?? "left";
     const clickCount = options?.clickCount ?? 1;
@@ -271,8 +282,11 @@ export const browserAgentActions = {
     });
   },
   async SCROLL(tabId: number, { x, y, deltaX, deltaY }) {
-    const coords = normalizeCoordinates(x, y);
-    const deltaCoords = normalizeCoordinates(deltaX, deltaY);
+    const coords = await normalizeCoordinates(tabId, { x, y });
+    const deltaCoords = await normalizeCoordinates(tabId, {
+      x: deltaX,
+      y: deltaY,
+    });
     try {
       // Move mouse to position
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
@@ -302,8 +316,11 @@ export const browserAgentActions = {
     const steps = Math.max(1, Math.floor(options?.steps ?? 5));
     const delay = Math.max(0, options?.delay ?? 0);
 
-    const fromCoords = normalizeCoordinates(fromX, fromY);
-    const toCoords = normalizeCoordinates(toX, toY);
+    const fromCoords = await normalizeCoordinates(tabId, {
+      x: fromX,
+      y: fromY,
+    });
+    const toCoords = await normalizeCoordinates(tabId, { x: toX, y: toY });
 
     const buttonMask = (b: typeof button): number => {
       switch (b) {
@@ -341,9 +358,10 @@ export const browserAgentActions = {
         const t = i / steps;
         const x = fromX + (toX - fromX) * t;
         const y = fromY + (toY - fromY) * t;
+        const intermCoords = await normalizeCoordinates(tabId, { x, y });
         await sendCommand(tabId, "Input.dispatchMouseEvent", {
           type: "mouseMoved",
-          ...normalizeCoordinates(x, y),
+          ...intermCoords,
           button,
           buttons: buttonMask(button),
         } as Protocol.Input.DispatchMouseEventRequest);
@@ -555,85 +573,8 @@ export const browserAgentActions = {
   ) => Promise<object>;
 };
 
-/**
- * Captures a screenshot of the page.
- * @returns A base64-encoded string of the PNG image.
- */
+registerGlobalForDevMode("debuggerUtils", {
+  attachDebugger,
+});
 
-/**
- * Sets the viewport size and device scale factor.
- */
-// export async function setViewportSize(
-//   tabId: number,
-//   width: number,
-//   height: number,
-//   options?: { deviceScaleFactor?: number }
-// ): Promise<void> {
-//   const dsf = Math.max(0.01, options?.deviceScaleFactor ?? 1);
-//   await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
-//     width,
-//     height,
-//     deviceScaleFactor: dsf,
-//     mobile: false,
-//     screenWidth: width,
-//     screenHeight: height,
-//   } as Protocol.Emulation.SetDeviceMetricsOverrideRequest);
-// }
-
-/**
- * Evaluates a function in the main frame of the page.
- * The function is executed in an isolated world.
- */
-// export async function evaluate<R, Arg>(
-//   tabId: number,
-//   mainFrameId: string,
-//   pageFunction: (arg: Arg) => R | Promise<R>,
-//   arg?: Arg
-// ): Promise<R> {
-//   // 1. Create an isolated world
-//   const { executionContextId } =
-//     await sendCommand<Protocol.Page.CreateIsolatedWorldResponse>(
-//       tabId,
-//       "Page.createIsolatedWorld",
-//       { frameId: mainFrameId, worldName: "v3-utility-world" }
-//     );
-
-//   // 2. Build the expression to execute
-//   const fnSrc = pageFunction.toString();
-//   const argJson = JSON.stringify(arg);
-//   const expression = `(() => {
-//     const __fn = ${fnSrc};
-//     const __arg = ${argJson};
-//     try {
-//       const __res = __fn(__arg);
-//       // Handle both sync and async return values
-//       return Promise.resolve(__res).then(v => {
-//         // Try to deep-serialize the result
-//         try { return JSON.parse(JSON.stringify(v)); } catch { return v; }
-//       });
-//     } catch (e) { throw e; }
-//   })()`;
-
-//   // 3. Evaluate the expression
-//   const { result, exceptionDetails } =
-//     await sendCommand<Protocol.Runtime.EvaluateResponse>(
-//       tabId,
-//       "Runtime.evaluate",
-//       {
-//         expression,
-//         contextId: executionContextId,
-//         returnByValue: true,
-//         awaitPromise: true,
-//       }
-//     );
-
-//   if (exceptionDetails) {
-//     const msg =
-//       exceptionDetails.text ||
-//       exceptionDetails.exception?.description ||
-//       "Evaluation failed";
-//     throw new Error(msg);
-//   }
-
-//   return result?.value as R;
-// }
+registerGlobalForDevMode("browserAgentActions", browserAgentActions);
