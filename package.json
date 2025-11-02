@@ -15,7 +15,8 @@
   "scripts": {
     "dev:extension": "cd packages/extension && npm run dev",
     "dev:server": "cd packages/server && npm run dev",
-    "dev": "concurrently npm:dev:*"
+    "dev": "concurrently npm:dev:*",
+    "format": "pretty-quick"
   },
   "workspaces": [
     "packages/extension",
@@ -26,6 +27,8 @@
     "packages/agents"
   ],
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2",
+    "pretty-quick": "^4.2.2"
   }
 }

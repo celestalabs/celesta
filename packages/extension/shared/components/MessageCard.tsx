@@ -1,10 +1,10 @@
 import {
   type ContextId,
   type FrontendWSMessage,
-  isChatId,
   type RequestId,
   ts,
   type WorkflowTaskStatus,
+  isWorkflowId,
 } from "@celesta/common";
 import React from "react";
 import ReactMarkdown from "react-markdown";
@@ -125,6 +125,13 @@ export const MessageCard = React.memo(
       );
     }
 
+    const isUserMessage = message.type === "user";
+    const isWorkflow = isWorkflowId(contextId);
+    const isFinalAgentMessage =
+      message.type === "agent" && message.messageType === "final";
+    const shouldClampLines =
+      isWorkflow && !isUserMessage && !isFinalAgentMessage;
+
     return (
       <Item
         variant="outline"
@@ -143,7 +150,7 @@ export const MessageCard = React.memo(
             {message.type === "agent" ? "Celesta ✨" : "You"}
           </ItemTitle>
           <ItemDescription
-            className={`${isChatId(contextId) && message.type === "agent" && message.messageType !== "final" ? "line-clamp-10!" : "line-clamp-none!"} text-wrap!`}
+            className={`${shouldClampLines ? "line-clamp-10!" : "line-clamp-none!"} text-wrap!`}
           >
             <ReactMarkdown
               components={{

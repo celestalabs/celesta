@@ -14,7 +14,7 @@ export function frontendMessageHandler(clientId: ClientId, rawMessage: any) {
 
   switch (message.type) {
     case "USER_MESSAGE": {
-      log(`User message from ${clientId}: ${message.content}`);
+      log(`User message from ${clientId}: ${message.data.content}`);
       sessionManager.routeUserMessage(clientId, message);
       break;
     }

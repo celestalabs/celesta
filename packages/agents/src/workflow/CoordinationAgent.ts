@@ -23,7 +23,7 @@ const log = logger("CoordinationAgent");
 
 type CoordinationAgentConfig = {
   prompt: string;
-  messageContext: MessageContext<any>;
+  messageContext: MessageContext;
   tools: ToolSet;
 };
 

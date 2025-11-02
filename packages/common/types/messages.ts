@@ -1,3 +1,4 @@
+import type { ModelMessage } from "ai";
 import type { BrowserAgentAction, BrowserContextAction } from "./browser.js";
 import type { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
 import type {
@@ -10,7 +11,7 @@ import type {
 export type FrontendWSUserMessage = {
   type: "USER_MESSAGE";
   contextId: ContextId;
-  content: string;
+  data: ModelMessage;
   timestamp: number;
 };
 
@@ -60,7 +61,7 @@ export type ServerWSAgentMessage = {
   type: "AGENT_MESSAGE";
   messageType: AgentMessageType;
   contextId: ContextId;
-  content: string;
+  data: ModelMessage;
   timestamp: number;
 };
 

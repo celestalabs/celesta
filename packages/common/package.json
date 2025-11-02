@@ -4,6 +4,10 @@
   "description": "",
   "main": "index.ts",
   "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./ai": "./ai.ts"
+  },
   "devDependencies": {
     "@types/node": "^22.18.13",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
@@ -23,8 +27,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "zod": "^4.1.12",
     "@ai-sdk/google": "^2.0.25",
-    "ai": "^5.0.82"
+    "@mastra/core": "^0.23.3",
+    "ai": "^5.0.82",
+    "zod": "^4.1.12"
   }
 }

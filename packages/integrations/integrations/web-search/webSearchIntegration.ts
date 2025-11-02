@@ -253,7 +253,7 @@ export type AnswerQuestionParams = z.infer<typeof answerQuestionSchema>;
 // ============================================================================
 
 // Define the Web Search integration
-export const webSearchIntegration: IntegrationMetadata = {
+export const webSearchIntegration = {
   name: "Web Search",
   description:
     "Search the web and extract content using AI-powered neural search",
@@ -265,29 +265,29 @@ export const webSearchIntegration: IntegrationMetadata = {
       description:
         "Search the web and retrieve full content from results using AI-powered semantic search",
       props: searchWebSchema,
-      mode: "all" as const, // Read operation - available in both chat and workflow
+      mode: ["chat", "workflow", "browser"], // Read operation - available in both chat and workflow
     },
     {
       name: "find_similar",
       description: "Find web pages similar to a given URL",
       props: findSimilarSchema,
-      mode: "all" as const, // Read operation - available in both chat and workflow
+      mode: ["chat", "workflow", "browser"], // Read operation - available in both chat and workflow
     },
     {
       name: "get_contents",
       description: "Extract and read content from specific web pages by URL",
       props: getContentsSchema,
-      mode: "all" as const, // Read operation - available in both chat and workflow
+      mode: ["chat", "workflow", "browser"], // Read operation - available in both chat and workflow
     },
     {
       name: "answer_question",
       description:
         "Get a direct answer to a question with citations from the web",
       props: answerQuestionSchema,
-      mode: "chat" as const, // Read operation - available in both chat and workflow
+      mode: ["chat", "workflow", "browser"], // Read operation - available in both chat and workflow
     },
   ],
-};
+} as const satisfies IntegrationMetadata;
 
 // Export action executors
 export const webSearchActions = {

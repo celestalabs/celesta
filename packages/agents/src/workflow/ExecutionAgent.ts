@@ -11,7 +11,7 @@ const log = logger("ExecutionAgent");
 
 type ExecutionAgentConfig = {
   // Configuration options for ExecutionAgent can be added here
-  messageContext: MessageContext<any>;
+  messageContext: MessageContext;
   tools: ToolSet;
   task: WorkflowTask;
   taskResults: WorkflowTaskResult[];

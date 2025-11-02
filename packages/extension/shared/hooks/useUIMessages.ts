@@ -35,11 +35,11 @@ export function useUIMessages(contextId: ContextId) {
           status: msg.status,
         });
       } else if (msg.type === "USER_MESSAGE") {
-        result.push({ type: "user", content: msg.content });
+        result.push({ type: "user", content: msg.data.content as string });
       } else if (msg.type === "AGENT_MESSAGE") {
         result.push({
           type: "agent",
-          content: msg.content,
+          content: msg.data.content as string,
           messageType: msg.messageType,
         });
       } else if (msg.type === "TOOL_INVOCATION") {

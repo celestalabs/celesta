@@ -75,7 +75,7 @@ class InternalMessageContext<T extends BaseAgent> {
    */
   async handleFrontendUserMessage(message: FrontendWSUserMessage) {
     log(
-      `Received message in context ${this.contextId} from client ${this.clientId}: ${message.content}`
+      `Received message in context ${this.contextId} from client ${this.clientId}: ${message.data.content}`
     );
     this.messages.push(message);
     const onUserMessageResponse = await this.handlerAgent?.onUserMessage();
@@ -169,7 +169,10 @@ class InternalMessageContext<T extends BaseAgent> {
     const message = ts({
       type: "AGENT_MESSAGE",
       contextId: this.contextId,
-      content,
+      data: {
+        role: "assistant",
+        content,
+      },
       messageType: type,
     }) satisfies ServerWSMessage;
 
@@ -214,6 +217,6 @@ export const createMessageContext = <T extends BaseAgent>(
   config: MessageContextConfig<T>
 ) => new InternalMessageContext(config);
 
-export type MessageContext<T extends BaseAgent> = ReturnType<
+export type MessageContext<T extends BaseAgent = any> = ReturnType<
   typeof createMessageContext<T>
 >;
