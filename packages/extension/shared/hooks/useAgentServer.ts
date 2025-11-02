@@ -7,6 +7,10 @@ import {
 import useWebSocket from "react-use-websocket";
 import { useStore } from "../store";
 import { attachDebugger } from "../utils/browserAgentActions";
+import {
+  sendWebMessage,
+  type AgentActionWebMessage,
+} from "../utils/webMessages";
 
 const log = logger("useAgentServer");
 
@@ -59,6 +63,15 @@ export function useAgentServer(handlerByType: {
             });
 
             addBrowserAgentTabId(message.contextId, id!);
+            sendWebMessage(
+              ["tabs", id!],
+              {
+                __isWebMessage: true,
+                __webMessageType: "AgentActionWebMessage",
+                action: "startAgent",
+              } satisfies AgentActionWebMessage,
+              false
+            );
             await attachDebugger(id!);
           }
 

@@ -128,6 +128,9 @@ export type AgentActionWebMessage = WebMessage<
       deltaX: number;
       deltaY: number;
     }
+  | {
+      action: "startAgent";
+    }
 >;
 
 export const isAgentActionWebMessage = (
