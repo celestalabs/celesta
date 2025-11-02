@@ -29,6 +29,7 @@
   "dependencies": {
     "@celesta/common": "workspace:*",
     "@celesta/session": "workspace:*",
+    "@google/genai": "^1.28.0",
     "@mastra/core": "^0.23.3",
     "dedent": "^1.7.0",
     "zod": "^4.1.12"

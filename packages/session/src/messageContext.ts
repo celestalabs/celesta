@@ -158,7 +158,7 @@ class InternalMessageContext<T extends BaseAgent> {
   /**
    * General message sending method.
    */
-  async generalSendMessage(message: ServerWSMessage) {
+  generalSendMessage(message: ServerWSMessage) {
     sessionManager.sendMessage(this.clientId, message);
   }
 

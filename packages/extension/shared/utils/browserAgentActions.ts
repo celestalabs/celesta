@@ -148,6 +148,15 @@ export async function getMainFrameId(tabId: number): Promise<string> {
   return frameTree.frame.id;
 }
 
+function normalizeCoordinates(x: number, y: number): { x: number; y: number } {
+  x = Math.min(999, Math.max(0, x));
+  y = Math.min(999, Math.max(0, y));
+  return {
+    x: Math.floor((x / 1000) * window.innerWidth),
+    y: Math.floor((y / 1000) * window.innerHeight),
+  };
+}
+
 export const browserAgentActions = {
   async GOTO_URL(tabId, { url }) {
     try {
@@ -217,6 +226,8 @@ export const browserAgentActions = {
     }
   },
   async CLICK(tabId: number, { x, y, options }) {
+    const coords = normalizeCoordinates(x, y);
+
     const button = options?.button ?? "left";
     const clickCount = options?.clickCount ?? 1;
 
@@ -224,16 +235,14 @@ export const browserAgentActions = {
       // Move mouse to position
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
         type: "mouseMoved",
-        x,
-        y,
+        ...coords,
         button: "none",
       } as Protocol.Input.DispatchMouseEventRequest);
 
       // Press
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
         type: "mousePressed",
-        x,
-        y,
+        ...coords,
         button,
         clickCount,
       } as Protocol.Input.DispatchMouseEventRequest);
@@ -241,8 +250,7 @@ export const browserAgentActions = {
       // Release
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
         type: "mouseReleased",
-        x,
-        y,
+        ...coords,
         button,
         clickCount,
       } as Protocol.Input.DispatchMouseEventRequest);
@@ -254,32 +262,32 @@ export const browserAgentActions = {
       };
     }
   },
-  DOUBLE_CLICK(tabId: number, { x, y, reasoning }) {
+  DOUBLE_CLICK(tabId: number, { x, y }) {
+    // coordinates are normalized in CLICK
     return this.CLICK(tabId, {
       x,
       y,
-      reasoning,
       options: { clickCount: 2, button: "left" },
     });
   },
   async SCROLL(tabId: number, { x, y, deltaX, deltaY }) {
+    const coords = normalizeCoordinates(x, y);
+    const deltaCoords = normalizeCoordinates(deltaX, deltaY);
     try {
       // Move mouse to position
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
         type: "mouseMoved",
-        x,
-        y,
+        ...coords,
         button: "none",
       } as Protocol.Input.DispatchMouseEventRequest);
 
       // Dispatch wheel event
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
         type: "mouseWheel",
-        x,
-        y,
+        ...coords,
         button: "none",
-        deltaX,
-        deltaY,
+        deltaX: deltaCoords.x,
+        deltaY: deltaCoords.y,
       } as Protocol.Input.DispatchMouseEventRequest);
       return { success: true, info: "Dispatched scroll event" };
     } catch (error) {
@@ -291,8 +299,11 @@ export const browserAgentActions = {
   },
   async DRAG_AND_DROP(tabId: number, { fromX, fromY, toX, toY, options }) {
     const button = options?.button ?? "left";
-    const steps = Math.max(1, Math.floor(options?.steps ?? 1));
+    const steps = Math.max(1, Math.floor(options?.steps ?? 5));
     const delay = Math.max(0, options?.delay ?? 0);
+
+    const fromCoords = normalizeCoordinates(fromX, fromY);
+    const toCoords = normalizeCoordinates(toX, toY);
 
     const buttonMask = (b: typeof button): number => {
       switch (b) {
@@ -311,16 +322,14 @@ export const browserAgentActions = {
       // 1. Move to start
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
         type: "mouseMoved",
-        x: fromX,
-        y: fromY,
+        ...fromCoords,
         button: "none",
       } as Protocol.Input.DispatchMouseEventRequest);
 
       // 2. Press
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
         type: "mousePressed",
-        x: fromX,
-        y: fromY,
+        ...fromCoords,
         button,
         buttons: buttonMask(button),
         clickCount: 1,
@@ -334,8 +343,7 @@ export const browserAgentActions = {
         const y = fromY + (toY - fromY) * t;
         await sendCommand(tabId, "Input.dispatchMouseEvent", {
           type: "mouseMoved",
-          x,
-          y,
+          ...normalizeCoordinates(x, y),
           button,
           buttons: buttonMask(button),
         } as Protocol.Input.DispatchMouseEventRequest);
@@ -345,8 +353,7 @@ export const browserAgentActions = {
       // 4. Release at end
       await sendCommand(tabId, "Input.dispatchMouseEvent", {
         type: "mouseReleased",
-        x: toX,
-        y: toY,
+        ...toCoords,
         button,
         buttons: buttonMask(button),
         clickCount: 1,
@@ -535,6 +542,11 @@ export const browserAgentActions = {
       pageTitle: title,
       pageUrl: url,
     };
+  },
+  async WAIT() {
+    // Simply wait for 5 seconds
+    await waitMs(5000);
+    return { success: true, info: "Waited for 5 seconds" };
   },
 } as const satisfies {
   [K in BrowserAgentAction["type"]]: (

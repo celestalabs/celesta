@@ -11,7 +11,6 @@ export type BrowserContextAction =
 export const goToUrlSchema = z
   .object({
     type: z.literal("GOTO_URL"),
-    reasoning: z.string().describe("Why are you performing this action?"),
     url: z.string().describe("URL to navigate to"),
   })
   .describe("Navigate the tab to a new URL.");
@@ -19,7 +18,6 @@ export const goToUrlSchema = z
 export const reloadTabSchema = z
   .object({
     type: z.literal("RELOAD_TAB"),
-    reasoning: z.string().describe("Why are you performing this action?"),
     options: z
       .object({
         ignoreCache: z
@@ -34,21 +32,18 @@ export const reloadTabSchema = z
 export const goBackSchema = z
   .object({
     type: z.literal("GO_BACK"),
-    reasoning: z.string().describe("Why are you performing this action?"),
   })
   .describe("Navigates back in the tab's history.");
 
 export const goForwardSchema = z
   .object({
     type: z.literal("GO_FORWARD"),
-    reasoning: z.string().describe("Why are you performing this action?"),
   })
   .describe("Navigates forward in the tab's history.");
 
 export const clickSchema = z
   .object({
     type: z.literal("CLICK"),
-    reasoning: z.string().describe("Why are you performing this action?"),
     x: z.number().describe("X coordinate for click"),
     y: z.number().describe("Y coordinate for click"),
     options: z
@@ -69,7 +64,6 @@ export const clickSchema = z
 export const doubleClickSchema = z
   .object({
     type: z.literal("DOUBLE_CLICK"),
-    reasoning: z.string().describe("Why are you performing this action?"),
     x: z.number().describe("X coordinate for double click"),
     y: z.number().describe("Y coordinate for double click"),
   })
@@ -78,7 +72,6 @@ export const doubleClickSchema = z
 export const scrollSchema = z
   .object({
     type: z.literal("SCROLL"),
-    reasoning: z.string().describe("Why are you performing this action?"),
     x: z.number().describe("X coordinate to scroll to"),
     y: z.number().describe("Y coordinate to scroll to"),
     deltaX: z.number().describe("Amount to scroll horizontally"),
@@ -91,7 +84,6 @@ export const scrollSchema = z
 export const dragAndDropSchema = z
   .object({
     type: z.literal("DRAG_AND_DROP"),
-    reasoning: z.string().describe("Why are you performing this action?"),
     fromX: z.number().describe("Start X coordinate"),
     fromY: z.number().describe("Start Y coordinate"),
     toX: z.number().describe("End X coordinate"),
@@ -115,7 +107,6 @@ export const dragAndDropSchema = z
 export const typeTextSchema = z
   .object({
     type: z.literal("TYPE_TEXT"),
-    reasoning: z.string().describe("Why are you performing this action?"),
     text: z.string().describe("Text to type"),
     options: z
       .object({
@@ -131,7 +122,6 @@ export const typeTextSchema = z
 export const keyPressSchema = z
   .object({
     type: z.literal("KEY_PRESS"),
-    reasoning: z.string().describe("Why are you performing this action?"),
 
     key: z.string().describe("Key to press"),
     options: z
@@ -151,7 +141,6 @@ export const keyPressSchema = z
 export const captureScreenshotSchema = z
   .object({
     type: z.literal("CAPTURE_SCREENSHOT"),
-    reasoning: z.string().describe("Why are you performing this action?"),
     options: z
       .object({
         fullPage: z
@@ -166,6 +155,12 @@ export const captureScreenshotSchema = z
     "Captures a screenshot of the page. Returns a base64-encoded string of the PNG image."
   );
 
+export const waitSchema = z
+  .object({
+    type: z.literal("WAIT"),
+  })
+  .describe("Waits for a specified amount of time.");
+
 export const browserAgentActionSchemaByName = {
   CAPTURE_SCREENSHOT: captureScreenshotSchema,
   CLICK: clickSchema,
@@ -179,6 +174,7 @@ export const browserAgentActionSchemaByName = {
   TYPE_TEXT: typeTextSchema,
   // WAIT_FOR_LOAD_STATE: waitForLoadStateSchema,
   SCROLL: scrollSchema,
+  WAIT: waitSchema,
 } as const;
 
 export const browserAgentActionSchema = z.discriminatedUnion("type", [
@@ -194,6 +190,7 @@ export const browserAgentActionSchema = z.discriminatedUnion("type", [
   typeTextSchema,
   // waitForLoadStateSchema,
   scrollSchema,
+  waitSchema,
 ]);
 
 export type BrowserAgentAction = z.infer<typeof browserAgentActionSchema>;
