@@ -124,8 +124,9 @@ export type AgentActionWebMessage = WebMessage<
       action: "getPageContent";
     }
   | {
-      action: "getElementSelectorFromXPath";
-      xPath: string;
+      action: "scrollDocument";
+      deltaX: number;
+      deltaY: number;
     }
 >;
 

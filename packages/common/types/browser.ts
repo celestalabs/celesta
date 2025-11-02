@@ -155,6 +155,14 @@ export const captureScreenshotSchema = z
     "Captures a screenshot of the page. Returns a base64-encoded string of the PNG image."
   );
 
+export const scrollDocumentSchema = z.object({
+  type: z.literal("SCROLL_DOCUMENT"),
+  direction: z
+    .enum(["up", "down", "left", "right"])
+    .describe("Direction to scroll the document"),
+  magnitude: z.number().describe("Amount to scroll in the specified direction"),
+});
+
 export const waitSchema = z
   .object({
     type: z.literal("WAIT"),
@@ -175,6 +183,7 @@ export const browserAgentActionSchemaByName = {
   // WAIT_FOR_LOAD_STATE: waitForLoadStateSchema,
   SCROLL: scrollSchema,
   WAIT: waitSchema,
+  SCROLL_DOCUMENT: scrollDocumentSchema,
 } as const;
 
 export const browserAgentActionSchema = z.discriminatedUnion("type", [
@@ -191,6 +200,7 @@ export const browserAgentActionSchema = z.discriminatedUnion("type", [
   // waitForLoadStateSchema,
   scrollSchema,
   waitSchema,
+  scrollDocumentSchema,
 ]);
 
 export type BrowserAgentAction = z.infer<typeof browserAgentActionSchema>;

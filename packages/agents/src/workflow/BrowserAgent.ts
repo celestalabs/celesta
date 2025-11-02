@@ -194,10 +194,16 @@ export class BrowserAgent extends BaseAgent {
       }
 
       case "scroll_document": {
-        const direction = (args.direction as string).toLowerCase();
+        const direction = (args.direction as string).toLowerCase() as
+          | "up"
+          | "down"
+          | "left"
+          | "right";
+        const magnitude = (args.magnitude as number) ?? 999;
         return {
-          type: "KEY_PRESS",
-          key: direction === "up" ? "PageUp" : "PageDown",
+          type: "SCROLL_DOCUMENT",
+          direction,
+          magnitude,
         };
       }
 
@@ -301,7 +307,7 @@ export class BrowserAgent extends BaseAgent {
 
   async onInitialize() {
     // Refactored to use Google GenAI Computer Use
-    const maxSteps = 20;
+    const maxSteps = 100;
     let currentStep = 0;
     let completed = false;
     let finalMessage = "";

@@ -1,7 +1,9 @@
 import { logger, type BrowserAgentAction } from "@celesta/common";
 import { registerGlobalForDevMode } from "./devModeGlobals";
 import { type Protocol } from "./devToolsProtocol";
+import { getActiveTabId } from "./getActiveTabId";
 import { waitMs } from "./waitMs";
+import { sendWebMessage, type AgentActionWebMessage } from "./webMessages";
 
 const log = logger("browserAgentActions");
 
@@ -154,7 +156,7 @@ async function normalizeCoordinates(
   tabId: number,
   { x, y }: Pair
 ): Promise<Pair> {
-  const { cssContentSize } =
+  const { cssLayoutViewport } =
     await sendCommand<Protocol.Page.GetLayoutMetricsResponse>(
       tabId,
       "Page.getLayoutMetrics"
@@ -163,8 +165,8 @@ async function normalizeCoordinates(
   x = Math.min(999, Math.max(0, x));
   y = Math.min(999, Math.max(0, y));
   return {
-    x: Math.floor((x / 1000) * cssContentSize.width),
-    y: Math.floor((y / 1000) * cssContentSize.height),
+    x: Math.floor((x / 1000) * cssLayoutViewport.clientWidth),
+    y: Math.floor((y / 1000) * cssLayoutViewport.clientHeight),
   };
 }
 
@@ -519,7 +521,7 @@ export const browserAgentActions = {
 
     if (options?.fullPage) {
       // 1. Get layout metrics for the full page
-      const { cssContentSize } =
+      const { cssLayoutViewport } =
         await sendCommand<Protocol.Page.GetLayoutMetricsResponse>(
           tabId,
           "Page.getLayoutMetrics"
@@ -527,8 +529,8 @@ export const browserAgentActions = {
 
       // 2. Override device metrics to match full page
       await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
-        width: cssContentSize.width,
-        height: cssContentSize.height,
+        width: cssLayoutViewport.clientWidth,
+        height: cssLayoutViewport.clientHeight,
         deviceScaleFactor: 1,
         mobile: false,
       } as Protocol.Emulation.SetDeviceMetricsOverrideRequest);
@@ -566,6 +568,38 @@ export const browserAgentActions = {
     await waitMs(5000);
     return { success: true, info: "Waited for 5 seconds" };
   },
+  async SCROLL_DOCUMENT(tabId: number, { direction, magnitude }) {
+    let deltaX = 0;
+    let deltaY = 0;
+
+    if (direction === "up" || direction === "down") {
+      deltaY = magnitude;
+    } else {
+      deltaX = magnitude;
+    }
+
+    const normalized = await normalizeCoordinates(tabId, {
+      x: deltaX,
+      y: deltaY,
+    });
+
+    deltaY = direction === "up" ? -normalized.y : normalized.y;
+    deltaX = direction === "left" ? -normalized.x : normalized.x;
+
+    await sendWebMessage(
+      ["tabs", tabId],
+      {
+        __isWebMessage: true,
+        __webMessageType: "AgentActionWebMessage",
+        action: "scrollDocument",
+        deltaX,
+        deltaY,
+      } satisfies AgentActionWebMessage,
+      false
+    );
+
+    return { message: "Attempted to scroll document" };
+  },
 } as const satisfies {
   [K in BrowserAgentAction["type"]]: (
     tabId: number,
@@ -575,6 +609,13 @@ export const browserAgentActions = {
 
 registerGlobalForDevMode("debuggerUtils", {
   attachDebugger,
+  getActiveTabId: async () => {
+    const tabs = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    return tabs[0]?.id!;
+  },
 });
 
 registerGlobalForDevMode("browserAgentActions", browserAgentActions);

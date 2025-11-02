@@ -61,6 +61,10 @@ export default defineContentScript({
                 : "The page is either blank or not loaded.",
           } satisfies ResponseWebMessage);
         }
+        case "scrollDocument": {
+          console.log("Processing scrollDocument action");
+          window.scrollBy(message.deltaX, message.deltaY);
+        }
       }
     });
   },
