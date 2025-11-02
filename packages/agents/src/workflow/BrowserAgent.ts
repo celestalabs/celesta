@@ -314,7 +314,7 @@ export class BrowserAgent extends BaseAgent {
     const systemPrompt = `You are a general-purpose browser agent whose job is to accomplish the user's goal.
 Today's date is ${new Date().toISOString().split("T")[0]}.
 You have access to a search tool; however, in most cases you should operate within the page/url the user has provided. ONLY use the search tool if you're stuck or the task is impossible to complete within the current page.
-You will be given a goal and a list of steps that have been taken so far. Avoid requesting the user for input as much as possible. Good luck!
+You will be given a goal and a list of steps that have been taken so far. Avoid requesting the user for input as much as possible. You should output text as your reasoning for your decisionmaking process. However, the user is not able to respond through this channel. If you need to ask the user to perform an intermediary task or a question regarding the goal, call relevant functions to communicate with the user. Good luck!
 `;
 
     // Initial conversation history
@@ -354,6 +354,13 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
                 computerUse: {
                   environment: Environment.ENVIRONMENT_BROWSER,
                 },
+                // functionDeclarations: [
+                //   {
+                //     name: "system__ask_question",
+                //     description:
+                //       "Ask the user a question to clarify the goal or get more information, or to continue through a task which you cannot complete. Use this function only if absolutely necessary, as the agent should try to complete the goal autonomously as much as possible.",
+                //   },
+                // ],
               },
             ],
           },
