@@ -73,8 +73,7 @@ Respond to the user's message following these guidelines. Use the browser contex
 export class ChatAgent extends MastraBaseAgent {
   constructor({ messageContext }: ChatAgentConfig) {
     //@TODO figure out if this messes up mastra logging/observe etc...
-    const tools =
-      toolStore.getTools(messageContext.clientId, messageContext, "chat") ?? {};
+    const tools = toolStore.getTools(messageContext, "chat") ?? {};
     super({
       messageContext,
       agent: buildChatAgent(tools),

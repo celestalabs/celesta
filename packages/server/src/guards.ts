@@ -55,6 +55,11 @@ export function isFrontendWSMessage(msg: any): msg is FrontendWSMessage {
         typeof msg.response === "object"
       );
     }
+
+    case "REQUEST_WORKFLOW": {
+      return typeof msg.prompt === "string";
+    }
+
     default:
       return false;
   }

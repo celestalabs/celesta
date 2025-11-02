@@ -51,9 +51,15 @@ export type FrontendWSResponseMessage =
       timestamp: number;
     };
 
+export type FrontendWSRequestMessage = {
+  type: "REQUEST_WORKFLOW";
+  prompt: string;
+};
+
 export type FrontendWSMessage =
   | FrontendWSUserMessage
-  | FrontendWSResponseMessage;
+  | FrontendWSResponseMessage
+  | FrontendWSRequestMessage;
 
 export type AgentMessageType = "error" | "final" | "chat";
 
@@ -65,7 +71,7 @@ export type ServerWSAgentMessage = {
   timestamp: number;
 };
 
-export type ServerToolWSMessage =
+export type ServerWSToolMessage =
   | {
       type: "TOOL_INVOCATION";
       toolCallId: ToolCallId;
@@ -82,7 +88,7 @@ export type ServerToolWSMessage =
       timestamp: number;
     };
 
-export type ServerRequestWSMessage =
+export type ServerWSRequestMessage =
   | {
       type: "REQUEST_CREDENTIALS";
       integrationName: string;
@@ -141,8 +147,8 @@ export type ServerWSWorkflowMessage =
 
 export type ServerWSMessage =
   | ServerWSAgentMessage
-  | ServerRequestWSMessage
-  | ServerToolWSMessage
+  | ServerWSRequestMessage
+  | ServerWSToolMessage
   | ServerWSWorkflowMessage
   | {
       type: "CONTEXT_CREATED";

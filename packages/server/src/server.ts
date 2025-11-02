@@ -75,7 +75,7 @@ agentServer.on("connection", async (ws) => {
   });
 
   ws.on("message", (message) => {
-    log(`Received raw message from ${clientId}:`, message.toString());
+    // log(`Received raw message from ${clientId}:`, message.toString());
 
     try {
       frontendMessageHandler(clientId, message);

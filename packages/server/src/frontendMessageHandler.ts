@@ -1,5 +1,6 @@
-import { type ClientId, logger } from "@celesta/common";
+import { type ClientId, generateId, logger, ts } from "@celesta/common";
 import { sessionManager } from "@celesta/session";
+import { CoordinationAgent } from "../../agents/src/workflow/CoordinationAgent.js";
 import { isFrontendWSMessage } from "./guards.js";
 
 const log = logger("frontendMessageHandler");
@@ -64,12 +65,42 @@ export function frontendMessageHandler(clientId: ClientId, rawMessage: any) {
     }
 
     case "PROVIDE_BROWSER_AGENT_ACTION": {
-      log(`Browser agent action response from ${clientId}`);
+      // log(`Browser agent action response from ${clientId}`);
       sessionManager.triggerRequestResponse(
         clientId,
         message.requestId,
         message
       );
+      break;
+    }
+
+    case "REQUEST_WORKFLOW": {
+      log(`Workflow request from ${clientId}: ${message.prompt}`);
+
+      const contextId = generateId("WORKFLOW");
+
+      sessionManager
+        .createContext({
+          clientId,
+          contextId,
+          createHandlerAgent: async (messageContext) =>
+            new CoordinationAgent({
+              messageContext,
+              prompt: message.prompt,
+            }),
+        })
+        .then(() =>
+          sessionManager.sendMessage(
+            clientId,
+            ts({
+              type: "WORKFLOW_STATUS_CHANGED",
+              workflowId: contextId,
+              prompt: message.prompt,
+              status: "running",
+            })
+          )
+        );
+
       break;
     }
 

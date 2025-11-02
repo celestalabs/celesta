@@ -12,11 +12,10 @@ class ToolStore {
   }
 
   getTools(
-    clientId: ClientId,
     messageContext: MessageContext,
     mode: ToolMode
   ): ToolSet | undefined {
-    return this.tools.get(clientId)?.(messageContext)?.[mode];
+    return this.tools.get(messageContext.clientId)?.(messageContext)?.[mode];
   }
 }
 

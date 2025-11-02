@@ -24,7 +24,6 @@ type BrowserAgentConfig = {
 
 export class BrowserAgent extends BaseAgent {
   goalDescription: string;
-  model: string = "gemini-pro";
 
   constructor({ messageContext, goalDescription }: BrowserAgentConfig) {
     super(messageContext);
@@ -32,30 +31,25 @@ export class BrowserAgent extends BaseAgent {
   }
 
   private async processResponse(response: GenerateContentResponse): Promise<{
-    actions: BrowserAgentAction[];
+    actions: [FunctionCall, BrowserAgentAction[]][];
     message: string;
     completed: boolean;
-    functionCalls: FunctionCall[];
   }> {
-    const actions: BrowserAgentAction[] = [];
+    const actions = [] as [FunctionCall, BrowserAgentAction[]][];
+
     let message = "";
-    const functionCalls: FunctionCall[] = [];
 
     if (!response.candidates || response.candidates.length === 0) {
       return {
         actions: [],
-        message: "No candidates in response",
+        message: "",
         completed: true,
-        functionCalls: [],
       };
     }
     const candidate = response.candidates[0];
 
     // Log the raw response for debugging
-    log(
-      `Raw response from Google:`,
-      JSON.stringify(candidate.content, null, 2)
-    );
+    log(`Raw response from Google:`, candidate.content);
 
     // Process all parts - Google can send multiple function calls
     for (const part of candidate.content?.parts ?? []) {
@@ -64,9 +58,11 @@ export class BrowserAgent extends BaseAgent {
         log(`Reasoning: ${part.text}`);
       }
       if (part.functionCall) {
-        functionCalls.push(part.functionCall);
+        const functionCall = part.functionCall;
+        const actionsForCall: BrowserAgentAction[] = [];
+
         log(
-          `Found function call: ${part.functionCall.name} with args`,
+          `Found function call: ${part.functionCall.name}:`,
           part.functionCall.args
         );
 
@@ -80,7 +76,7 @@ export class BrowserAgent extends BaseAgent {
           ) {
             log(`Adding action: ${JSON.stringify(action)}`);
             // First add a click action at the same coordinates
-            actions.push({
+            actionsForCall.push({
               type: "CLICK",
               x: action.x,
               y: action.y,
@@ -90,50 +86,49 @@ export class BrowserAgent extends BaseAgent {
             // If clear_before_typing is true (default), add a select all
             if (action.clearBeforeTyping) {
               // Select all text in the field
-              actions.push({
+              actionsForCall.push({
                 type: "KEY_PRESS",
                 key: "ControlOrMeta+A",
               });
-              actions.push({
+              actionsForCall.push({
                 type: "KEY_PRESS",
                 key: "Backspace",
               });
             }
 
             // Then add the type action
-            actions.push(action);
+            actionsForCall.push(action);
             if (action.pressEnter) {
-              actions.push({
+              actionsForCall.push({
                 type: "KEY_PRESS",
                 key: "Enter",
               });
             }
           } else {
-            actions.push(action);
+            actionsForCall.push(action);
           }
         } else {
           log(
             `Could not convert function call to action: ${part.functionCall.name}`
           );
         }
+
+        actions.push([functionCall, actionsForCall]);
       }
     }
 
     // Log summary of what we found
-    log(
-      `Processed response: ${actions.length} actions, ${functionCalls.length} function calls`
-    );
+    log(`Processed response: ${actions.length} function calls`);
 
     // Check if task is completed
     const completed =
-      functionCalls.length === 0 ||
+      actions.length === 0 ||
       (candidate.finishReason && candidate.finishReason !== "STOP");
 
     return {
       actions,
       message: message.trim(),
       completed: completed ?? false,
-      functionCalls,
     };
   }
 
@@ -347,7 +342,7 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
 
         // Generate content using Gemini Computer Use
         const response = await client.models.generateContent({
-          model: this.model,
+          model: "gemini-2.5-computer-use-preview-10-2025",
           contents: history,
           config: {
             temperature: 1,
@@ -394,45 +389,40 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
 
         const processedResponse = await this.processResponse(response);
 
-        this.sendChat(processedResponse.message);
+        if (processedResponse.message !== "") {
+          this.sendChat(processedResponse.message);
+        }
 
         const functionResponses: Part[] = [];
 
-        for (let i = 0; i < processedResponse.actions.length; i++) {
-          const action = processedResponse.actions[i];
-          const functionCall = processedResponse.functionCalls[i];
+        for (const [functionCall, actions] of processedResponse.actions) {
+          log(`Function call to execute:`, functionCall, actions);
 
-          log(`Executing action:`, JSON.stringify(action));
+          if (actions.length > 0) {
+            for (const action of actions) {
+              log(`Executing action:`, action);
+              const actionRequestId = generateId("REQUEST");
 
-          const actionRequestId = generateId("REQUEST");
+              const waitForActionResponse =
+                this.messageContext.generalExpectResponse(actionRequestId);
 
-          const waitForActionResponse =
-            this.messageContext.generalExpectResponse(actionRequestId);
+              this.messageContext.generalSendMessage(
+                ts({
+                  type: "REQUEST_BROWSER_AGENT_ACTION",
+                  requestId: actionRequestId,
+                  contextId: this.messageContext.contextId,
+                  action,
+                })
+              );
 
-          this.messageContext.generalSendMessage(
-            ts({
-              type: "REQUEST_BROWSER_AGENT_ACTION",
-              requestId: actionRequestId,
-              contextId: this.messageContext.contextId,
-              action,
-            })
-          );
-
-          const actionResponse = await waitForActionResponse;
-          log(`Action response:`, actionResponse);
-
-          if (actionResponse.type === "PROVIDE_BROWSER_AGENT_ACTION") {
-            actionResponse.response;
-          }
-
-          // Add a delay between actions to ensure they complete properly
-          // Longer delay for typing actions to ensure fields are ready
-          if (i < processedResponse.actions.length - 1) {
-            const nextAction = processedResponse.actions[i + 1];
-            const isTypingAction =
-              action.type === "TYPE_TEXT" || nextAction.type === "TYPE_TEXT";
-            const delay = isTypingAction ? 500 : 200;
-            await new Promise((resolve) => setTimeout(resolve, delay));
+              const actionResponse = await waitForActionResponse;
+              log(`Action response:`, actionResponse);
+              await new Promise((resolve) => setTimeout(resolve, 300)); // Small delay between actions
+            }
+          } else {
+            log(
+              `No actions to execute for function call: ${functionCall.name}`
+            );
           }
 
           const screenshotRequestId = generateId("REQUEST");
@@ -456,6 +446,8 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
             "base64" in screenshotResponse.response &&
             "pageUrl" in screenshotResponse.response
           ) {
+            console.log("Received screenshot response", functionCall);
+
             const functionResponsePart: Part = {
               functionResponse: {
                 name: functionCall.name,
@@ -479,6 +471,9 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
                 ],
               },
             };
+
+            log("Response to", functionCall.name, functionResponsePart);
+
             functionResponses.push(functionResponsePart);
           }
         }
@@ -487,6 +482,7 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
           role: "user",
           parts: functionResponses,
         });
+
         completed = processedResponse.completed;
         currentStep++;
       }

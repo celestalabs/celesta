@@ -161,7 +161,7 @@ const App = React.memo(() => {
         {isChatId(currentView) ? (
           <AssistantView sendMessage={sendMessage} />
         ) : currentView === "WORKFLOW_LIST" ? (
-          <WorkflowListView />
+          <WorkflowListView sendMessage={sendMessage} />
         ) : (
           <WorkflowView sendMessage={sendMessage} />
         )}

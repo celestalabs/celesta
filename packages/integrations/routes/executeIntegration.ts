@@ -4,12 +4,15 @@ import {
   isIntegrationName,
   isNonPieceIntegrationName,
   isPieceName,
+  logger,
 } from "@celesta/common";
 import { executeCustomIntegration } from "../integrations/executeCustomIntegration.ts";
 import { readIntegrationMetadata } from "../integrations/integrationMetadata.ts";
 import { executePieceAction } from "../pieces/executePieceAction.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/TypedFetcher.ts";
+
+const log = logger("executeIntegration");
 
 /**
  * Get server-side API key for integrations that don't require user auth
@@ -43,6 +46,8 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
   body,
 }) => {
   const { integrationName, actionName, props, auth, clientId } = body;
+
+  log("Received execute integration request:", body);
 
   // Basic validation
   if (

@@ -16,6 +16,7 @@ import {
   getMetadataFromToolSet,
   type ToolMetadata,
 } from "../utils/toolMetadata.js";
+import { toolStore } from "../utils/toolStore.js";
 import { ExecutionAgent } from "./ExecutionAgent.js";
 import { SynthesisAgent } from "./SynthesisAgent.js";
 
@@ -24,7 +25,6 @@ const log = logger("CoordinationAgent");
 type CoordinationAgentConfig = {
   prompt: string;
   messageContext: MessageContext;
-  tools: ToolSet;
 };
 
 const NextTaskSchema = z.discriminatedUnion("shouldContinue", [
@@ -65,53 +65,64 @@ export class CoordinationAgent extends BaseAgent {
   private processedTasks: WorkflowTask[] = [];
   private processedTaskResults: WorkflowTaskResult[] = [];
 
-  constructor({ prompt, messageContext, tools }: CoordinationAgentConfig) {
+  constructor({ prompt, messageContext }: CoordinationAgentConfig) {
     log("Hello", prompt);
     super(messageContext);
     this.prompt = prompt;
-    this.tools = {
-      ...tools,
-      system__ask_user_question: tool({
-        description:
-          "Ask the user a question, to clarify uncertainties or doubts.",
-        inputSchema: z.object({
-          question: z.string().describe("The question to ask the user."),
-        }),
-        execute: async (input) => {
-          try {
-            const { question } = input;
-            const answer =
-              await this.messageContext.retrieveQuestionResponse(question);
-            return answer;
-          } catch (error) {
-            return "The user didn't respond in time. " + error;
-          }
-        },
+
+    // TODO: super chopped conversion from mastra tool to ai sdk tool for compat
+    // DELETE when convert to mastra
+    const mastraTools = toolStore.getTools(messageContext, "workflow") ?? {};
+
+    for (const [toolName, toolInstance] of Object.entries(mastraTools)) {
+      this.tools[toolName] = tool({
+        description: toolInstance.description,
+        inputSchema: toolInstance.inputSchema,
+        execute: (input) => toolInstance.execute?.({ context: input } as any),
+      });
+    }
+
+    this.tools["system__ask_user_question"] = tool({
+      description:
+        "Ask the user a question, to clarify uncertainties or doubts.",
+      inputSchema: z.object({
+        question: z.string().describe("The question to ask the user."),
       }),
-      system__get_previous_task_results: tool({
-        description:
-          "Retrieve data and tool call output from a previously executed task.",
-        inputSchema: z.object({
-          taskSlug: z
-            .string()
-            .describe(
-              "The slug identifier of the task whose data is to be retrieved."
-            ),
-        }),
-        execute: (input) => {
-          log("Getting previous task results for slug:", input.taskSlug);
-          const { taskSlug } = input;
-          const taskResult = this.processedTaskResults.find(
-            (result) => result.taskSlug === taskSlug
-          );
-          if (taskResult) {
-            return taskResult;
-          } else {
-            return `No data found for task with slug: ${taskSlug}`;
-          }
-        },
+      execute: async (input) => {
+        try {
+          const { question } = input;
+          const answer =
+            await this.messageContext.retrieveQuestionResponse(question);
+          return answer;
+        } catch (error) {
+          return "The user didn't respond in time. " + error;
+        }
+      },
+    });
+
+    this.tools["system__get_previous_task_results"] = tool({
+      description:
+        "Retrieve data and tool call output from a previously executed task.",
+      inputSchema: z.object({
+        taskSlug: z
+          .string()
+          .describe(
+            "The slug identifier of the task whose data is to be retrieved."
+          ),
       }),
-    };
+      execute: (input) => {
+        log("Getting previous task results for slug:", input.taskSlug);
+        const { taskSlug } = input;
+        const taskResult = this.processedTaskResults.find(
+          (result) => result.taskSlug === taskSlug
+        );
+        if (taskResult) {
+          return taskResult;
+        } else {
+          return `No data found for task with slug: ${taskSlug}`;
+        }
+      },
+    });
   }
 
   private get workflowStatus() {
@@ -323,17 +334,9 @@ If all necessary tasks are complete, set shouldContinue to false.`,
 
     this.processedTasks.push(task);
 
-    const tools: ToolSet = Object.fromEntries(
-      [
-        ...task.tools,
-        "system__get_previous_task_results",
-        "system__ask_user_question",
-      ].map((toolName) => [toolName, this.tools[toolName]])
-    );
-
     const executionAgent = new ExecutionAgent({
       messageContext: this.messageContext,
-      tools,
+      tools: this.tools,
       task,
       taskResults: this.processedTaskResults,
     });
