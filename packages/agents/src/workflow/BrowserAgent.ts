@@ -306,6 +306,8 @@ export class BrowserAgent extends BaseAgent {
   }
 
   async onInitialize() {
+    log(`Initializing BrowserAgent with goal: ${this.goalDescription}`);
+
     // Refactored to use Google GenAI Computer Use
     const maxSteps = 100;
     let currentStep = 0;
@@ -375,10 +377,9 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
         // Add model response to history
         if (response.candidates && response.candidates[0]) {
           // Sanitize any out-of-range coordinates in function calls before adding to history
-          const sanitizedContent = JSON.parse(
-            JSON.stringify(response.candidates[0].content)
-          );
-          if (sanitizedContent.parts) {
+          const sanitizedContent = response.candidates[0].content;
+
+          if (sanitizedContent?.parts) {
             for (const part of sanitizedContent.parts) {
               if (part.functionCall?.args) {
                 if (
@@ -397,7 +398,7 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
             }
           }
 
-          history.push(sanitizedContent);
+          history.push(sanitizedContent!);
         }
 
         const processedResponse = await this.processResponse(response);

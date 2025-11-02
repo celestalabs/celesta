@@ -11,6 +11,12 @@ import { gmailIntegration } from "./gmail/gmailIntegration.ts";
 import { calendarIntegration } from "./google-calendar/calendarIntegration.ts";
 import { webSearchIntegration } from "./web-search/webSearchIntegration.ts";
 
+export type ClientContext = {
+  clientId: ClientId;
+  contextId: ContextId;
+  toolCallId: ToolCallId;
+};
+
 export type IntegrationMetadata = {
   name: string;
   description: string;

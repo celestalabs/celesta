@@ -135,6 +135,8 @@ const App = React.memo(() => {
         })
       );
     },
+
+    BROWSER_AGENT_INITIALIZED: () => {},
   });
 
   return (

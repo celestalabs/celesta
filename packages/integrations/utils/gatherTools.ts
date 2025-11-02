@@ -42,12 +42,16 @@ export async function gatherTools(): Promise<
           execute: wrappedToolExecutor<ToolExecutionContext, object>(
             messageContext,
             toolName
-          )(async ({ context }) => {
+          )(async ({ context }, toolCallId) => {
             log("Executing tool:", toolName, "context:", context);
 
             return ExecuteIntegrationHandler({
               body: {
-                clientId: messageContext.clientId,
+                context: {
+                  clientId: messageContext.clientId,
+                  contextId: messageContext.contextId,
+                  toolCallId,
+                },
                 integrationName,
                 actionName: action.name,
                 props: context as Record<string, unknown>,

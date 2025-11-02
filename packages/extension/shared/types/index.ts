@@ -1,6 +1,7 @@
 import type {
   AgentMessageType,
   RequestId,
+  ToolCallId,
   WorkflowId,
   WorkflowTaskStatus,
 } from "@celesta/common";
@@ -8,7 +9,13 @@ import type {
 export type UIMessageRepr =
   | { type: "user"; content: string }
   | { type: "agent"; content: string; messageType: AgentMessageType }
-  | { type: "tool"; toolName: string; input: string; output: string | null }
+  | {
+      type: "tool";
+      toolCallId: ToolCallId;
+      toolName: string;
+      input: string;
+      output: string | null;
+    }
   | { type: "workflow-request"; prompt: string; requestId: RequestId }
   | {
       type: "workflow-task";

@@ -6,6 +6,8 @@ import {
   type RequestId,
   ts,
   logger,
+  type ToolCallId,
+  type ContextId,
 } from "@celesta/common";
 import { sessionManager } from "@celesta/session";
 
@@ -54,9 +56,11 @@ class BrowserManager {
 
   initiateBrowserAgent(
     clientId: ClientId,
+    contextId: ContextId,
+    toolCallId: ToolCallId,
     goalDescription: string
   ): ReturnType<BrowserAgent["onInitialize"]> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const browserAgentId = generateId("BROWSER_AGENT");
 
       log(
@@ -66,7 +70,7 @@ class BrowserManager {
         goalDescription
       );
 
-      sessionManager.createContext<BrowserAgent>({
+      await sessionManager.createContext<BrowserAgent>({
         clientId,
         contextId: browserAgentId,
         createHandlerAgent: async (messageContext) =>
@@ -77,6 +81,16 @@ class BrowserManager {
         handleAfterInitialize: (response) =>
           response.success ? resolve(response) : reject(response),
       });
+
+      sessionManager.sendMessage(
+        clientId,
+        ts({
+          type: "BROWSER_AGENT_INITIALIZED",
+          contextId,
+          browserAgentId,
+          toolCallId,
+        })
+      );
     });
   }
 }

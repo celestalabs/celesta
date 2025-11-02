@@ -1,11 +1,11 @@
 import { browserManager } from "@celesta/browser";
 import {
   type BrowserContextAction,
-  type ClientId,
   NonPieceIntegrationName,
 } from "@celesta/common";
 import { executeGmailAction } from "./gmail/gmailIntegration.ts";
 import { executeCalendarAction } from "./google-calendar/calendarIntegration.ts";
+import type { ClientContext } from "./integrationMetadata.ts";
 import { executeWebSearchAction } from "./web-search/webSearchIntegration.ts";
 
 export async function executeCustomIntegration(
@@ -13,7 +13,7 @@ export async function executeCustomIntegration(
   actionName: string,
   props: object,
   auth: { access_token: string } | null,
-  clientId: ClientId
+  context: ClientContext
 ): Promise<{ success: true; data: any } | { success: false; error: string }> {
   try {
     let result: any;
@@ -78,7 +78,10 @@ export async function executeCustomIntegration(
         }
 
         try {
-          const result = await browserManager.executeAction(clientId, action);
+          const result = await browserManager.executeAction(
+            context.clientId,
+            action
+          );
           return { success: true, data: result };
         } catch (error) {
           return {
@@ -92,7 +95,9 @@ export async function executeCustomIntegration(
 
       case NonPieceIntegrationName.AGENTIC_BROWSING: {
         return browserManager.initiateBrowserAgent(
-          clientId,
+          context.clientId,
+          context.contextId,
+          context.toolCallId,
           (props as any).goalDescription
         );
       }

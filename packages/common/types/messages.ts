@@ -1,6 +1,12 @@
 import type { ModelMessage } from "ai";
 import type { BrowserAgentAction, BrowserContextAction } from "./browser.js";
-import type { ContextId, RequestId, ToolCallId, WorkflowId } from "./ids.js";
+import type {
+  BrowserAgentId,
+  ContextId,
+  RequestId,
+  ToolCallId,
+  WorkflowId,
+} from "./ids.js";
 import type {
   UIWorkflowTask,
   WorkflowMetadata,
@@ -143,7 +149,14 @@ export type ServerWSWorkflowMessage =
     } & (
       | ({ status: "pending" } & Omit<UIWorkflowTask, "type">)
       | { status: Exclude<WorkflowTaskStatus, "pending"> }
-    ));
+    ))
+  | {
+      type: "BROWSER_AGENT_INITIALIZED";
+      contextId: ContextId;
+      browserAgentId: BrowserAgentId;
+      toolCallId: ToolCallId;
+      timestamp: number;
+    };
 
 export type ServerWSMessage =
   | ServerWSAgentMessage

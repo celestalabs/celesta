@@ -1,5 +1,4 @@
 import {
-  type ClientId,
   type IntegrationName,
   isIntegrationName,
   isNonPieceIntegrationName,
@@ -7,7 +6,10 @@ import {
   logger,
 } from "@celesta/common";
 import { executeCustomIntegration } from "../integrations/executeCustomIntegration.ts";
-import { readIntegrationMetadata } from "../integrations/integrationMetadata.ts";
+import {
+  readIntegrationMetadata,
+  type ClientContext,
+} from "../integrations/integrationMetadata.ts";
 import { executePieceAction } from "../pieces/executePieceAction.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
 import { type TypedFetcher } from "../utils/TypedFetcher.ts";
@@ -34,7 +36,7 @@ export type ExecuteIntegrationHandler = TypedFetcher<
     result: unknown;
   },
   /* Body */ {
-    clientId: ClientId;
+    context: ClientContext;
     integrationName: string;
     actionName: string;
     props: object;
@@ -45,7 +47,7 @@ export type ExecuteIntegrationHandler = TypedFetcher<
 export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
   body,
 }) => {
-  const { integrationName, actionName, props, auth, clientId } = body;
+  const { integrationName, actionName, props, auth, context } = body;
 
   log("Received execute integration request:", body);
 
@@ -122,7 +124,7 @@ export const ExecuteIntegrationHandler: ExecuteIntegrationHandler = async ({
       actionName,
       props,
       finalAuth,
-      clientId
+      context
     );
 
     return response.success

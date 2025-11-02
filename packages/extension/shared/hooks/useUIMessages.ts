@@ -47,6 +47,7 @@ export function useUIMessages(contextId: ContextId) {
 
         result.push({
           type: "tool",
+          toolCallId: msg.toolCallId,
           toolName: msg.toolName,
           input: msg.input,
           output: null,

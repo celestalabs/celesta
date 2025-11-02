@@ -184,10 +184,7 @@ class InternalMessageContext<T extends BaseAgent> {
    * Send update message that a tool was called (for UI purposes)
    * Returns handler to send tool result later
    */
-  sendToolInvocationMessage(
-    toolName: string,
-    input: object
-  ): (output: object) => void {
+  sendToolInvocationMessage(toolName: string, input: object) {
     const toolCallId = generateId("TOOL_CALL");
 
     this.generalSendMessage(
@@ -200,15 +197,18 @@ class InternalMessageContext<T extends BaseAgent> {
       })
     );
 
-    return (output: object) => {
-      this.generalSendMessage(
-        ts({
-          type: "TOOL_RESULT",
-          toolCallId,
-          output: JSON.stringify(output),
-          contextId: this.contextId,
-        })
-      );
+    return {
+      handleToolResponse: (output: object) => {
+        this.generalSendMessage(
+          ts({
+            type: "TOOL_RESULT",
+            toolCallId,
+            output: JSON.stringify(output),
+            contextId: this.contextId,
+          })
+        );
+      },
+      toolCallId,
     };
   }
 }
