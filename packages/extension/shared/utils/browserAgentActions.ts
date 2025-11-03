@@ -517,7 +517,7 @@ export const browserAgentActions = {
     }
   },
   async CAPTURE_SCREENSHOT(tabId: number) {
-    await waitMs(1500); // wait a bit for rendering
+    await waitMs(500); // wait a bit for rendering
     // Capture screenshot of the visible viewport
     const { data } = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
       tabId,
@@ -535,7 +535,7 @@ export const browserAgentActions = {
   },
   async WAIT() {
     // Simply wait for 1 second
-    await waitMs(1000);
+    await waitMs(500);
     return { success: true, info: "Waited" };
   },
   async SCROLL_DOCUMENT(tabId: number, { direction, magnitude }) {
