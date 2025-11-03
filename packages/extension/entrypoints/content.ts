@@ -92,38 +92,37 @@ html {
   to { opacity: 0; transform: translate(-50%, -50%) scale(3); }
 }
 
-@keyframes __agent_pulse {
-0% { opacity: 0.6; filter: blur(8px); transform: scale(1); }
-50% { opacity: 1; filter: blur(12px); transform: scale(1.02); }
-100% { opacity: 0.6; filter: blur(8px); transform: scale(1); }
+@property --agent-frame-gradient {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 90%;
 }
 
-@keyframes __agent_gradient_shift {
-0% { background-position: 0% 50%; }
-50% { background-position: 100% 50%; }
-100% { background-position: 0% 50%; }
+@keyframes __agent_gradient_shift  {
+  0% {
+    --agent-frame-gradient: 95%;
+  }
+  50% {
+    --agent-frame-gradient: 90%;
+  }
+  100% {
+    --agent-frame-gradient: 95%;
+  }
 }
 
 .__agent_frame {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.__agent_frame::backdrop {
+  --grad-percent: 90%;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   pointer-events: none;
-  z-index: 2147483647;
-  border-radius: 100px;
-  background: linear-gradient(130deg,
-    rgba(0,255,255,0.5),
-    rgba(120,0,255,0.5),
-    rgba(0,255,180,0.5)
-  );
-  background-size: 300% 300%;
-  animation: __agent_pulse 2s ease-in-out infinite,
-              __agent_gradient_shift 6s linear infinite;
-  mask: 
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  padding: 50px; /* border thickness */
+  z-index: 2147483648;
+  background: radial-gradient(circle,rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0) var(--agent-frame-gradient), #003366 100%);
+  animation: __agent_gradient_shift 1s ease infinite;
 }`;
               return el;
             })(document.createElement("style"))
@@ -145,8 +144,10 @@ html {
 
           // Create the frame overlay
           const frame = document.createElement("div");
+          frame.popover = "manual";
           frame.className = "__agent_frame";
           document.body.appendChild(frame);
+          frame.showPopover();
           break;
         }
       }
