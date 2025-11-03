@@ -1,6 +1,7 @@
 import type {
   BrowserAgentId,
   ContextId,
+  ToolCallId,
   UIWorkflowTask,
   WorkflowId,
   WorkflowMetadata,
@@ -37,6 +38,11 @@ type Store = {
 
   tabIdByBrowserAgent: Partial<Record<BrowserAgentId, number>>;
   addBrowserAgentTabId: (browserAgentId: BrowserAgentId, tabId: number) => void;
+  browserAgentByToolId: Partial<Record<ToolCallId, BrowserAgentId>>;
+  addBrowserAgentToolId: (
+    toolCallId: ToolCallId,
+    browserAgentId: BrowserAgentId
+  ) => void;
 };
 
 export const useStore = create<Store>()((set) => ({
@@ -127,6 +133,16 @@ export const useStore = create<Store>()((set) => ({
       tabIdByBrowserAgent: {
         ...state.tabIdByBrowserAgent,
         [browserAgentId]: tabId,
+      },
+    })),
+
+  browserAgentByToolId: {},
+  addBrowserAgentToolId: (toolCallId, browserAgentId) =>
+    set((state) => ({
+      ...state,
+      browserAgentByToolId: {
+        ...state.browserAgentByToolId,
+        [toolCallId]: browserAgentId,
       },
     })),
 }));

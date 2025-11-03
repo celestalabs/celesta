@@ -431,7 +431,6 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
 
               const actionResponse = await waitForActionResponse;
               log(`Action response:`, actionResponse);
-              await new Promise((resolve) => setTimeout(resolve, 300)); // Small delay between actions
             }
           } else {
             log(

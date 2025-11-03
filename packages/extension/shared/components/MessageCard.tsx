@@ -7,7 +7,8 @@ import {
   isWorkflowId,
 } from "@celesta/common";
 import React from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
+import { useStore } from "../store";
 import { type UIMessageRepr } from "../types";
 import { Button } from "./ui/button";
 import { ButtonGroup } from "./ui/button-group";
@@ -33,8 +34,57 @@ const statusEmojiMap = {
   failed: "❌",
 } satisfies Record<WorkflowTaskStatus, string>;
 
+const markdownComponents: Components = {
+  hr: () => <hr className="my-2 border-t border-muted" />,
+  p: ({ children }) => (
+    <p className="mb-1 text-muted-foreground text-sm">{children}</p>
+  ),
+  h1: ({ children }) => (
+    <h1 className="text-xl font-bold mb-1 text-foreground">{children}</h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="text-lg font-semibold mb-1 text-foreground">{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="text-base font-semibold mb-1 text-foreground">{children}</h3>
+  ),
+  ul: ({ children }) => <ul className="list-disc ml-6 mb-2">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal ml-6 mb-2">{children}</ol>,
+  li: ({ children }) => <li className="mb-1">{children}</li>,
+  code: ({ children }) => (
+    <code className="bg-foreground text-background rounded px-1 py-0.5 font-mono text-sm">
+      {children}
+    </code>
+  ),
+  pre: ({ children }) => (
+    <pre className="bg-foreground text-background rounded p-2 overflow-x-auto mb-2">
+      <code>{children}</code>
+    </pre>
+  ),
+  a: ({ children, href }) => (
+    <a
+      href={href}
+      className="underline text-primary"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote className="border-l-4 border-muted pl-4 italic text-muted-foreground mb-2">
+      {children}
+    </blockquote>
+  ),
+};
+
 export const MessageCard = React.memo(
   ({ message, sendMessage, contextId }: Props) => {
+    const browserAgentByToolId = useStore(
+      (state) => state.browserAgentByToolId
+    );
+    const messagesByContext = useStore((state) => state.messagesByContext);
+
     const handleProvideStartWorkflow = useCallback(
       (requestId: RequestId, yes: boolean) => {
         sendMessage(
@@ -55,7 +105,7 @@ export const MessageCard = React.memo(
       toolName = toolName.split("_").join(" ");
 
       return (
-        <Item variant="muted" size="sm">
+        <Item variant="muted">
           <ItemContent>
             <ItemTitle>
               <span>
@@ -65,6 +115,45 @@ export const MessageCard = React.memo(
                 </span>
               </span>
             </ItemTitle>
+            {browserAgentByToolId[message.toolCallId] != null &&
+              messagesByContext[browserAgentByToolId[message.toolCallId]!] !=
+                null && (
+                <ItemDescription className="text-wrap! flex! flex-col gap-2 overflow-x-hidden">
+                  {messagesByContext[
+                    browserAgentByToolId[message.toolCallId]!
+                  ]!.map((m) => {
+                    if (m.type === "AGENT_MESSAGE") {
+                      return (
+                        <ReactMarkdown
+                          components={markdownComponents}
+                          key={`${m.type}-${m.timestamp}`}
+                        >
+                          {m.data.content as string}
+                        </ReactMarkdown>
+                      );
+                    } else if (
+                      m.type === "REQUEST_BROWSER_AGENT_ACTION" &&
+                      m.action.type !== "CAPTURE_SCREENSHOT"
+                    ) {
+                      return (
+                        <details
+                          key={`${m.type}-${m.timestamp}`}
+                          className="border p-2 rounded"
+                        >
+                          <summary className="capitalize">
+                            <b>
+                              {m.action.type.split("_").join(" ").toLowerCase()}
+                            </b>
+                          </summary>
+                          <pre>
+                            <code>{JSON.stringify(m.action, null, 2)}</code>
+                          </pre>
+                        </details>
+                      );
+                    }
+                  })}
+                </ItemDescription>
+              )}
           </ItemContent>
         </Item>
       );
@@ -152,63 +241,7 @@ export const MessageCard = React.memo(
           <ItemDescription
             className={`${shouldClampLines ? "line-clamp-10!" : "line-clamp-none!"} text-wrap!`}
           >
-            <ReactMarkdown
-              components={{
-                hr: () => <hr className="my-2 border-t border-muted" />,
-                p: ({ children }) => (
-                  <p className="mb-1 text-muted-foreground text-sm">
-                    {children}
-                  </p>
-                ),
-                h1: ({ children }) => (
-                  <h1 className="text-xl font-bold mb-1 text-foreground">
-                    {children}
-                  </h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="text-lg font-semibold mb-1 text-foreground">
-                    {children}
-                  </h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="text-base font-semibold mb-1 text-foreground">
-                    {children}
-                  </h3>
-                ),
-                ul: ({ children }) => (
-                  <ul className="list-disc ml-6 mb-2">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="list-decimal ml-6 mb-2">{children}</ol>
-                ),
-                li: ({ children }) => <li className="mb-1">{children}</li>,
-                code: ({ children }) => (
-                  <code className="bg-foreground text-background rounded px-1 py-0.5 font-mono text-sm">
-                    {children}
-                  </code>
-                ),
-                pre: ({ children }) => (
-                  <pre className="bg-foreground text-background rounded p-2 overflow-x-auto mb-2">
-                    <code>{children}</code>
-                  </pre>
-                ),
-                a: ({ children, href }) => (
-                  <a
-                    href={href}
-                    className="underline text-primary"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {children}
-                  </a>
-                ),
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-muted pl-4 italic text-muted-foreground mb-2">
-                    {children}
-                  </blockquote>
-                ),
-              }}
-            >
+            <ReactMarkdown components={markdownComponents}>
               {message.content}
             </ReactMarkdown>
           </ItemDescription>

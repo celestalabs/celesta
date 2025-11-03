@@ -37,6 +37,9 @@ export function useAgentServer(handlerByType: {
   );
 
   const addBrowserAgentTabId = useStore((state) => state.addBrowserAgentTabId);
+  const addBrowserAgentToolId = useStore(
+    (state) => state.addBrowserAgentToolId
+  );
 
   const handleOpen = useCallback(() => {
     log("WebSocket connection opened");
@@ -108,6 +111,10 @@ export function useAgentServer(handlerByType: {
 
           break;
         }
+        case "BROWSER_AGENT_INITIALIZED": {
+          addBrowserAgentToolId(message.toolCallId, message.browserAgentId);
+          break;
+        }
       }
 
       // Add message to context if applicable (for display)
@@ -132,6 +139,7 @@ export function useAgentServer(handlerByType: {
       createWorkflowTask,
       updateWorkflowTaskStatus,
       addBrowserAgentTabId,
+      addBrowserAgentToolId,
     ]
   );
 
