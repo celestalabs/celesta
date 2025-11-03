@@ -10,12 +10,17 @@ import { type UIMessageRepr } from "../types";
 
 export function useUIMessages(contextId: ContextId) {
   const messagesByContext = useStore((store) => store.messagesByContext);
+  const streamedMessageByContext = useStore(
+    (store) => store.streamedMessageByContext
+  );
   const tasksByWorkflow = useStore((store) => store.tasksByWorkflow);
 
   const messages = messagesByContext[contextId];
   const tasks = isWorkflowId(contextId)
     ? tasksByWorkflow[contextId]
     : undefined;
+
+  const streamedMessage = streamedMessageByContext[contextId];
 
   return useMemo(() => {
     const result: UIMessageRepr[] = [];
@@ -71,6 +76,14 @@ export function useUIMessages(contextId: ContextId) {
       });
     }
 
-    return result;
-  }, [messages, tasks]);
+    if ((streamedMessage?.length ?? 0) > 0) {
+      result.push({
+        type: "agent",
+        content: streamedMessage!,
+        messageType: "chat",
+      });
+    }
+
+    return [result, streamedMessage?.length ?? 0] as const;
+  }, [messages, tasks, streamedMessage]);
 }

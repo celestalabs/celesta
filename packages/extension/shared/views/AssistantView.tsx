@@ -35,10 +35,15 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
     [sendMessage, chatInput]
   );
 
-  const chatMessages = useUIMessages("CHAT");
+  const [chatMessages, streamedMessageLength] = useUIMessages("CHAT");
+
+  const scrollDep = useMemo(
+    () => [chatMessages.length, streamedMessageLength],
+    [chatMessages.length, streamedMessageLength]
+  );
 
   // Auto-scroll logic
-  const scrollRef = useAutoScrollToBottom(chatMessages.length);
+  const scrollRef = useAutoScrollToBottom(scrollDep);
 
   return (
     <>

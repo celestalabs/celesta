@@ -1,6 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { LanguageModel } from "ai";
 import type { MessageContext } from "../../session/src/messageContext.js";
+import { ts } from "../utils/ts.js";
 
 /**
  * Base class for all AI agents in the workflow system.
@@ -42,6 +43,34 @@ export abstract class BaseAgent {
    */
   protected sendFinal(message: string): void {
     this.messageContext.sendAgentMessage(message, "final");
+  }
+
+  /**
+   * Stream chat response through message pipe
+   */
+  protected async streamChat(
+    messageStream: ReadableStream<string>
+  ): Promise<void> {
+    let message = "";
+
+    for await (const text of messageStream) {
+      this.messageContext.generalSendMessage(
+        ts({
+          type: "AGENT_MESSAGE",
+          stream: true,
+          data: {
+            role: "assistant",
+            content: text,
+          },
+          contextId: this.messageContext.contextId,
+          messageType: "chat",
+        })
+      );
+      message += text;
+    }
+
+    // send complete message at the end
+    this.sendChat(message);
   }
 
   /**

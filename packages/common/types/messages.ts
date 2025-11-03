@@ -75,6 +75,7 @@ export type ServerWSAgentMessage = {
   contextId: ContextId;
   data: ModelMessage;
   timestamp: number;
+  stream?: true;
 };
 
 export type ServerWSToolMessage =

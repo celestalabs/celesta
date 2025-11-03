@@ -21,6 +21,9 @@ type Store = {
   addContext: (contextId: ContextId) => void;
   addMessageToContext: (message: WSMessageWithContextId) => void;
 
+  streamedMessageByContext: Partial<Record<ContextId, string>>;
+  addIncomingMessagePart: (contextId: ContextId, message: string) => void;
+
   workflowMetadata: Partial<Record<WorkflowId, WorkflowMetadata>>;
   createWorkflow: (workflowMetadata: WorkflowMetadata) => void;
   updateWorkflowStatus: (
@@ -65,14 +68,30 @@ export const useStore = create<Store>()((set) => ({
   addMessageToContext: (message: WSMessageWithContextId) =>
     set((state) => {
       const existingMessages = state.messagesByContext[message.contextId] ?? [];
+      // also clear the current message stream since we have the finalized message
       return {
         ...state,
         messagesByContext: {
           ...state.messagesByContext,
           [message.contextId]: [...existingMessages, message],
         },
+        streamedMessageByContext: {
+          ...state.streamedMessageByContext,
+          [message.contextId]: "",
+        },
       };
     }),
+
+  streamedMessageByContext: {},
+  addIncomingMessagePart: (contextId: ContextId, message: string) =>
+    set((state) => ({
+      ...state,
+      streamedMessageByContext: {
+        ...state.streamedMessageByContext,
+        [contextId]:
+          (state.streamedMessageByContext[contextId] ?? "") + message,
+      },
+    })),
 
   workflowMetadata: {},
   createWorkflow: (workflowMetadata: WorkflowMetadata) =>

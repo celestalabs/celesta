@@ -85,7 +85,7 @@ export class ChatAgent extends MastraBaseAgent {
   async onInitialize() {}
 
   async onUserMessage(): Promise<any> {
-    const res = await this.agent.generate(
+    const res = await this.agent.stream(
       this.messageContext.messages.map(({ data }) => data),
       {
         runtimeContext: this.runtimeContext,
@@ -99,6 +99,7 @@ export class ChatAgent extends MastraBaseAgent {
         },
       }
     );
-    this.sendChat(res.text);
+
+    this.streamChat(res.textStream);
   }
 }

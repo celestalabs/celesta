@@ -29,6 +29,10 @@ export function useAgentServer(handlerByType: {
   const addContext = useStore((store) => store.addContext);
   const addMessageToContext = useStore((store) => store.addMessageToContext);
 
+  const addIncomingMessagePart = useStore(
+    (store) => store.addIncomingMessagePart
+  );
+
   const createWorkflow = useStore((store) => store.createWorkflow);
   const updateWorkflowStatus = useStore((store) => store.updateWorkflowStatus);
 
@@ -133,7 +137,15 @@ export function useAgentServer(handlerByType: {
 
       // Add message to context if applicable (for display)
       if ("contextId" in message) {
-        addMessageToContext(message);
+        if (message.type === "AGENT_MESSAGE" && message.stream) {
+          // Streamed messages are handled differently
+          addIncomingMessagePart(
+            message.contextId,
+            message.data.content as string
+          );
+        } else {
+          addMessageToContext(message);
+        }
       }
 
       const handler =
@@ -148,6 +160,7 @@ export function useAgentServer(handlerByType: {
       handlerByType,
       addContext,
       addMessageToContext,
+      addIncomingMessagePart,
       createWorkflow,
       updateWorkflowStatus,
       createWorkflowTask,
