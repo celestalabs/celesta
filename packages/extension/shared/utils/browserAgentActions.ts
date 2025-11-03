@@ -1,7 +1,7 @@
 import { logger, type BrowserAgentAction } from "@celesta/common";
 import { registerGlobalForDevMode } from "./devModeGlobals";
 import { type Protocol } from "./devToolsProtocol";
-import { getActiveTabId } from "./getActiveTabId";
+// import { getActiveTabId } from "./getActiveTabId";
 import { waitMs } from "./waitMs";
 import { sendWebMessage, type AgentActionWebMessage } from "./webMessages";
 
@@ -516,44 +516,13 @@ export const browserAgentActions = {
       };
     }
   },
-  async CAPTURE_SCREENSHOT(tabId: number, { options }) {
-    let data: string;
-
-    if (options?.fullPage) {
-      // 1. Get layout metrics for the full page
-      const { cssLayoutViewport } =
-        await sendCommand<Protocol.Page.GetLayoutMetricsResponse>(
-          tabId,
-          "Page.getLayoutMetrics"
-        );
-
-      // 2. Override device metrics to match full page
-      await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
-        width: cssLayoutViewport.clientWidth,
-        height: cssLayoutViewport.clientHeight,
-        deviceScaleFactor: 1,
-        mobile: false,
-      } as Protocol.Emulation.SetDeviceMetricsOverrideRequest);
-
-      // 3. Capture screenshot
-      const result = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
-        tabId,
-        "Page.captureScreenshot",
-        { format: "png", captureBeyondViewport: true }
-      );
-      data = result.data;
-
-      // 4. Clear override
-      await sendCommand(tabId, "Emulation.clearDeviceMetricsOverride", {});
-    } else {
-      // Capture screenshot of the visible viewport
-      const result = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
-        tabId,
-        "Page.captureScreenshot",
-        { format: "png" }
-      );
-      data = result.data;
-    }
+  async CAPTURE_SCREENSHOT(tabId: number) {
+    // Capture screenshot of the visible viewport
+    const { data } = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
+      tabId,
+      "Page.captureScreenshot",
+      { format: "png" }
+    );
 
     const { title, url } = (await browser.tabs.get(tabId))!;
 

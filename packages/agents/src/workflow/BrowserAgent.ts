@@ -452,6 +452,7 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
             })
           );
 
+          log("Awaiting screenshot response");
           const screenshotResponse = await waitForScreenshotResponse;
 
           if (
@@ -459,7 +460,7 @@ You will be given a goal and a list of steps that have been taken so far. Avoid 
             "base64" in screenshotResponse.response &&
             "pageUrl" in screenshotResponse.response
           ) {
-            console.log("Received screenshot response", functionCall);
+            log("Received screenshot response", functionCall);
 
             const functionResponsePart: Part = {
               functionResponse: {
