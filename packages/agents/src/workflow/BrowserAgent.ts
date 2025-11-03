@@ -84,17 +84,17 @@ export class BrowserAgent extends BaseAgent {
             });
 
             // If clear_before_typing is true (default), add a select all
-            if (action.clearBeforeTyping) {
-              // Select all text in the field
-              actionsForCall.push({
-                type: "KEY_PRESS",
-                key: "ControlOrMeta+A",
-              });
-              actionsForCall.push({
-                type: "KEY_PRESS",
-                key: "Backspace",
-              });
-            }
+            // if (action.clearBeforeTyping) {
+            //   // Select all text in the field
+            //   actionsForCall.push({
+            //     type: "KEY_PRESS",
+            //     key: "ControlOrMeta+A",
+            //   });
+            //   actionsForCall.push({
+            //     type: "KEY_PRESS",
+            //     key: "Backspace",
+            //   });
+            // }
 
             // Then add the type action
             actionsForCall.push(action);
@@ -322,7 +322,12 @@ export class BrowserAgent extends BaseAgent {
     const systemPrompt = `You are a general-purpose browser agent whose job is to accomplish the user's goal.
 Today's date is ${new Date().toISOString().split("T")[0]}.
 You have access to a search tool; however, in most cases you should operate within the page/url the user has provided. ONLY use the search tool if you're stuck or the task is impossible to complete within the current page.
-You will be given a goal and a list of steps that have been taken so far. Avoid requesting the user for input as much as possible. You should output text as your reasoning for your decisionmaking process. However, the user is not able to respond through this channel. If you need to ask the user to perform an intermediary task or a question regarding the goal, call relevant functions to communicate with the user. Good luck!
+
+You will be given a goal and a list of steps that have been taken so far. Avoid requesting the user for input as much as possible. You should output text as your reasoning for your decisionmaking process. However, the user is not able to respond through this channel. If you need to ask the user to perform an intermediary task or a question regarding the goal, call relevant functions to communicate with the user.
+
+You may need to scroll within a page. For this, you may try to use the scroll_document function. However, this function may prove unreliable. If you find that scrolling is not working as expected, try using the scroll_at function to scroll at specific coordinates which are representative of the document.
+
+Good luck!
 `;
 
     // Initial conversation history

@@ -517,7 +517,7 @@ export const browserAgentActions = {
     }
   },
   async CAPTURE_SCREENSHOT(tabId: number) {
-    await waitMs(250); // wait a bit for rendering
+    await waitMs(1500); // wait a bit for rendering
     // Capture screenshot of the visible viewport
     const { data } = await sendCommand<Protocol.Page.CaptureScreenshotResponse>(
       tabId,

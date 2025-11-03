@@ -1,4 +1,5 @@
 import {
+  type BrowserAgentId,
   type FrontendWSMessage,
   isBrowserAgentId,
   logger,
@@ -36,6 +37,7 @@ export function useAgentServer(handlerByType: {
     (store) => store.updateWorkflowTaskStatus
   );
 
+  const tabIdByBrowserAgent = useStore((state) => state.tabIdByBrowserAgent);
   const addBrowserAgentTabId = useStore((state) => state.addBrowserAgentTabId);
   const addBrowserAgentToolId = useStore(
     (state) => state.addBrowserAgentToolId
@@ -66,7 +68,7 @@ export function useAgentServer(handlerByType: {
             });
 
             addBrowserAgentTabId(message.contextId, id!);
-            sendWebMessage(
+            await sendWebMessage(
               ["tabs", id!],
               {
                 __isWebMessage: true,
@@ -115,6 +117,18 @@ export function useAgentServer(handlerByType: {
           addBrowserAgentToolId(message.toolCallId, message.browserAgentId);
           break;
         }
+        case "REQUEST_BROWSER_AGENT_ACTION": {
+          const id = tabIdByBrowserAgent[message.contextId as BrowserAgentId];
+          await sendWebMessage(
+            ["tabs", id!],
+            {
+              __isWebMessage: true,
+              __webMessageType: "AgentActionWebMessage",
+              action: "startAgent",
+            } satisfies AgentActionWebMessage,
+            false
+          );
+        }
       }
 
       // Add message to context if applicable (for display)
@@ -140,6 +154,7 @@ export function useAgentServer(handlerByType: {
       updateWorkflowTaskStatus,
       addBrowserAgentTabId,
       addBrowserAgentToolId,
+      tabIdByBrowserAgent,
     ]
   );
 
