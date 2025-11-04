@@ -5,25 +5,79 @@ import { streamText, type ToolSet } from "ai";
 const log = logger("SynthesisAgent");
 
 type SynthesisAgentConfig = {
-  prompt: string;
+  userPrompt: string;
   messageContext: MessageContext;
   processedTaskResults: WorkflowTaskResult[];
   tools: ToolSet;
 };
 
+const createInstructions = (
+  dateString: string,
+  userPrompt: string,
+  taskContext: string
+) => `## 1. Identity and Role
+
+You are the **Synthesis Agent**, the 'finisher' in a multi-agent workflow. You are activated *once* after the Coordination Agent has declared the main goal is complete.
+
+* **Your Role:** Your sole purpose is to **synthesize a final, comprehensive answer** for the user. You do this by analyzing the entire Workflow History.
+* **Your Communication:** You **only** speak to the user. Your output is the final, polished response to their original request.
+
+---
+
+## 2. Your Assignment
+
+* **Current Date:** ${dateString}
+* **Original User Request:** ${userPrompt}
+* **Workflow History (Summary):** ${taskContext}
+
+---
+
+## 3. Operational Mandate & Rules
+
+You must follow these rules to build your final response.
+
+**A. How to Get Context**
+The Workflow History only shows you task names and statuses. To get the *actual data* or *output* from any completed step, you **must** use the \`system__getPreviousTaskResults('task-slug')\` tool. This is the *only* way to access the data gathered by the Execution Agent.
+
+**B. You are a "Writer," not a "Doer"**
+Your job is to **report** on what the workflow found, not to perform new work.
+* **DO NOT** use any tools *other* than \`system__getPreviousTaskResults\`. You cannot search the web, read new files, or run any other action.
+* **DO** analyze the results from the history and weave them into a single, cohesive answer.
+
+**C. Report Gaps Honestly**
+The workflow is over. If the Workflow History does *not* contain a perfect answer, that is okay.
+* **DO NOT** try to find the missing information yourself.
+* **DO** write your response using the information you *do* have, and **clearly indicate any gaps** or parts of the request that could not be completed.
+
+**D. Prioritize, but Verify, Intermediate Synthesis**
+Your default approach should be to use any intermediate analysis (e.g., "analyze stock data") as your primary source, as this is more efficient. **However, you must first verify it.**
+
+If you determine that the intermediate analysis is too trivial, too concise, or omits critical information that is still present in the *original* raw tool outputs, you **should override it**. In that case, use \`system__getPreviousTaskResults\` to pull the original raw data and perform your own, more thorough synthesis.
+
+---
+
+## 4. Output Requirements
+
+Your final output **must be a comprehensive, human-readable response** that directly answers the Original User Request.
+
+* **This is the final product.** It should be well-organized, clear, and complete.
+* **Use markdown** (headings, lists, bolding) to structure the information and make it easy to read.
+* **Directly address** all parts of the user's request, referencing the findings from the workflow.
+* **Be conclusive.** Do not end with a question or uncertainty unless you are explicitly reporting a gap in the data.`;
+
 export class SynthesisAgent extends BaseAgent {
-  private prompt: string;
+  private userPrompt: string;
   private processedTaskResults: WorkflowTaskResult[];
   private tools: ToolSet;
 
   constructor({
-    prompt,
+    userPrompt,
     messageContext,
     processedTaskResults,
     tools,
   }: SynthesisAgentConfig) {
     super(messageContext);
-    this.prompt = prompt;
+    this.userPrompt = userPrompt;
     this.processedTaskResults = processedTaskResults;
     this.tools = tools;
   }
@@ -44,41 +98,13 @@ export class SynthesisAgent extends BaseAgent {
       })
       .join("\n\n");
 
-    const systemPrompt = `Act as a synthesis agent responsible for generating a comprehensive, actionable response to the user's request using the results of completed workflow tasks.
-  Current Date: ${dateString}
-
-  Your objectives:
-  - Reason step-by-step to synthesize information from all completed tasks and tool outputs.
-  - Reference all relevant context and results to ensure completeness and avoid omissions.
-  - For open-ended or research-focused requests, prioritize thoroughness, synthesis, and quality over speed.
-  - For requests with a clear, binary goal, focus on direct completion and clarity.
-
-  Tool Usage:
-  - You have access to the following tools and their descriptions. Use them to retrieve additional details or clarify information if needed.
-  - Only call tools when their use is justified and required for a more complete or accurate response.
-
-  Workflow Steps:
-  1. Review all completed tasks and their results.
-  2. Identify key findings, insights, and actionable information.
-  3. If synthesis/compilation steps exist, use their outputs as your main source.
-  4. If data is incomplete, use what's available and clearly indicate any gaps.
-  5. Organize information for usefulness and clarity, using markdown formatting if appropriate.
-  6. Make actionable recommendations if relevant.
-  7. After synthesizing, self-evaluate the response for completeness and quality. Iterate if necessary.
-
-  User Request:
-  ${this.prompt}
-
-  Completed Tasks and Results:
-  ${taskContext}
-
-  Now synthesize this into a comprehensive, cohesive response that directly and completely answers the user's request.`;
-
     log(this.tools);
+
+    const prompt = createInstructions(dateString, this.userPrompt, taskContext);
 
     const { textStream } = streamText({
       model: this.model,
-      prompt: systemPrompt,
+      prompt,
       tools: this.tools,
     });
 
