@@ -4,7 +4,6 @@ import {
   type RequestId,
   ts,
   type WorkflowTaskStatus,
-  isWorkflowId,
 } from "@celesta/common";
 import React from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
@@ -78,175 +77,165 @@ const markdownComponents: Components = {
   ),
 };
 
-export const MessageCard = React.memo(
-  ({ message, sendMessage, contextId }: Props) => {
-    const browserAgentByToolId = useStore(
-      (state) => state.browserAgentByToolId
-    );
-    const messagesByContext = useStore((state) => state.messagesByContext);
+export const MessageCard = React.memo(({ message, sendMessage }: Props) => {
+  const browserAgentByToolId = useStore((state) => state.browserAgentByToolId);
+  const messagesByContext = useStore((state) => state.messagesByContext);
 
-    const handleProvideStartWorkflow = useCallback(
-      (requestId: RequestId, yes: boolean) => {
-        sendMessage(
-          ts({
-            type: "PROVIDE_SHOULD_START_WORKFLOW",
-            contextId: "CHAT",
-            requestId,
-            yes,
-          })
-        );
-      },
-      [sendMessage]
-    );
-
-    if (message.type === "tool") {
-      let [integrationName, toolName] = message.toolName.split("__");
-      integrationName = integrationName.split("_").join(" ");
-      toolName = toolName.split("_").join(" ");
-
-      return (
-        <Item variant="muted">
-          <ItemContent>
-            <ItemTitle>
-              <span>
-                {message.output == null ? "⏳ Using" : "✅ Finished using"}
-                <span className="capitalize">
-                  &nbsp;{integrationName} ({toolName})
-                </span>
-              </span>
-            </ItemTitle>
-            {browserAgentByToolId[message.toolCallId] != null &&
-              messagesByContext[browserAgentByToolId[message.toolCallId]!] !=
-                null && (
-                <ItemDescription className="text-wrap! flex! flex-col gap-2 overflow-x-hidden">
-                  {messagesByContext[
-                    browserAgentByToolId[message.toolCallId]!
-                  ]!.map((m) => {
-                    if (m.type === "AGENT_MESSAGE") {
-                      return (
-                        <ReactMarkdown
-                          components={markdownComponents}
-                          key={`${m.type}-${m.timestamp}`}
-                        >
-                          {m.data.content as string}
-                        </ReactMarkdown>
-                      );
-                    } else if (
-                      m.type === "REQUEST_BROWSER_AGENT_ACTION" &&
-                      m.action.type !== "CAPTURE_SCREENSHOT"
-                    ) {
-                      return (
-                        <details
-                          key={`${m.type}-${m.timestamp}`}
-                          className="border p-2 rounded"
-                        >
-                          <summary className="capitalize">
-                            <b>
-                              {m.action.type.split("_").join(" ").toLowerCase()}
-                            </b>
-                          </summary>
-                          <pre>
-                            <code>{JSON.stringify(m.action, null, 2)}</code>
-                          </pre>
-                        </details>
-                      );
-                    }
-                  })}
-                </ItemDescription>
-              )}
-          </ItemContent>
-        </Item>
+  const handleProvideStartWorkflow = useCallback(
+    (requestId: RequestId, yes: boolean) => {
+      sendMessage(
+        ts({
+          type: "PROVIDE_SHOULD_START_WORKFLOW",
+          contextId: "CHAT",
+          requestId,
+          yes,
+        })
       );
-    }
+    },
+    [sendMessage]
+  );
 
-    if (message.type === "workflow-request") {
-      return (
-        <Item variant="muted">
-          <ItemContent>
-            <ItemTitle>Start a workflow?</ItemTitle>
-            <ItemDescription className="line-clamp-none! text-wrap!">
-              {message.prompt}
-            </ItemDescription>
-          </ItemContent>
-          <ItemFooter>
-            <ButtonGroup>
-              <Button
-                size="sm"
-                onClick={() =>
-                  handleProvideStartWorkflow(message.requestId, true)
-                }
-              >
-                Start
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() =>
-                  handleProvideStartWorkflow(message.requestId, false)
-                }
-              >
-                Dismiss
-              </Button>
-            </ButtonGroup>
-          </ItemFooter>
-        </Item>
-      );
-    }
-
-    if (message.type === "workflow-task") {
-      return (
-        <Item variant="outline">
-          <ItemMedia>
-            <span className="text-xl">{statusEmojiMap[message.status]}</span>
-          </ItemMedia>
-          <ItemContent className="overflow-x-hidden">
-            <ItemTitle>
-              {message.status === "completed"
-                ? "Completed"
-                : message.status === "failed"
-                  ? "Failed"
-                  : "Completing"}{" "}
-              &quot;{message.slug.split("-").join(" ")}&quot;
-            </ItemTitle>
-            <ItemDescription>{message.description}</ItemDescription>
-          </ItemContent>
-        </Item>
-      );
-    }
-
-    const isUserMessage = message.type === "user";
-    const isWorkflow = isWorkflowId(contextId);
-    const isFinalAgentMessage =
-      message.type === "agent" && message.messageType === "final";
-    const shouldClampLines = false;
-    // isWorkflow && !isUserMessage && !isFinalAgentMessage;
+  if (message.type === "tool") {
+    let [integrationName, toolName] = message.toolName.split("__");
+    integrationName = integrationName.split("_").join(" ");
+    toolName = toolName.split("_").join(" ");
 
     return (
-      <Item
-        variant="outline"
-        className={
-          message.type === "agent"
-            ? message.messageType === "final"
-              ? "border-green-400 bg-green-50"
-              : message.messageType === "error"
-                ? "border-red-400 bg-red-50"
-                : undefined
-            : undefined
-        }
-      >
-        <ItemContent className="overflow-x-hidden">
+      <Item variant="muted">
+        <ItemContent>
           <ItemTitle>
-            {message.type === "agent" ? "Celesta ✨" : "You"}
+            <span>
+              {message.output == null ? "⏳ Using" : "✅ Finished using"}
+              <span className="capitalize">
+                &nbsp;{integrationName} ({toolName})
+              </span>
+            </span>
           </ItemTitle>
-          <ItemDescription
-            className={`${shouldClampLines ? "line-clamp-10!" : "line-clamp-none!"} text-wrap!`}
-          >
-            <ReactMarkdown components={markdownComponents}>
-              {message.content}
-            </ReactMarkdown>
-          </ItemDescription>
+          {browserAgentByToolId[message.toolCallId] != null &&
+            messagesByContext[browserAgentByToolId[message.toolCallId]!] !=
+              null && (
+              <ItemDescription className="text-wrap! flex! flex-col gap-2 overflow-x-hidden">
+                {messagesByContext[
+                  browserAgentByToolId[message.toolCallId]!
+                ]!.map((m) => {
+                  if (m.type === "AGENT_MESSAGE") {
+                    return (
+                      <ReactMarkdown
+                        components={markdownComponents}
+                        key={`${m.type}-${m.timestamp}`}
+                      >
+                        {m.data.content as string}
+                      </ReactMarkdown>
+                    );
+                  } else if (
+                    m.type === "REQUEST_BROWSER_AGENT_ACTION" &&
+                    m.action.type !== "CAPTURE_SCREENSHOT"
+                  ) {
+                    return (
+                      <details
+                        key={`${m.type}-${m.timestamp}`}
+                        className="border p-2 rounded"
+                      >
+                        <summary className="capitalize">
+                          <b>
+                            {m.action.type.split("_").join(" ").toLowerCase()}
+                          </b>
+                        </summary>
+                        <pre>
+                          <code>{JSON.stringify(m.action, null, 2)}</code>
+                        </pre>
+                      </details>
+                    );
+                  }
+                })}
+              </ItemDescription>
+            )}
         </ItemContent>
       </Item>
     );
   }
-);
+
+  if (message.type === "workflow-request") {
+    return (
+      <Item variant="muted">
+        <ItemContent>
+          <ItemTitle>Start a workflow?</ItemTitle>
+          <ItemDescription className="line-clamp-none! text-wrap!">
+            {message.prompt}
+          </ItemDescription>
+        </ItemContent>
+        <ItemFooter>
+          <ButtonGroup>
+            <Button
+              size="sm"
+              onClick={() =>
+                handleProvideStartWorkflow(message.requestId, true)
+              }
+            >
+              Start
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                handleProvideStartWorkflow(message.requestId, false)
+              }
+            >
+              Dismiss
+            </Button>
+          </ButtonGroup>
+        </ItemFooter>
+      </Item>
+    );
+  }
+
+  if (message.type === "workflow-task") {
+    return (
+      <Item variant="outline">
+        <ItemMedia>
+          <span className="text-xl">{statusEmojiMap[message.status]}</span>
+        </ItemMedia>
+        <ItemContent className="overflow-x-hidden">
+          <ItemTitle>
+            {message.status === "completed"
+              ? "Completed"
+              : message.status === "failed"
+                ? "Failed"
+                : "Completing"}{" "}
+            &quot;{message.slug.split("-").join(" ")}&quot;
+          </ItemTitle>
+          <ItemDescription>{message.description}</ItemDescription>
+        </ItemContent>
+      </Item>
+    );
+  }
+
+  const shouldClampLines = false;
+  // isWorkflow && !isUserMessage && !isFinalAgentMessage;
+
+  return (
+    <Item
+      variant="outline"
+      className={
+        message.type === "agent"
+          ? message.messageType === "final"
+            ? "border-green-400 bg-green-50"
+            : message.messageType === "error"
+              ? "border-red-400 bg-red-50"
+              : undefined
+          : undefined
+      }
+    >
+      <ItemContent className="overflow-x-hidden">
+        <ItemTitle>{message.type === "agent" ? "Celesta ✨" : "You"}</ItemTitle>
+        <ItemDescription
+          className={`${shouldClampLines ? "line-clamp-10!" : "line-clamp-none!"} text-wrap!`}
+        >
+          <ReactMarkdown components={markdownComponents}>
+            {message.content}
+          </ReactMarkdown>
+        </ItemDescription>
+      </ItemContent>
+    </Item>
+  );
+});

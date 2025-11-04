@@ -1,6 +1,7 @@
 import type {
   BrowserAgentId,
   ContextId,
+  ServerWSAgentMessage,
   ToolCallId,
   UIWorkflowTask,
   WorkflowId,
@@ -21,8 +22,13 @@ type Store = {
   addContext: (contextId: ContextId) => void;
   addMessageToContext: (message: WSMessageWithContextId) => void;
 
-  streamedMessageByContext: Partial<Record<ContextId, string>>;
-  addIncomingMessagePart: (contextId: ContextId, message: string) => void;
+  streamedMessageByContext: Partial<
+    Record<ContextId, ServerWSAgentMessage | null>
+  >;
+  addIncomingMessagePart: (
+    contextId: ContextId,
+    message: ServerWSAgentMessage
+  ) => void;
 
   workflowMetadata: Partial<Record<WorkflowId, WorkflowMetadata>>;
   createWorkflow: (workflowMetadata: WorkflowMetadata) => void;
@@ -77,19 +83,29 @@ export const useStore = create<Store>()((set) => ({
         },
         streamedMessageByContext: {
           ...state.streamedMessageByContext,
-          [message.contextId]: "",
+          [message.contextId]: null,
         },
       };
     }),
 
   streamedMessageByContext: {},
-  addIncomingMessagePart: (contextId: ContextId, message: string) =>
+  addIncomingMessagePart: (
+    contextId: ContextId,
+    message: ServerWSAgentMessage
+  ) =>
     set((state) => ({
       ...state,
       streamedMessageByContext: {
         ...state.streamedMessageByContext,
-        [contextId]:
-          (state.streamedMessageByContext[contextId] ?? "") + message,
+        [contextId]: {
+          ...message,
+          data: {
+            ...message.data,
+            content:
+              (state.streamedMessageByContext[contextId]?.data.content ?? "") +
+              (message.data.content as string),
+          },
+        },
       },
     })),
 

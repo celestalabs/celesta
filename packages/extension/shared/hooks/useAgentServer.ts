@@ -139,10 +139,7 @@ export function useAgentServer(handlerByType: {
       if ("contextId" in message) {
         if (message.type === "AGENT_MESSAGE" && message.stream) {
           // Streamed messages are handled differently
-          addIncomingMessagePart(
-            message.contextId,
-            message.data.content as string
-          );
+          addIncomingMessagePart(message.contextId, message);
         } else {
           addMessageToContext(message);
         }

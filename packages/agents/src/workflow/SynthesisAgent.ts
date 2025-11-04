@@ -82,7 +82,7 @@ export class SynthesisAgent extends BaseAgent {
       tools: this.tools,
     });
 
-    const result = await this.streamChat(textStream);
+    const result = await this.streamFinal(textStream);
 
     return result.trim() || "No response was produced by the synthesis agent.";
   }

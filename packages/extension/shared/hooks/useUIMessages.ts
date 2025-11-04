@@ -68,6 +68,16 @@ export function useUIMessages(contextId: ContextId) {
 
     const lastMessage = messages?.at(-1);
 
+    // tmp streamed message
+    if (streamedMessage != null && streamedMessage.data.content.length > 0) {
+      result.push({
+        type: "agent",
+        messageType: streamedMessage.messageType,
+        content: streamedMessage.data.content as string,
+      });
+    }
+
+    // workflow request
     if (lastMessage?.type === "REQUEST_SHOULD_START_WORKFLOW") {
       result.push({
         type: "workflow-request",
@@ -76,14 +86,6 @@ export function useUIMessages(contextId: ContextId) {
       });
     }
 
-    if ((streamedMessage?.length ?? 0) > 0) {
-      result.push({
-        type: "agent",
-        content: streamedMessage!,
-        messageType: "chat",
-      });
-    }
-
-    return [result, streamedMessage?.length ?? 0] as const;
+    return [result, streamedMessage?.data.content.length ?? 0] as const;
   }, [messages, tasks, streamedMessage]);
 }
