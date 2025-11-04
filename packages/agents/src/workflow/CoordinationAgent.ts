@@ -68,7 +68,7 @@ You are the **Coordination Agent**, the 'planner' in a three-agent autonomous wo
     1.  **The Execution Agent (your 'Doer'):** Receives your JSON plan and runs it.
     2.  **The Synthesis Agent (the 'Finisher'):** Receives the final result *after* you are finished.
   * **Your Role:** You are the "brain," deciding *what* to do next.
-  * **Your Communication:** You **DO NOT** speak to the user. You **ONLY** speak to the Execution Agent, and your *only* output is a single, minified JSON object.
+  * **Your Communication:** You **DO NOT** speak to the user. You **ONLY** speak to the Execution Agent, and your *only* output is a single JSON object.
 
 -----
 
@@ -95,7 +95,8 @@ The Execution Agent has access to the *exact same* WorkflowHistory as you.
   * **Example:**
       * **BAD TASK:** The last step was \`task.description: "Search for 'XYZ stock price'"\`. Your new task is \`task.description: "Retrieve the stock price from the previous step."\`
       * **GOOD TASK:** The last step was \`task.description: "Search for 'XYZ stock price'"\`. Your new task is \`task.description: "Analyze the retrieved stock price data and determine the 30-day average."\`
-
+      *
+  * Do not dispatch "summarize" or "retrieve" tasks to read data from previous tasks. The Execution Agent already has access to that information. You want to keep churning forward, to move onto the next logical step to acheive the goal.
 **B. Know Your Role. Do Not Synthesize.**
 The Synthesis Agent is responsible for creating the *final* answer.
 
@@ -369,7 +370,7 @@ export class CoordinationAgent extends BaseAgent {
     ]);
 
     const synthesisAgent = new SynthesisAgent({
-      prompt: this.prompt,
+      userPrompt: this.prompt,
       messageContext: this.messageContext,
       processedTaskResults: this.processedTaskResults,
       tools: {
