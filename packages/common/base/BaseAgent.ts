@@ -50,7 +50,7 @@ export abstract class BaseAgent {
    */
   protected async streamChat(
     messageStream: ReadableStream<string>
-  ): Promise<void> {
+  ): Promise<string> {
     let message = "";
 
     for await (const text of messageStream) {
@@ -71,6 +71,36 @@ export abstract class BaseAgent {
 
     // send complete message at the end
     this.sendChat(message);
+    return message;
+  }
+
+  /**
+   * Stream chat response through message pipe
+   */
+  protected async streamFinal(
+    messageStream: ReadableStream<string>
+  ): Promise<string> {
+    let message = "";
+
+    for await (const text of messageStream) {
+      this.messageContext.generalSendMessage(
+        ts({
+          type: "AGENT_MESSAGE",
+          stream: true,
+          data: {
+            role: "assistant",
+            content: text,
+          },
+          contextId: this.messageContext.contextId,
+          messageType: "final",
+        })
+      );
+      message += text;
+    }
+
+    // send complete message at the end
+    this.sendFinal(message);
+    return message;
   }
 
   /**

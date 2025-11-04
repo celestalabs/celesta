@@ -317,10 +317,7 @@ If all necessary tasks are complete, set shouldContinue to false.`,
       },
     });
 
-    const finalResult = await synthesisAgent.onInitialize();
-
-    this.sendFinal(finalResult);
-
+    await synthesisAgent.onInitialize();
     this.workflowStatus = "completed";
   }
 
@@ -346,9 +343,6 @@ If all necessary tasks are complete, set shouldContinue to false.`,
 
     if (result.success) {
       this.createOrUpdateTask(task, "completed");
-      this.sendChat(
-        `*Task \`${task.slug}\` completed successfully.*\n\n${result.finalResult}`
-      );
     } else {
       this.createOrUpdateTask(task, "failed");
       this.sendError(

@@ -5,7 +5,7 @@ import {
   logger,
 } from "@celesta/common";
 import type { MessageContext } from "@celesta/session";
-import { generateText, stepCountIs, type ToolSet } from "ai";
+import { stepCountIs, streamText, type ToolSet } from "ai";
 
 const log = logger("ExecutionAgent");
 
@@ -100,7 +100,7 @@ export class ExecutionAgent extends BaseAgent {
 
       const toolCallResults: [string, string][] = [];
 
-      const { text } = await generateText({
+      const { textStream } = await streamText({
         model: this.model,
         tools: this.tools,
         stopWhen: stepCountIs(20), // Limit to 20 steps
@@ -123,6 +123,8 @@ export class ExecutionAgent extends BaseAgent {
           toolCallResults.push(...stepToolResults);
         },
       });
+
+      const text = await this.streamChat(textStream);
 
       const outputText = text || "Task completed.";
 

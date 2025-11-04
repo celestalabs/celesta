@@ -1,6 +1,6 @@
-import { WorkflowTaskResult, BaseAgent, logger } from "@celesta/common";
-import { MessageContext } from "@celesta/session";
-import { generateText, ToolSet } from "ai";
+import { type WorkflowTaskResult, BaseAgent, logger } from "@celesta/common";
+import type { MessageContext } from "@celesta/session";
+import { streamText, type ToolSet } from "ai";
 
 const log = logger("SynthesisAgent");
 
@@ -76,15 +76,15 @@ export class SynthesisAgent extends BaseAgent {
 
     log(this.tools);
 
-    const result = await generateText({
+    const { textStream } = streamText({
       model: this.model,
       prompt: systemPrompt,
       tools: this.tools,
     });
 
-    return (
-      result.text.trim() || "No response was produced by the synthesis agent."
-    );
+    const result = await this.streamChat(textStream);
+
+    return result.trim() || "No response was produced by the synthesis agent.";
   }
 
   // not used - stub method

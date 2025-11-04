@@ -218,8 +218,8 @@ export const MessageCard = React.memo(
     const isWorkflow = isWorkflowId(contextId);
     const isFinalAgentMessage =
       message.type === "agent" && message.messageType === "final";
-    const shouldClampLines =
-      isWorkflow && !isUserMessage && !isFinalAgentMessage;
+    const shouldClampLines = false;
+    // isWorkflow && !isUserMessage && !isFinalAgentMessage;
 
     return (
       <Item
