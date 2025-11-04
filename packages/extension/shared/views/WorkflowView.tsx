@@ -30,7 +30,7 @@ export const WorkflowView = React.memo(({ sendMessage }: Props) => {
   const workflowMetadata = useStore((state) => state.workflowMetadata);
 
   const metadata = workflowMetadata[currentView as WorkflowId]!;
-  const workflowMessages = useUIMessages(currentView);
+  const [workflowMessages] = useUIMessages(currentView);
 
   // Auto-scroll logic
   const scrollRef = useAutoScrollToBottom(workflowMessages.length);
