@@ -3,7 +3,7 @@ import {
   type ResponseWebMessage,
   isAgentActionWebMessage,
   isWebMessageResponseIdTuple,
-} from "~/shared/utils/webMessages.js";
+} from "~/utils/webMessages.js";
 
 function handleStartAgentUI() {
   document.head.appendChild(

@@ -1,10 +1,10 @@
 import { logger } from "@celesta/common";
-import { getActiveTabId } from "~/shared/utils/getActiveTabId.js";
+import { getActiveTabId } from "~/utils/getActiveTabId.js";
 import {
   isCheckActiveTabWebMessage,
   isWebMessageResponseIdTuple,
   type ResponseWebMessage,
-} from "~/shared/utils/webMessages.js";
+} from "~/utils/webMessages.js";
 
 const log = logger("background");
 
@@ -14,6 +14,10 @@ export default defineBackground(() => {
   browser.tabs.onUpdated.addListener(() => log("keep-alive"));
 
   browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+
+  browser.runtime.onInstalled.addListener(() => {
+    browser.tabs.create({});
+  });
 
   browser.runtime.onMessage.addListener(
     async (messageResponseIdTuple, sender) => {
