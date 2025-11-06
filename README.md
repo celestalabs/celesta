@@ -8,7 +8,7 @@ Holds all packages for the Celesta project.
 
 - Agent system refinement.
   - Convert workflow agents to Mastra. (May need to leave browser agent as-is due to `@google/genai` dependency.)
-  - Refine prompts for agents to make them call tools more greedily, reduce repeat task execution, etc.
+  - ~~Refine prompts for agents to make them call tools more greedily, reduce repeat task execution, etc.~~
 - Human in the loop.
   - For the moment, we can manually implement this at the tool level. (Allow all reads and creates, probably want intervention for modifications and sends.)
   - Use this to support user intervention for browser use. (Right now, auto-allows everything; bad + against Google TOS.)
@@ -22,6 +22,7 @@ Holds all packages for the Celesta project.
   - Rich-text tools should be wrapped such that they can accept Markdown.
 - Generalized "Object" construct // Supercharged message box.
   - Tag tabs, workflows, and ideally anything (Docs, Etc.) as context when starting workflows or sending chat messages.
+
 ## Packages
 
 - `@celesta/agents` holds agents which extend the `BaseAgent` which can be invoked by `MessagePipes` at lifecycle points.
