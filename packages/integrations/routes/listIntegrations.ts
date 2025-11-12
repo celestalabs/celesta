@@ -7,7 +7,7 @@ import {
   readIntegrationMetadata,
   type IntegrationMetadata,
 } from "../integrations/integrationMetadata.ts";
-import { type TypedFetcher } from "../utils/TypedFetcher.ts";
+import { type TypedFetcher } from "../../common/utils/TypedFetcher.ts";
 
 export type ListIntegrationsHandler = TypedFetcher<
   {

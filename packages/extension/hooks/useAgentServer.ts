@@ -12,6 +12,7 @@ import {
   sendWebMessage,
   type AgentActionWebMessage,
 } from "../utils/webMessages";
+import { supabase } from "~/utils/supabase";
 
 const log = logger("useAgentServer");
 
@@ -168,12 +169,61 @@ export function useAgentServer(handlerByType: {
     ]
   );
 
+  // Get connection code via HTTP, then connect to WebSocket
+  const [wsUrl, setWsUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const setupWebSocket = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        log("No auth session found");
+        return;
+      }
+
+      try {
+        // Step 1: Request connection code from server using typed client
+        const { createIntegrationsClient } = await import("@celesta/server");
+        const baseUrl =
+          import.meta.env.VITE_AGENT_SERVER_WS_URL?.replace(
+            "ws://",
+            "http://"
+          ).replace("wss://", "https://") || "";
+
+        const client = createIntegrationsClient(baseUrl);
+
+        const response = await client.establishConnection({
+          headers: { authorization: `Bearer ${session.access_token}` },
+        });
+
+        if (!response.success) {
+          log("Failed to establish connection:", response.error);
+          return;
+        }
+
+        // Step 2: Connect to WebSocket with the connection code
+        const url = new URL(response.wsUrl);
+        url.searchParams.set("code", response.connectionCode);
+        setWsUrl(url.toString());
+
+        log("Connection code obtained, connecting to WebSocket...");
+      } catch (error) {
+        log("Error establishing connection:", error);
+      }
+    };
+
+    setupWebSocket();
+  }, []);
+
   const { sendJsonMessage } = useWebSocket(
-    import.meta.env.VITE_AGENT_SERVER_WS_URL || "",
+    wsUrl,
     {
       onOpen: handleOpen,
       onMessage: handleMessage,
-    }
+    },
+    wsUrl !== null // Only connect when we have the authenticated URL
   );
 
   const sendMessage = useCallback(

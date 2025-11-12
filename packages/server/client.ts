@@ -4,6 +4,7 @@ import type {
   ExecuteIntegrationHandler,
   ListIntegrationsHandler,
 } from "@celesta/integrations";
+import type { EstablishConnectionHandler } from "./src/routes/establishConnection.js";
 
 const GENERIC_FETCHER = <T>(
   method: "GET" | "POST" | "PUT" | "DELETE",
@@ -55,5 +56,9 @@ export const createIntegrationsClient = (baseUrl: string) =>
     listIntegrations: GENERIC_FETCHER<ListIntegrationsHandler>(
       "GET",
       `${baseUrl}/api/listIntegrations`
+    ),
+    establishConnection: GENERIC_FETCHER<EstablishConnectionHandler>(
+      "POST",
+      `${baseUrl}/api/establishConnection`
     ),
   }) as const;

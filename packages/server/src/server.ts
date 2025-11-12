@@ -16,6 +16,10 @@ import cors from "cors";
 import express from "express";
 import { WebSocketServer } from "ws";
 import { frontendMessageHandler } from "./frontendMessageHandler.js";
+import {
+  connectionCodes,
+  EstablishConnectionHandler,
+} from "./routes/establishConnection.js";
 import { WrappedRouter } from "./wrappedRouter.js";
 
 const integrationsServer = express();
@@ -38,6 +42,7 @@ integrationsServer.use(
     .route("post", "/generateOAuthAccessToken", GenerateOAuthAccessTokenHandler)
     .route("get", "/generateOAuthRedirectUrl", GenerateOAuthRedirectUrlHandler)
     .route("get", "/listIntegrations", ListIntegrationsHandler)
+    .route("post", "/establishConnection", EstablishConnectionHandler)
     .unwrap()
 );
 
@@ -53,13 +58,44 @@ const agentServer = new WebSocketServer({
   server: httpServer,
 });
 
-agentServer.on("connection", async (ws) => {
+agentServer.on("connection", async (ws, request) => {
+  // Extract connection code from query params
+  const url = new URL(request.url!, `http://${request.headers.host}`);
+  const code = url.searchParams.get("code");
+
+  if (!code) {
+    log("Connection rejected: No connection code provided");
+    ws.close(1008, "Connection code required");
+    return;
+  }
+
+  // Verify the connection code
+  const connectionData = connectionCodes.get(code);
+
+  if (!connectionData) {
+    log("Connection rejected: Invalid or expired connection code");
+    ws.close(1008, "Invalid or expired connection code");
+    return;
+  }
+
+  // Check if code has expired
+  if (connectionData.expiresAt < Date.now()) {
+    log("Connection rejected: Connection code expired");
+    connectionCodes.delete(code);
+    ws.close(1008, "Connection code expired");
+    return;
+  }
+
+  // Code is valid - consume it (one-time use)
+  const userId = connectionData.userId;
+  connectionCodes.delete(code);
+
   const clientId = generateId("CLIENT");
 
-  log(`Client connected: ${clientId}`);
+  log(`Client connected: ${clientId} (User: ${userId})`);
 
-  // register in session manager
-  sessionManager.registerClientId(clientId, ws);
+  // register in session manager with user ID
+  sessionManager.registerClientId(clientId, ws, userId);
   browserManager.registerClientId(clientId);
 
   gatherTools().then((createTools) => {

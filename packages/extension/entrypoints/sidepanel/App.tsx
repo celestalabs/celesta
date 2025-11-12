@@ -1,5 +1,5 @@
 import { isBrowserAgentId, isChatId, ts } from "@celesta/common";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { toast, Toaster } from "sonner";
 import { Button } from "~/components/ui/button";
@@ -9,14 +9,34 @@ import { useOAuth } from "~/hooks/useOAuth";
 import { useStore } from "~/store";
 import { browserAgentActions } from "~/utils/browserAgentActions";
 import { browserContextActions } from "~/utils/browserContextActions";
+import { supabase } from "~/utils/supabase";
+import { AuthView } from "~/views/AuthView";
 import { AssistantView } from "~/views/AssistantView";
 import { WorkflowListView } from "~/views/WorkflowListView";
 import { WorkflowView } from "~/views/WorkflowView";
 
 const App = React.memo(() => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const currentView = useStore((state) => state.currentView);
   const routeToView = useStore((state) => state.routeToView);
   const tabIdByBrowserAgent = useStore((state) => state.tabIdByBrowserAgent);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const { handleOAuthFlow } = useOAuth();
 
@@ -138,6 +158,31 @@ const App = React.memo(() => {
     BROWSER_AGENT_INITIALIZED: () => {},
   });
 
+  // Show loading while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <>
+        <Toaster />
+        <div className="h-full flex items-center justify-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </>
+    );
+  }
+
+  // Show auth view if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Toaster />
+        <div className="h-full flex flex-col">
+          <AuthView />
+        </div>
+      </>
+    );
+  }
+
+  // Show main app when authenticated
   return (
     <>
       <Toaster />

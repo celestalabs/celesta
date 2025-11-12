@@ -1,7 +1,7 @@
 import { isIntegrationName } from "@celesta/common";
 import axios from "axios";
 import { getOAuthConfig } from "../utils/oAuth.ts";
-import { type TypedFetcher } from "../utils/TypedFetcher.ts";
+import { type TypedFetcher } from "../../common/utils/TypedFetcher.ts";
 
 export type GenerateOAuthAccessTokenHandler = TypedFetcher<
   /* Response */ {

@@ -28,6 +28,9 @@ const log = logger("sessionManager");
  */
 
 class SessionManager {
+  // Maps client IDs to their user IDs
+  userIds: Map<ClientId, string> = new Map();
+
   // Maps client IDs to their credentials per integration
   credentials: Map<ClientId, Map<IntegrationName, string>> = new Map();
 
@@ -59,15 +62,25 @@ class SessionManager {
   /**
    * Registers a new client with its WebSocket connection.
    */
-  registerClientId(clientId: ClientId, ws: WebSocket) {
+  registerClientId(clientId: ClientId, ws: WebSocket, userId?: string) {
     if (!this.credentials.has(clientId)) {
       this.sockets.set(clientId, ws);
       this.credentials.set(clientId, new Map());
       this.pendingRequests.set(clientId, new Map());
       this.messageContexts.set(clientId, new Map());
+      if (userId) {
+        this.userIds.set(clientId, userId);
+      }
     } else {
       log(`Client ID ${clientId} is already registered.`);
     }
+  }
+
+  /**
+   * Gets the user ID for a given client.
+   */
+  getUserId(clientId: ClientId): string | undefined {
+    return this.userIds.get(clientId);
   }
 
   /**

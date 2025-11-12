@@ -1,6 +1,6 @@
 import { isIntegrationName, logger } from "@celesta/common";
 import { getOAuthConfig } from "../utils/oAuth.ts";
-import { type TypedFetcher } from "../utils/TypedFetcher.ts";
+import { type TypedFetcher } from "../../common/utils/TypedFetcher.ts";
 
 const log = logger("generateOAuthRedirectUrl");
 

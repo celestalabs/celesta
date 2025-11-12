@@ -12,7 +12,7 @@ import {
 } from "../integrations/integrationMetadata.ts";
 import { executePieceAction } from "../pieces/executePieceAction.ts";
 import { isOAuth2PropertyValue } from "../utils/oAuth.ts";
-import { type TypedFetcher } from "../utils/TypedFetcher.ts";
+import { type TypedFetcher } from "../../common/utils/TypedFetcher.ts";
 
 const log = logger("executeIntegration");
 

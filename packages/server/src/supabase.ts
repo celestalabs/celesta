@@ -18,3 +18,23 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
     persistSession: false,
   },
 });
+
+/**
+ * Verify a JWT token and return the user ID
+ * @param token - JWT token from client
+ * @returns User ID if valid, null otherwise
+ */
+export async function verifyAuthToken(token: string): Promise<string | null> {
+  try {
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    
+    if (error || !user) {
+      return null;
+    }
+    
+    return user.id;
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    return null;
+  }
+}
