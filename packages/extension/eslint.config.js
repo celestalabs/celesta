@@ -8,7 +8,14 @@ import tseslint from "typescript-eslint"; // Import the TypeScript ESLint plugin
 
 export default [
   {
-    ignores: ["*.json", "*.config.ts", "*.config.js", ".output/**/*", ".wxt/**/*"],
+    ignores: [
+      "*.json",
+      "*.config.ts",
+      "*.config.js",
+      ".output/**/*",
+      ".wxt/**/*",
+      "components/ui/*",
+    ],
     files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"], // Ensure .ts and .tsx are included here
     languageOptions: {
       parser: tseslint.parser, // Set the TypeScript parser

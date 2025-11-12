@@ -5,9 +5,11 @@ import type {
   ListIntegrationsHandler,
 } from "@celesta/integrations";
 
-const GENERIC_FETCHER =
-  (method: "GET" | "POST" | "PUT" | "DELETE", url: string) =>
-  async ({
+const GENERIC_FETCHER = <T>(
+  method: "GET" | "POST" | "PUT" | "DELETE",
+  url: string
+) =>
+  (async ({
     body,
     headers,
     params,
@@ -34,24 +36,24 @@ const GENERIC_FETCHER =
 
     const res = await fetch(urlObj, fetchData);
     return res.json();
-  };
+  }) as T;
 
 export const createIntegrationsClient = (baseUrl: string) =>
   ({
-    generateOAuthRedirectUrl: GENERIC_FETCHER(
+    generateOAuthRedirectUrl: GENERIC_FETCHER<GenerateOAuthRedirectUrlHandler>(
       "GET",
       `${baseUrl}/api/generateOAuthRedirectUrl`
-    ) as GenerateOAuthRedirectUrlHandler,
-    generateOAuthAccessToken: GENERIC_FETCHER(
+    ),
+    generateOAuthAccessToken: GENERIC_FETCHER<GenerateOAuthAccessTokenHandler>(
       "POST",
       `${baseUrl}/api/generateOAuthAccessToken`
-    ) as GenerateOAuthAccessTokenHandler,
-    executeIntegration: GENERIC_FETCHER(
+    ),
+    executeIntegration: GENERIC_FETCHER<ExecuteIntegrationHandler>(
       "POST",
       `${baseUrl}/api/executeIntegration`
-    ) as ExecuteIntegrationHandler,
-    listIntegrations: GENERIC_FETCHER(
+    ),
+    listIntegrations: GENERIC_FETCHER<ListIntegrationsHandler>(
       "GET",
       `${baseUrl}/api/listIntegrations`
-    ) as ListIntegrationsHandler,
+    ),
   }) as const;
