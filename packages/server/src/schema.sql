@@ -10,6 +10,9 @@ CREATE TABLE user_preferences (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   theme TEXT DEFAULT 'dark',
   default_model TEXT DEFAULT 'gpt-4',
+  onboarding_completed BOOLEAN DEFAULT FALSE,
+  first_name TEXT,
+  enabled_integrations JSONB DEFAULT '[]',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id)

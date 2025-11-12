@@ -17,30 +17,68 @@ import { WorkflowView } from "~/views/WorkflowView";
 
 const App = React.memo(() => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+  const [hasOpenedOnboardingTab, setHasOpenedOnboardingTab] = useState(false);
   const currentView = useStore((state) => state.currentView);
   const routeToView = useStore((state) => state.routeToView);
   const tabIdByBrowserAgent = useStore((state) => state.tabIdByBrowserAgent);
 
-  // Check authentication status
+  // Check authentication and onboarding status
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndOnboarding = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
+
+      if (session?.user) {
+        // Check onboarding status
+        const { getUserOnboardingStatus } = await import(
+          "~/utils/supabaseDatabase"
+        );
+        const { data } = await getUserOnboardingStatus(session.user.id);
+
+        if (data && !data.onboarding_completed) {
+          setNeedsOnboarding(true);
+          // Open onboarding in new tab only once
+          if (!hasOpenedOnboardingTab) {
+            setHasOpenedOnboardingTab(true);
+            await browser.tabs.create({
+              url: browser.runtime.getURL("/newtab.html"),
+            });
+          }
+        } else {
+          setNeedsOnboarding(false);
+        }
+      }
     };
 
-    checkAuth();
+    checkAuthAndOnboarding();
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
+      if (event === "SIGNED_IN" && session?.user) {
+        // Re-check onboarding on sign in
+        checkAuthAndOnboarding();
+      }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Poll for onboarding completion if user needs onboarding
+    let pollInterval: number | undefined;
+    if (needsOnboarding) {
+      pollInterval = window.setInterval(() => {
+        checkAuthAndOnboarding();
+      }, 2000); // Check every 2 seconds
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [needsOnboarding, hasOpenedOnboardingTab]);
 
   const { handleOAuthFlow } = useOAuth();
 
@@ -162,8 +200,11 @@ const App = React.memo(() => {
     BROWSER_AGENT_INITIALIZED: () => {},
   });
 
-  // Show loading while checking auth
-  if (isAuthenticated === null) {
+  // Show loading while checking auth and onboarding
+  if (
+    isAuthenticated === null ||
+    (isAuthenticated && needsOnboarding === null)
+  ) {
     return (
       <>
         <Toaster />
@@ -181,6 +222,24 @@ const App = React.memo(() => {
         <Toaster />
         <div className="h-full flex flex-col">
           <AuthView />
+        </div>
+      </>
+    );
+  }
+
+  // Show onboarding message if needs onboarding
+  if (needsOnboarding) {
+    return (
+      <>
+        <Toaster />
+        <div className="h-full flex items-center justify-center px-8">
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">Welcome! 👋</h2>
+            <p className="text-muted-foreground">
+              We&apos;ve opened a new tab to help you get started. Complete the
+              setup there, then come back here!
+            </p>
+          </div>
         </div>
       </>
     );

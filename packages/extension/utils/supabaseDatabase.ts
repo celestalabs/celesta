@@ -6,7 +6,11 @@ import { supabase } from "../utils/supabase";
 export interface UserPreferences {
   id?: string;
   user_id: string;
+  theme?: string;
   default_model: string;
+  onboarding_completed: boolean;
+  first_name?: string;
+  enabled_integrations: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -105,4 +109,57 @@ export function subscribeToWorkflows(
       callback
     )
     .subscribe();
+}
+
+// Onboarding functions
+export async function getUserOnboardingStatus(userId: string) {
+  const { data, error } = await supabase
+    .from("user_preferences")
+    .select("onboarding_completed, first_name, enabled_integrations")
+    .eq("user_id", userId)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    console.error("Error fetching onboarding status:", error);
+    return { error };
+  }
+
+  return { data };
+}
+
+export async function updateOnboardingProgress(
+  userId: string,
+  data: {
+    first_name?: string;
+    enabled_integrations?: string[];
+  }
+) {
+  const { data: result, error } = await supabase
+    .from("user_preferences")
+    .upsert({ user_id: userId, ...data }, { onConflict: "user_id" })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating onboarding progress:", error);
+    return { error };
+  }
+
+  return { data: result };
+}
+
+export async function completeOnboarding(userId: string) {
+  const { data, error } = await supabase
+    .from("user_preferences")
+    .update({ onboarding_completed: true })
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error completing onboarding:", error);
+    return { error };
+  }
+
+  return { data };
 }
