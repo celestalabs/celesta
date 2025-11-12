@@ -6,7 +6,6 @@ export type EstablishConnectionResponse = {
   code: number;
   connectionCode: string;
   expiresAt: number;
-  wsUrl: string;
 };
 
 export type EstablishConnectionHandler = TypedFetcher<
@@ -71,6 +70,5 @@ export const EstablishConnectionHandler: EstablishConnectionHandler = async ({
     code: 200,
     connectionCode,
     expiresAt,
-    wsUrl: `ws://localhost:${process.env.PORT || 8080}`,
   };
 };

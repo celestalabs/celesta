@@ -10,8 +10,8 @@ import { useStore } from "~/store";
 import { browserAgentActions } from "~/utils/browserAgentActions";
 import { browserContextActions } from "~/utils/browserContextActions";
 import { supabase } from "~/utils/supabase";
-import { AuthView } from "~/views/AuthView";
 import { AssistantView } from "~/views/AssistantView";
+import { AuthView } from "~/views/AuthView";
 import { WorkflowListView } from "~/views/WorkflowListView";
 import { WorkflowView } from "~/views/WorkflowView";
 
@@ -24,14 +24,18 @@ const App = React.memo(() => {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
     };
 
     checkAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
     });
 

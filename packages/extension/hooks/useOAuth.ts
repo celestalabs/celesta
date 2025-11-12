@@ -1,5 +1,5 @@
 import { type IntegrationName, isIntegrationName } from "@celesta/common";
-import { integrationsClient } from "../utils/integrationsClient";
+import { apiClient } from "../utils/apiClient";
 
 export function useOAuth() {
   const handleOAuthFlow = useCallback(
@@ -16,14 +16,13 @@ export function useOAuth() {
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("");
 
-        const responseUrlRes =
-          await integrationsClient.generateOAuthRedirectUrl({
-            params: {
-              pieceName: integrationName as IntegrationName,
-              redirectUrl,
-              state,
-            },
-          });
+        const responseUrlRes = await apiClient.generateOAuthRedirectUrl({
+          params: {
+            pieceName: integrationName as IntegrationName,
+            redirectUrl,
+            state,
+          },
+        });
 
         if (!responseUrlRes.success) {
           console.error("Failed to get OAuth URL:", responseUrlRes.error);
@@ -52,7 +51,7 @@ export function useOAuth() {
           throw new Error("Authentication failed - no code returned");
         }
 
-        const response = await integrationsClient.generateOAuthAccessToken({
+        const response = await apiClient.generateOAuthAccessToken({
           body: {
             code,
             redirectUri: redirectUrl,

@@ -4,6 +4,10 @@ Holds all packages for the Celesta project.
 
 ## To-do items
 
+### Problem Tracker
+- Enable and support email verification when making Supabase account.
+- Everything is stored in-memory! (Bad!)
+
 ### Features
 
 - Agent system refinement.

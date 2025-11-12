@@ -7,12 +7,13 @@ import {
 } from "@celesta/common";
 import useWebSocket from "react-use-websocket";
 import { useStore } from "../store";
+import { apiClient } from "../utils/apiClient";
 import { attachDebugger } from "../utils/browserAgentActions";
+import { supabase } from "../utils/supabase";
 import {
   sendWebMessage,
   type AgentActionWebMessage,
 } from "../utils/webMessages";
-import { supabase } from "~/utils/supabase";
 
 const log = logger("useAgentServer");
 
@@ -171,31 +172,42 @@ export function useAgentServer(handlerByType: {
 
   // Get connection code via HTTP, then connect to WebSocket
   const [wsUrl, setWsUrl] = useState<string | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
+  // Monitor auth state changes
   useEffect(() => {
-    const setupWebSocket = async () => {
+    const checkAuth = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      setAuthToken(session?.access_token || null);
+    };
 
-      if (!session?.access_token) {
-        log("No auth session found");
-        return;
-      }
+    checkAuth();
 
+    // Listen for auth changes (sign in, sign up, sign out)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      log("Auth state changed:", event);
+      setAuthToken(session?.access_token || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Establish connection when auth token is available
+  useEffect(() => {
+    if (!authToken) {
+      setWsUrl(null);
+      return;
+    }
+
+    const setupWebSocket = async () => {
       try {
         // Step 1: Request connection code from server using typed client
-        const { createIntegrationsClient } = await import("@celesta/server");
-        const baseUrl =
-          import.meta.env.VITE_AGENT_SERVER_WS_URL?.replace(
-            "ws://",
-            "http://"
-          ).replace("wss://", "https://") || "";
-
-        const client = createIntegrationsClient(baseUrl);
-
-        const response = await client.establishConnection({
-          headers: { authorization: `Bearer ${session.access_token}` },
+        const response = await apiClient.establishConnection({
+          headers: { authorization: `Bearer ${authToken}` },
         });
 
         if (!response.success) {
@@ -204,7 +216,13 @@ export function useAgentServer(handlerByType: {
         }
 
         // Step 2: Connect to WebSocket with the connection code
-        const url = new URL(response.wsUrl);
+        const wsUrl = import.meta.env.VITE_AGENT_SERVER_WS_URL;
+        if (!wsUrl) {
+          log("VITE_AGENT_SERVER_WS_URL not configured");
+          return;
+        }
+
+        const url = new URL(wsUrl);
         url.searchParams.set("code", response.connectionCode);
         setWsUrl(url.toString());
 
@@ -215,7 +233,7 @@ export function useAgentServer(handlerByType: {
     };
 
     setupWebSocket();
-  }, []);
+  }, [authToken]);
 
   const { sendJsonMessage } = useWebSocket(
     wsUrl,

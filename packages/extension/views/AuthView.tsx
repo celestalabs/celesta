@@ -39,8 +39,7 @@ export const AuthView = React.memo(() => {
       setError(error.message);
     } else {
       setMessage("Signed in successfully!");
-      // The useAgentServer hook will automatically reconnect with the new token
-      window.location.reload();
+      // Auth state change will automatically trigger reconnection
     }
 
     setLoading(false);
@@ -60,7 +59,8 @@ export const AuthView = React.memo(() => {
     if (error) {
       setError(error.message);
     } else {
-      setMessage("Check your email to confirm your account!");
+      setMessage("Account created successfully!");
+      // Auth state change will automatically show the main app
     }
 
     setLoading(false);
@@ -70,10 +70,8 @@ export const AuthView = React.memo(() => {
     <div className="flex-auto flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Welcome to Celesta</CardTitle>
-          <CardDescription>
-            Sign in to continue using the assistant
-          </CardDescription>
+          <CardTitle>Celesta ✨</CardTitle>
+          <CardDescription>Sign in to continue!</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin">
