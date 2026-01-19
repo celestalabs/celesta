@@ -134,6 +134,36 @@ export function useAgentServer(handlerByType: {
             } satisfies AgentActionWebMessage,
             false
           );
+          break;
+        }
+        // Voice message handlers - route to AssistantView via window handlers
+        case "VOICE_TRANSCRIPT": {
+          const handlers = (window as any).__celestaVoiceHandlers;
+          if (handlers?.onTranscript) {
+            handlers.onTranscript(message.transcript, message.isFinal);
+          }
+          break;
+        }
+        case "VOICE_TTS_CHUNK": {
+          const handlers = (window as any).__celestaVoiceHandlers;
+          if (handlers?.onTTSChunk) {
+            handlers.onTTSChunk(message.audioData);
+          }
+          break;
+        }
+        case "VOICE_TTS_COMPLETE": {
+          const handlers = (window as any).__celestaVoiceHandlers;
+          if (handlers?.onTTSComplete) {
+            handlers.onTTSComplete();
+          }
+          break;
+        }
+        case "VOICE_ERROR": {
+          const handlers = (window as any).__celestaVoiceHandlers;
+          if (handlers?.onError) {
+            handlers.onError(message.error);
+          }
+          break;
         }
       }
 

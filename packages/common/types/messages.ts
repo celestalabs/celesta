@@ -65,7 +65,8 @@ export type FrontendWSRequestMessage = {
 export type FrontendWSMessage =
   | FrontendWSUserMessage
   | FrontendWSResponseMessage
-  | FrontendWSRequestMessage;
+  | FrontendWSRequestMessage
+  | FrontendWSVoiceMessage;
 
 export type AgentMessageType = "error" | "final" | "chat";
 
@@ -164,6 +165,7 @@ export type ServerWSMessage =
   | ServerWSRequestMessage
   | ServerWSToolMessage
   | ServerWSWorkflowMessage
+  | ServerWSVoiceMessage
   | {
       type: "CONTEXT_CREATED";
       contextId: ContextId;
@@ -175,3 +177,56 @@ export type ConversationWSMessage =
   | FrontendWSUserMessage;
 
 export type WSMessage = FrontendWSMessage | ServerWSMessage;
+
+// Voice message types for STT/TTS via WebSocket
+export type VoiceSessionId = `VOICE_${string}`;
+
+export type FrontendWSVoiceMessage =
+  | {
+      type: "VOICE_START";
+      sessionId: VoiceSessionId;
+      timestamp: number;
+    }
+  | {
+      type: "VOICE_AUDIO_CHUNK";
+      sessionId: VoiceSessionId;
+      // Base64 encoded audio data
+      audioData: string;
+      timestamp: number;
+    }
+  | {
+      type: "VOICE_STOP";
+      sessionId: VoiceSessionId;
+      timestamp: number;
+    }
+  | {
+      type: "REQUEST_TTS";
+      // Text to convert to speech
+      text: string;
+      timestamp: number;
+    };
+
+export type ServerWSVoiceMessage =
+  | {
+      type: "VOICE_TRANSCRIPT";
+      sessionId: VoiceSessionId;
+      transcript: string;
+      isFinal: boolean;
+      timestamp: number;
+    }
+  | {
+      type: "VOICE_TTS_CHUNK";
+      // Base64 encoded audio data (mp3)
+      audioData: string;
+      timestamp: number;
+    }
+  | {
+      type: "VOICE_TTS_COMPLETE";
+      timestamp: number;
+    }
+  | {
+      type: "VOICE_ERROR";
+      sessionId?: VoiceSessionId;
+      error: string;
+      timestamp: number;
+    };

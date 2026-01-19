@@ -2,6 +2,7 @@ import { type ClientId, generateId, logger, ts } from "@celesta/common";
 import { sessionManager } from "@celesta/session";
 import { CoordinationAgent } from "../../agents/src/workflow/CoordinationAgent.js";
 import { isFrontendWSMessage } from "./guards.js";
+import { voiceService } from "./voiceService.js";
 
 const log = logger("frontendMessageHandler");
 
@@ -101,6 +102,30 @@ export function frontendMessageHandler(clientId: ClientId, rawMessage: any) {
           )
         );
 
+      break;
+    }
+
+    // Voice message handlers
+    case "VOICE_START": {
+      log(`Voice session start from ${clientId}: ${message.sessionId}`);
+      voiceService.startSession(clientId, message.sessionId);
+      break;
+    }
+
+    case "VOICE_AUDIO_CHUNK": {
+      voiceService.sendAudioChunk(message.sessionId, message.audioData);
+      break;
+    }
+
+    case "VOICE_STOP": {
+      log(`Voice session stop from ${clientId}: ${message.sessionId}`);
+      voiceService.stopSession(message.sessionId);
+      break;
+    }
+
+    case "REQUEST_TTS": {
+      log(`TTS request from ${clientId}: ${message.text.slice(0, 50)}...`);
+      voiceService.textToSpeech(clientId, message.text);
       break;
     }
 

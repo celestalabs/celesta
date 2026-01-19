@@ -60,6 +60,33 @@ export function isFrontendWSMessage(msg: any): msg is FrontendWSMessage {
       return typeof msg.prompt === "string";
     }
 
+    // Voice message guards
+    case "VOICE_START": {
+      return (
+        typeof msg.sessionId === "string" &&
+        msg.sessionId.startsWith("VOICE_")
+      );
+    }
+
+    case "VOICE_AUDIO_CHUNK": {
+      return (
+        typeof msg.sessionId === "string" &&
+        msg.sessionId.startsWith("VOICE_") &&
+        typeof msg.audioData === "string"
+      );
+    }
+
+    case "VOICE_STOP": {
+      return (
+        typeof msg.sessionId === "string" &&
+        msg.sessionId.startsWith("VOICE_")
+      );
+    }
+
+    case "REQUEST_TTS": {
+      return typeof msg.text === "string" && msg.text.length > 0;
+    }
+
     default:
       return false;
   }

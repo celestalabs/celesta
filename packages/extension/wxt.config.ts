@@ -28,7 +28,7 @@ export default defineConfig({
   //@ts-ignore
   web_accessible_resources: [
     {
-      resources: ["perms/index.html", "perms/requestPermissions.ts"],
+      resources: ["perms.html"],
       matches: ["*://*/*"],
     },
   ],

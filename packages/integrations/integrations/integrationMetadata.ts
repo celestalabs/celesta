@@ -41,13 +41,13 @@ const nonPieceIntegrationMetadata = {
       {
         name: "get_page_content",
         description:
-          "Extract the page's content as HTML. Useful for determining XPaths of elements to interact with on the page, as well as getting general context of the current page's purpose and offerings.",
-        props: z.object({ titleOfOpenTab: z.string() }),
+          "Extract the page's content as HTML. IMPORTANT: You must first call 'list_open_tabs' to get the exact tab titles, then pass the exact title string here. Do NOT pass generic terms like 'current', 'active', or 'this tab' - use the actual title from the tab list.",
+        props: z.object({ titleOfOpenTab: z.string().describe("The EXACT title of the tab as returned by list_open_tabs. Must be an exact string match - do not use generic terms like 'current' or 'active'.") }),
         mode: ["browser", "chat", "workflow"],
       },
       {
         name: "list_open_tabs",
-        description: "List all open tabs (title + URL + is active/current)",
+        description: "List all open tabs with their exact title, URL, and whether they are the active/current tab (active: true). ALWAYS call this first before using get_page_content to get the exact tab titles.",
         props: z.object({}),
         mode: ["browser", "chat", "workflow"],
       },
