@@ -43,9 +43,20 @@ type ActiveVoiceSession = {
   deepgramConnection: ListenLiveClient;
 };
 
+// TTS queue item
+type TTSQueueItem = {
+  text: string;
+  resolve: () => void;
+};
+
 class VoiceService {
   private activeSessions: Map<VoiceSessionId, ActiveVoiceSession> = new Map();
   private pendingAudio: Map<VoiceSessionId, string[]> = new Map();
+  
+  // TTS queue per client to ensure ordered processing
+  private ttsQueues: Map<ClientId, TTSQueueItem[]> = new Map();
+  private ttsProcessing: Map<ClientId, boolean> = new Map();
+  private ttsCompleteTimers: Map<ClientId, ReturnType<typeof setTimeout>> = new Map();
 
   /**
    * Start a new voice transcription session
@@ -218,7 +229,8 @@ class VoiceService {
   }
 
   /**
-   * Convert text to speech and stream audio chunks to the client (using ElevenLabs)
+   * Queue text for TTS processing (ensures ordered playback)
+   * This is the public method called from frontendMessageHandler
    */
   async textToSpeech(clientId: ClientId, text: string): Promise<void> {
     if (!elevenlabs) {
@@ -226,65 +238,78 @@ class VoiceService {
       return;
     }
 
-    log(`[TTS] Starting TTS for text (${text.length} chars)`);
-
-    try {
-      // Split text into sentences for streaming
-      const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
-      log(`[TTS] Split into ${sentences.length} sentences`);
-
-      for (let i = 0; i < sentences.length; i++) {
-        const sentence = sentences[i];
-        const trimmed = sentence.trim();
-        if (!trimmed) continue;
-
-        log(`[TTS] Processing sentence ${i + 1}/${sentences.length}: "${trimmed.slice(0, 50)}..."`);
-
-        // Use ElevenLabs streaming API
-        const audioStream = await elevenlabs.textToSpeech.stream(
-          ELEVENLABS_VOICE_ID,
-          {
-            text: trimmed,
-            modelId: ELEVENLABS_MODEL_ID,
-            outputFormat: "mp3_44100_128",
-          }
-        );
-
-        // Collect chunks into a buffer for this sentence
-        const chunks: Buffer[] = [];
-        for await (const chunk of audioStream) {
-          chunks.push(Buffer.from(chunk));
-        }
-
-        const base64Audio = Buffer.concat(chunks).toString("base64");
-        log(`[TTS] Sending chunk ${i + 1} (${base64Audio.length} base64 chars)`);
-
-        this.sendMessage(clientId, ts({
-          type: "VOICE_TTS_CHUNK",
-          audioData: base64Audio,
-        }));
-      }
-
-      // Signal completion
-      log(`[TTS] Sending TTS_COMPLETE`);
-      this.sendMessage(clientId, ts({
-        type: "VOICE_TTS_COMPLETE",
-      }));
-    } catch (error) {
-      log(`[TTS] Error:`, error);
-      this.sendError(clientId, undefined, String(error));
+    // Cancel any pending TTS_COMPLETE since we have more content
+    const existingTimer = this.ttsCompleteTimers.get(clientId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      this.ttsCompleteTimers.delete(clientId);
     }
+
+    // Add to queue
+    return new Promise<void>((resolve) => {
+      if (!this.ttsQueues.has(clientId)) {
+        this.ttsQueues.set(clientId, []);
+      }
+      this.ttsQueues.get(clientId)!.push({ text, resolve });
+      log(`[TTS] Queued text (${text.length} chars), queue size: ${this.ttsQueues.get(clientId)!.length}`);
+      
+      // Start processing if not already running
+      this.processTTSQueue(clientId);
+    });
   }
 
   /**
-   * Stream TTS for a single chunk (called as LLM response streams in) using ElevenLabs
+   * Process the TTS queue for a client (ensures ordered processing)
    */
-  async streamTTSChunk(clientId: ClientId, text: string): Promise<void> {
-    if (!elevenlabs || !text.trim()) return;
+  private async processTTSQueue(clientId: ClientId): Promise<void> {
+    // If already processing, don't start another loop
+    if (this.ttsProcessing.get(clientId)) {
+      return;
+    }
+    
+    this.ttsProcessing.set(clientId, true);
+    
+    while (true) {
+      const queue = this.ttsQueues.get(clientId);
+      if (!queue || queue.length === 0) {
+        break;
+      }
+      
+      const item = queue.shift()!;
+      
+      try {
+        await this.processTextToSpeech(clientId, item.text);
+      } catch (error) {
+        log(`[TTS] Error processing queue item:`, error);
+      }
+      
+      item.resolve();
+    }
+    
+    this.ttsProcessing.set(clientId, false);
+    
+    // Debounce TTS_COMPLETE - wait 500ms for more content before signaling completion
+    // This handles the case where sentences stream in rapidly
+    log(`[TTS] Queue empty, scheduling TTS_COMPLETE in 500ms`);
+    const timer = setTimeout(() => {
+      this.ttsCompleteTimers.delete(clientId);
+      log(`[TTS] Sending TTS_COMPLETE (no new content in 500ms)`);
+      this.sendMessage(clientId, ts({
+        type: "VOICE_TTS_COMPLETE",
+      }));
+    }, 500);
+    this.ttsCompleteTimers.set(clientId, timer);
+  }
+
+  /**
+   * Internal: Process a single text-to-speech request
+   */
+  private async processTextToSpeech(clientId: ClientId, text: string): Promise<void> {
+    log(`[TTS] Processing TTS for text (${text.length} chars): "${text.slice(0, 50)}..."`);
 
     try {
       // Use ElevenLabs streaming API
-      const audioStream = await elevenlabs.textToSpeech.stream(
+      const audioStream = await elevenlabs!.textToSpeech.stream(
         ELEVENLABS_VOICE_ID,
         {
           text: text.trim(),
@@ -300,13 +325,15 @@ class VoiceService {
       }
 
       const base64Audio = Buffer.concat(chunks).toString("base64");
+      log(`[TTS] Sending audio (${base64Audio.length} base64 chars)`);
 
       this.sendMessage(clientId, ts({
         type: "VOICE_TTS_CHUNK",
         audioData: base64Audio,
       }));
     } catch (error) {
-      log(`TTS chunk error:`, error);
+      log(`[TTS] Error:`, error);
+      this.sendError(clientId, undefined, String(error));
     }
   }
 
@@ -334,6 +361,14 @@ class VoiceService {
       if (session.clientId === clientId) {
         this.stopSession(sessionId);
       }
+    }
+    // Clean up TTS queue and timers
+    this.ttsQueues.delete(clientId);
+    this.ttsProcessing.delete(clientId);
+    const timer = this.ttsCompleteTimers.get(clientId);
+    if (timer) {
+      clearTimeout(timer);
+      this.ttsCompleteTimers.delete(clientId);
     }
   }
 }
