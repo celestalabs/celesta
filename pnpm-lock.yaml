@@ -520,6 +520,9 @@ importers:
       '@deepgram/sdk':
         specifier: ^4.11.3
         version: 4.11.3
+      '@elevenlabs/elevenlabs-js':
+        specifier: ^2.31.0
+        version: 2.31.0
       '@supabase/supabase-js':
         specifier: ^2.81.1
         version: 2.81.1
@@ -967,6 +970,10 @@ packages:
 
   '@dimforge/rapier3d-compat@0.12.0':
     resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
+
+  '@elevenlabs/elevenlabs-js@2.31.0':
+    resolution: {integrity: sha512-SYrt0yiw6AyLyEKUJBBuiotIqm0mJ1CJYXVbyNbZjVd7fxAyoHpACh6uyblJk0Z7fnbTwGT4zIIP3mF3sOIp+Q==}
+    engines: {node: '>=18.0.0'}
 
   '@esbuild/aix-ppc64@0.25.11':
     resolution: {integrity: sha512-Xt1dOL13m8u0WE8iplx9Ibbm+hFAO0GsU2P34UNoDGvZYkY8ifSiy6Zuc1lYxfG7svWE2fzqCUmFp5HCn51gJg==}
@@ -3625,6 +3632,9 @@ packages:
 
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
+
+  command-exists@1.2.9:
+    resolution: {integrity: sha512-LTQ/SGc+s0Xc0Fu5WaKnR0YiygZkm9eKFvyS+fRsU7/ZWFF8ykFM6Pc9aCVf1+xasOOZpO3BAVgVrKvsqKHV7w==}
 
   commander@12.1.0:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
@@ -7734,6 +7744,16 @@ snapshots:
 
   '@dimforge/rapier3d-compat@0.12.0': {}
 
+  '@elevenlabs/elevenlabs-js@2.31.0':
+    dependencies:
+      command-exists: 1.2.9
+      node-fetch: 2.7.0
+      ws: 8.18.3
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - utf-8-validate
+
   '@esbuild/aix-ppc64@0.25.11':
     optional: true
 
@@ -10708,6 +10728,8 @@ snapshots:
       delayed-stream: 1.0.0
 
   comma-separated-tokens@2.0.3: {}
+
+  command-exists@1.2.9: {}
 
   commander@12.1.0: {}
 

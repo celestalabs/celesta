@@ -16,6 +16,7 @@
     "@celesta/integrations": "workspace:*",
     "@celesta/session": "workspace:*",
     "@deepgram/sdk": "^4.11.3",
+    "@elevenlabs/elevenlabs-js": "^2.31.0",
     "@supabase/supabase-js": "^2.81.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",

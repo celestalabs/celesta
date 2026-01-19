@@ -1,6 +1,6 @@
 /**
- * Voice service for handling STT (Speech-to-Text) and TTS (Text-to-Speech)
- * via Deepgram API on the backend.
+ * Voice service for handling STT (Speech-to-Text) and TTS (Text-to-Speech).
+ * STT uses Deepgram, TTS uses ElevenLabs.
  */
 
 import {
@@ -13,14 +13,29 @@ import {
 import { sessionManager } from "@celesta/session";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import type { ListenLiveClient } from "@deepgram/sdk";
+import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
 const log = logger("voiceService");
 
+// STT (Deepgram)
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
-
 if (!DEEPGRAM_API_KEY) {
-  log("WARNING: DEEPGRAM_API_KEY not set. Voice features will not work.");
+  log("WARNING: DEEPGRAM_API_KEY not set. STT features will not work.");
 }
+
+// TTS (ElevenLabs)
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const elevenlabs = ELEVENLABS_API_KEY
+  ? new ElevenLabsClient({ apiKey: ELEVENLABS_API_KEY })
+  : null;
+
+if (!ELEVENLABS_API_KEY) {
+  log("WARNING: ELEVENLABS_API_KEY not set. TTS features will not work.");
+}
+
+// ElevenLabs voice configuration
+const ELEVENLABS_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George - deep male voice
+const ELEVENLABS_MODEL_ID = "eleven_flash_v2_5"; // Fastest model for low latency
 
 type ActiveVoiceSession = {
   clientId: ClientId;
@@ -203,11 +218,11 @@ class VoiceService {
   }
 
   /**
-   * Convert text to speech and stream audio chunks to the client
+   * Convert text to speech and stream audio chunks to the client (using ElevenLabs)
    */
   async textToSpeech(clientId: ClientId, text: string): Promise<void> {
-    if (!DEEPGRAM_API_KEY) {
-      this.sendError(clientId, undefined, "Deepgram API key not configured");
+    if (!elevenlabs) {
+      this.sendError(clientId, undefined, "ElevenLabs API key not configured");
       return;
     }
 
@@ -225,26 +240,23 @@ class VoiceService {
 
         log(`[TTS] Processing sentence ${i + 1}/${sentences.length}: "${trimmed.slice(0, 50)}..."`);
 
-        const response = await fetch(
-          "https://api.deepgram.com/v1/speak?model=aura-asteria-en&encoding=mp3",
+        // Use ElevenLabs streaming API
+        const audioStream = await elevenlabs.textToSpeech.stream(
+          ELEVENLABS_VOICE_ID,
           {
-            method: "POST",
-            headers: {
-              Authorization: `Token ${DEEPGRAM_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ text: trimmed }),
+            text: trimmed,
+            modelId: ELEVENLABS_MODEL_ID,
+            outputFormat: "mp3_44100_128",
           }
         );
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          log(`[TTS] Error for sentence ${i + 1}: ${response.status} - ${errorText}`);
-          continue;
+        // Collect chunks into a buffer for this sentence
+        const chunks: Buffer[] = [];
+        for await (const chunk of audioStream) {
+          chunks.push(Buffer.from(chunk));
         }
 
-        const audioBuffer = await response.arrayBuffer();
-        const base64Audio = Buffer.from(audioBuffer).toString("base64");
+        const base64Audio = Buffer.concat(chunks).toString("base64");
         log(`[TTS] Sending chunk ${i + 1} (${base64Audio.length} base64 chars)`);
 
         this.sendMessage(clientId, ts({
@@ -265,31 +277,29 @@ class VoiceService {
   }
 
   /**
-   * Stream TTS for a single chunk (called as LLM response streams in)
+   * Stream TTS for a single chunk (called as LLM response streams in) using ElevenLabs
    */
   async streamTTSChunk(clientId: ClientId, text: string): Promise<void> {
-    if (!DEEPGRAM_API_KEY || !text.trim()) return;
+    if (!elevenlabs || !text.trim()) return;
 
     try {
-      const response = await fetch(
-        "https://api.deepgram.com/v1/speak?model=aura-asteria-en&encoding=mp3",
+      // Use ElevenLabs streaming API
+      const audioStream = await elevenlabs.textToSpeech.stream(
+        ELEVENLABS_VOICE_ID,
         {
-          method: "POST",
-          headers: {
-            Authorization: `Token ${DEEPGRAM_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ text: text.trim() }),
+          text: text.trim(),
+          modelId: ELEVENLABS_MODEL_ID,
+          outputFormat: "mp3_44100_128",
         }
       );
 
-      if (!response.ok) {
-        log(`TTS chunk error: ${response.status}`);
-        return;
+      // Collect chunks into a buffer
+      const chunks: Buffer[] = [];
+      for await (const chunk of audioStream) {
+        chunks.push(Buffer.from(chunk));
       }
 
-      const audioBuffer = await response.arrayBuffer();
-      const base64Audio = Buffer.from(audioBuffer).toString("base64");
+      const base64Audio = Buffer.concat(chunks).toString("base64");
 
       this.sendMessage(clientId, ts({
         type: "VOICE_TTS_CHUNK",

@@ -1,6 +1,12 @@
 import { type FrontendWSMessage, ts } from "@celesta/common";
 import { Mic, MicOff, Square, User } from "lucide-react";
-import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import { MessageCard } from "../components/MessageCard";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -99,7 +105,13 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
       // User is still speaking, reset timer
       clearSilenceTimer();
     }
-  }, [transcriberState, finalTranscript, interimTranscript, clearSilenceTimer, handleVoiceComplete]);
+  }, [
+    transcriberState,
+    finalTranscript,
+    interimTranscript,
+    clearSilenceTimer,
+    handleVoiceComplete,
+  ]);
   // Track if we should auto-restart listening after TTS finishes
   const shouldAutoRestartRef = useRef(false);
 
@@ -110,15 +122,23 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
     (window as any).__celestaVoiceHandlers = {
       onTranscript: handleTranscript,
       onTTSChunk: (audioData: string) => {
-        console.log(`[TTS] Received chunk (${audioData.length} chars), voiceMessagePending=${voiceMessagePending}`);
-        if (voiceMessagePending) {
-          addAudioChunk(audioData);
-        }
+        console.log(
+          `[TTS] Received chunk (${audioData.length} chars), voiceMessagePending=${voiceMessagePending}`
+        );
+        // Always add chunks - voiceMessagePending tracks if we expect TTS
+        addAudioChunk(audioData);
       },
       onTTSComplete: () => {
-        console.log(`[TTS] Received TTS_COMPLETE`);
-        // Just signal that the current TTS chunk is done
-        // Don't clear voiceMessagePending - that stays until we're done with the full response
+        console.log(
+          `[TTS] Received TTS_COMPLETE, ttsStoppedManually=${ttsStoppedManuallyRef.current}`
+        );
+        // Enable auto-restart when TTS queue is done (unless manually stopped)
+        if (!ttsStoppedManuallyRef.current) {
+          shouldAutoRestartRef.current = true;
+          console.log("[TTS] Auto-restart enabled for continuous conversation");
+        }
+        // Clear voiceMessagePending since TTS is complete
+        setVoiceMessagePending(false);
         finishTTS();
       },
       onError: handleVoiceError,
@@ -143,12 +163,16 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
   useEffect(() => {
     // Detect transition from speaking to not speaking
     if (prevIsSpeakingRef.current && !isSpeaking) {
-      console.log(`[Voice] isSpeaking changed to false, shouldAutoRestart=${shouldAutoRestartRef.current}`);
-      
+      console.log(
+        `[Voice] isSpeaking changed to false, shouldAutoRestart=${shouldAutoRestartRef.current}`
+      );
+
       if (shouldAutoRestartRef.current) {
         shouldAutoRestartRef.current = false;
-        console.log("[Voice] Auto-restarting microphone for continuous conversation");
-        
+        console.log(
+          "[Voice] Auto-restarting microphone for continuous conversation"
+        );
+
         // Small delay before restarting to feel more natural
         setTimeout(async () => {
           // Double-check we're not already speaking (race condition guard)
@@ -156,7 +180,7 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
             console.log("[Voice] Aborted auto-restart: TTS started again");
             return;
           }
-          
+
           const permission = await checkMicrophonePermission();
           if (permission === "granted") {
             setIsVoiceMode(true);
@@ -224,7 +248,13 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
       setIsVoiceMode(true);
       await startTranscribing();
     }
-  }, [transcriberState, handleVoiceComplete, startTranscribing, isSpeaking, stopTTS]);
+  }, [
+    transcriberState,
+    handleVoiceComplete,
+    startTranscribing,
+    isSpeaking,
+    stopTTS,
+  ]);
 
   // Stop TTS playback (manual stop - prevents auto-restart)
   const handleStopTTS = useCallback(() => {
@@ -238,27 +268,42 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
 
   // Track TTS state for streaming
   const lastTTSSentLengthRef = useRef(0);
-  const ttsRequestedForMessageRef = useRef<number>(-1);
+  const ttsMessageIndexRef = useRef<number>(-1); // Track which message we're processing TTS for
   const wasStreamingRef = useRef(false);
+  const sentRemainingContentRef = useRef(false); // Prevent duplicate "remaining content" sends
 
   // Stream TTS as content arrives, sentence by sentence
   useEffect(() => {
     if (!voiceMessagePending) {
       // Reset when not in voice mode
       lastTTSSentLengthRef.current = 0;
+      ttsMessageIndexRef.current = -1;
+      sentRemainingContentRef.current = false;
       return;
     }
 
     // Find the current agent message (either streaming or the last complete one)
-    const lastMessage = chatMessages[chatMessages.length - 1];
+    const lastMessageIndex = chatMessages.length - 1;
+    const lastMessage = chatMessages[lastMessageIndex];
     if (!lastMessage || lastMessage.type !== "agent") return;
-    
+
+    // If this is a new message, reset our tracking
+    if (ttsMessageIndexRef.current !== lastMessageIndex) {
+      console.log(`[TTS] New message detected at index ${lastMessageIndex}, resetting TTS tracking`);
+      lastTTSSentLengthRef.current = 0;
+      sentRemainingContentRef.current = false;
+      ttsMessageIndexRef.current = lastMessageIndex;
+    }
+
     const currentContent = lastMessage.content;
     const alreadySentLength = lastTTSSentLengthRef.current;
-    
+
+    // Don't process if we've already sent remaining content for this message
+    if (sentRemainingContentRef.current) return;
+
     // Check for new complete sentences to send
     const newContent = currentContent.slice(alreadySentLength);
-    
+
     // Find the last sentence boundary (. ! ? followed by space or end)
     const sentenceEndRegex = /[.!?](?:\s|$)/g;
     let lastSentenceEnd = -1;
@@ -266,11 +311,13 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
     while ((match = sentenceEndRegex.exec(newContent)) !== null) {
       lastSentenceEnd = match.index + 1; // Include the punctuation
     }
-    
+
     if (lastSentenceEnd > 0) {
       const textToSpeak = newContent.slice(0, lastSentenceEnd).trim();
       if (textToSpeak.length > 0) {
-        console.log(`[TTS] Streaming TTS for sentence (${textToSpeak.length} chars): "${textToSpeak.slice(0, 50)}..."`);
+        console.log(
+          `[TTS] Streaming TTS for sentence (${textToSpeak.length} chars): "${textToSpeak.slice(0, 50)}..."`
+        );
         sendMessage(
           ts({
             type: "REQUEST_TTS",
@@ -280,23 +327,29 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
         lastTTSSentLengthRef.current = alreadySentLength + lastSentenceEnd;
       }
     }
-    
+
     // Track if we were streaming
     wasStreamingRef.current = streamedMessageLength > 0;
-    
   }, [chatMessages, streamedMessageLength, voiceMessagePending, sendMessage]);
 
   // When streaming completes, send any remaining content
   useEffect(() => {
     if (!voiceMessagePending) return;
     
+    // Don't send remaining content twice
+    if (sentRemainingContentRef.current) return;
+
     // Detect streaming -> complete transition
     if (wasStreamingRef.current && streamedMessageLength === 0) {
       const lastMessage = chatMessages[chatMessages.length - 1];
       if (lastMessage?.type === "agent") {
-        const remainingContent = lastMessage.content.slice(lastTTSSentLengthRef.current).trim();
+        const remainingContent = lastMessage.content
+          .slice(lastTTSSentLengthRef.current)
+          .trim();
         if (remainingContent.length > 0) {
-          console.log(`[TTS] Sending remaining content (${remainingContent.length} chars): "${remainingContent.slice(0, 50)}..."`);
+          console.log(
+            `[TTS] Sending remaining content (${remainingContent.length} chars): "${remainingContent.slice(0, 50)}..."`
+          );
           sendMessage(
             ts({
               type: "REQUEST_TTS",
@@ -305,14 +358,8 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
           );
         }
         lastTTSSentLengthRef.current = lastMessage.content.length;
-        
-        // NOW we can set shouldAutoRestart since the full response is done
-        console.log("[TTS] Full response complete, enabling auto-restart after TTS finishes");
-        shouldAutoRestartRef.current = !ttsStoppedManuallyRef.current;
-        
-        // Clear voiceMessagePending since the full response is done
-        // TTS will continue playing from the queue
-        setVoiceMessagePending(false);
+        sentRemainingContentRef.current = true; // Mark that we've sent remaining content
+        // Auto-restart and voiceMessagePending are now handled in onTTSComplete
       }
       wasStreamingRef.current = false;
     }
@@ -345,7 +392,8 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
 
   // Show voice UI when actively recording (not during TTS)
   // Extra safety: never show recording UI while TTS is playing
-  const showVoiceUI = isVoiceMode && transcriberState === "listening" && !isSpeaking;
+  const showVoiceUI =
+    isVoiceMode && transcriberState === "listening" && !isSpeaking;
 
   return (
     <>
@@ -362,23 +410,21 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
         )}
 
         {/* Show messages when not in voice recording mode */}
-        {!showVoiceUI && chatMessages.map((msg, index) => (
-          <MessageCard
-            contextId="CHAT"
-            key={index}
-            message={msg}
-            sendMessage={sendMessage}
-          />
-        ))}
+        {!showVoiceUI &&
+          chatMessages.map((msg, index) => (
+            <MessageCard
+              contextId="CHAT"
+              key={index}
+              message={msg}
+              sendMessage={sendMessage}
+            />
+          ))}
 
         {/* Voice mode - Orb visualizer, vertically centered (only when recording) */}
         {showVoiceUI && (
           <div className="flex-auto flex flex-col items-center justify-center">
             <div className="w-40 h-40">
-              <Orb 
-                agentState={orbAgentState}
-                colors={["#8B5CF6", "#A78BFA"]}
-              />
+              <Orb agentState={orbAgentState} colors={["#8B5CF6", "#A78BFA"]} />
             </div>
           </div>
         )}
@@ -401,7 +447,7 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
         {showVoiceUI ? (
           <>
             <div className="flex-1 flex items-center px-3 border rounded-md bg-muted/50 overflow-hidden">
-              <span 
+              <span
                 className="text-sm text-muted-foreground whitespace-nowrap"
                 ref={(el) => {
                   // Auto-scroll to show the latest text
@@ -409,11 +455,11 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
                     el.scrollLeft = el.scrollWidth;
                   }
                 }}
-                style={{ 
-                  display: 'block',
-                  overflowX: 'auto',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
+                style={{
+                  display: "block",
+                  overflowX: "auto",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
                 }}
               >
                 {voiceDisplayText}
