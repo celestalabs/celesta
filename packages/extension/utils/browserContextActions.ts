@@ -28,18 +28,32 @@ const browserContextActions = {
   },
   GET_PAGE_CONTENT: async ({ titleOfOpenTab }) => {
     try {
-      const tabId = (await browser.tabs.query({ title: titleOfOpenTab })).at(
-        0
-      )?.id;
+      const tabs = await browser.tabs.query({ title: titleOfOpenTab });
+      const tab = tabs.at(0);
 
-      if (tabId == null) {
+      if (tab == null || tab.id == null) {
         throw new Error(`No tab found with title: ${titleOfOpenTab}`);
       }
 
-      log("Sending getPageContent to tabId:", tabId);
+      // Check if it's a restricted URL that content scripts can't run on
+      const url = tab.url || "";
+      if (
+        url.startsWith("chrome://") ||
+        url.startsWith("chrome-extension://") ||
+        url.startsWith("about:") ||
+        url.startsWith("edge://") ||
+        url.startsWith("moz-extension://")
+      ) {
+        return {
+          success: false,
+          error: `Cannot access content on this page (${url.split("/")[0]}//). Browser restricts extensions from reading internal pages.`,
+        };
+      }
+
+      log("Sending getPageContent to tabId:", tab.id);
 
       const response = await sendWebMessage(
-        ["tabs", tabId],
+        ["tabs", tab.id],
         {
           __isWebMessage: true,
           __webMessageType: "AgentActionWebMessage",
@@ -53,7 +67,17 @@ const browserContextActions = {
       return response.payload;
     } catch (error) {
       log("get page content error", error);
-      return { success: false, error: `${error}` };
+      const errorMsg = `${error}`;
+      
+      // Provide more helpful error message for connection issues
+      if (errorMsg.includes("Could not establish connection") || errorMsg.includes("Receiving end does not exist")) {
+        return {
+          success: false,
+          error: "Cannot read this page's content. The page may need to be refreshed, or it may be a restricted page (like browser settings or extension pages) that extensions cannot access.",
+        };
+      }
+      
+      return { success: false, error: errorMsg };
     }
   },
 } as const satisfies {
