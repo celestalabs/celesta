@@ -1,5 +1,5 @@
 import { type FrontendWSMessage, logger, ts } from "@celesta/common";
-import { Mic, MicOff, Square, User } from "lucide-react";
+import { Mic, MicOff, Square } from "lucide-react";
 import React from "react";
 import { MessageCard } from "../components/MessageCard";
 import { Button } from "../components/ui/button";

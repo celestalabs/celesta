@@ -3,6 +3,7 @@ import {
   type FrontendWSMessage,
   logger,
   type ServerWSMessage,
+  ts,
 } from "@celesta/common";
 import useWebSocket from "react-use-websocket";
 import { useStore } from "../store";
@@ -15,6 +16,11 @@ import {
 } from "../utils/webMessages";
 
 const log = logger("useAgentServer");
+
+// Storage key for pending prompt from context menu (must match background.ts)
+const PENDING_PROMPT_KEY = "pendingPrompt";
+// Max age for pending prompt (5 seconds)
+const MAX_PROMPT_AGE_MS = 5000;
 
 // Map each ServerWSMessage type to its specific message shape
 type ServerWSMessageByType = {
@@ -63,6 +69,9 @@ export function useAgentServer(handlerByType: {
   );
   const dispatchVoiceError = useStore((state) => state.dispatchVoiceError);
 
+  // Track when CHAT context has been created (for pending prompt handling)
+  const [chatContextCreated, setChatContextCreated] = useState(false);
+
   const handleOpen = useCallback(() => {
     log("WebSocket connection opened");
   }, []);
@@ -79,8 +88,32 @@ export function useAgentServer(handlerByType: {
       switch (message.type) {
         case "CONTEXT_CREATED": {
           addContext(message.contextId);
-          // Note: Browser agent tab creation moved to BROWSER_AGENT_INITIALIZED
-          // so we can handle existingTabId for tab reuse
+
+          // When CHAT context is created, check for pending prompt from context menu
+          if (message.contextId === "CHAT") {
+            const result =
+              await browser.storage.session.get(PENDING_PROMPT_KEY);
+            const stored = result[PENDING_PROMPT_KEY] as
+              | { prompt: string; timestamp: number }
+              | undefined;
+
+            if (stored && Date.now() - stored.timestamp < MAX_PROMPT_AGE_MS) {
+              log(`Sending pending prompt: "${stored.prompt.slice(0, 50)}..."`);
+              const pendingMessage = ts({
+                type: "USER_MESSAGE" as const,
+                data: { role: "user" as const, content: stored.prompt },
+                contextId: "CHAT" as const,
+              });
+              send(pendingMessage);
+              addMessageToContext(pendingMessage);
+            }
+
+            // Always clear storage after checking
+            await browser.storage.session.remove(PENDING_PROMPT_KEY);
+
+            // Mark chat context as created so storage listener can handle future prompts
+            setChatContextCreated(true);
+          }
           break;
         }
         case "WORKFLOW_STATUS_CHANGED": {
@@ -336,6 +369,43 @@ export function useAgentServer(handlerByType: {
     },
     [sendJsonMessage, addMessageToContext]
   );
+
+  // Listen for pending prompts from context menu (when sidebar is already open)
+  useEffect(() => {
+    if (!chatContextCreated) return; // Only listen after CHAT context is created
+
+    const handleStorageChange = (
+      changes: { [key: string]: Browser.storage.StorageChange },
+      areaName: string
+    ) => {
+      if (areaName !== "session" || !changes[PENDING_PROMPT_KEY]?.newValue)
+        return;
+
+      const stored = changes[PENDING_PROMPT_KEY].newValue as {
+        prompt: string;
+        timestamp: number;
+      };
+
+      if (Date.now() - stored.timestamp < MAX_PROMPT_AGE_MS) {
+        log(
+          `Storage change: sending pending prompt: "${stored.prompt.slice(0, 50)}..."`
+        );
+        const pendingMessage = ts({
+          type: "USER_MESSAGE" as const,
+          data: { role: "user" as const, content: stored.prompt },
+          contextId: "CHAT" as const,
+        });
+        sendJsonMessage(pendingMessage);
+        addMessageToContext(pendingMessage);
+
+        // Clear storage after processing
+        browser.storage.session.remove(PENDING_PROMPT_KEY);
+      }
+    };
+
+    browser.storage.onChanged.addListener(handleStorageChange);
+    return () => browser.storage.onChanged.removeListener(handleStorageChange);
+  }, [chatContextCreated, sendJsonMessage, addMessageToContext]);
 
   return {
     sendMessage,
