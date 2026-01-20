@@ -8,6 +8,7 @@ import {
   logger,
   type ToolCallId,
   type ContextId,
+  type WorkflowId,
 } from "@celesta/common";
 import { sessionManager } from "@celesta/session";
 
@@ -58,7 +59,11 @@ class BrowserManager {
     clientId: ClientId,
     contextId: ContextId,
     toolCallId: ToolCallId,
-    goalDescription: string
+    goalDescription: string,
+    options?: {
+      existingTabId?: number;
+      workflowId?: WorkflowId;
+    }
   ): ReturnType<BrowserAgent["onInitialize"]> {
     return new Promise(async (resolve, reject) => {
       const browserAgentId = generateId("BROWSER_AGENT");
@@ -67,7 +72,9 @@ class BrowserManager {
         "Received browser agent request for",
         clientId,
         "with goal",
-        goalDescription
+        goalDescription,
+        options?.existingTabId ? `(reusing tab ${options.existingTabId})` : "(new tab)",
+        options?.workflowId ? `(workflow: ${options.workflowId})` : ""
       );
 
       await sessionManager.createContext<BrowserAgent>({
@@ -89,6 +96,8 @@ class BrowserManager {
           contextId,
           browserAgentId,
           toolCallId,
+          existingTabId: options?.existingTabId,
+          workflowId: options?.workflowId,
         })
       );
     });

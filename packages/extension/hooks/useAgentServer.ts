@@ -1,7 +1,6 @@
 import {
   type BrowserAgentId,
   type FrontendWSMessage,
-  isBrowserAgentId,
   logger,
   type ServerWSMessage,
 } from "@celesta/common";
@@ -49,6 +48,9 @@ export function useAgentServer(handlerByType: {
     (state) => state.addBrowserAgentToolId
   );
 
+  const tabIdByWorkflow = useStore((state) => state.tabIdByWorkflow);
+  const setWorkflowTabId = useStore((state) => state.setWorkflowTabId);
+
   // Voice event dispatchers
   const dispatchVoiceTranscript = useStore(
     (state) => state.dispatchVoiceTranscript
@@ -77,27 +79,8 @@ export function useAgentServer(handlerByType: {
       switch (message.type) {
         case "CONTEXT_CREATED": {
           addContext(message.contextId);
-
-          if (isBrowserAgentId(message.contextId)) {
-            log("Browser agent context created: " + message.contextId);
-
-            const { id } = await browser.tabs.create({
-              url: "https://google.com",
-            });
-
-            addBrowserAgentTabId(message.contextId, id!);
-            await sendWebMessage(
-              ["tabs", id!],
-              {
-                __isWebMessage: true,
-                __webMessageType: "AgentActionWebMessage",
-                action: "startAgent",
-              } satisfies AgentActionWebMessage,
-              false
-            );
-            await attachDebugger(id!);
-          }
-
+          // Note: Browser agent tab creation moved to BROWSER_AGENT_INITIALIZED
+          // so we can handle existingTabId for tab reuse
           break;
         }
         case "WORKFLOW_STATUS_CHANGED": {
@@ -133,6 +116,70 @@ export function useAgentServer(handlerByType: {
         }
         case "BROWSER_AGENT_INITIALIZED": {
           addBrowserAgentToolId(message.toolCallId, message.browserAgentId);
+
+          // Priority for tab reuse:
+          // 1. Check if this workflow already has a tab (for multi-step browser workflows)
+          // 2. Use existingTabId if provided
+          // 3. Create a new tab
+          let tabId: number | undefined;
+
+          // Check workflow tab first (highest priority for reuse within same workflow)
+          if (
+            message.workflowId &&
+            tabIdByWorkflow[message.workflowId] != null
+          ) {
+            try {
+              await browser.tabs.get(tabIdByWorkflow[message.workflowId]!);
+              tabId = tabIdByWorkflow[message.workflowId]!;
+              log(
+                `Reusing workflow tab ${tabId} for browser agent ${message.browserAgentId} in workflow ${message.workflowId}`
+              );
+            } catch {
+              log(
+                `Workflow tab ${tabIdByWorkflow[message.workflowId]} no longer exists`
+              );
+            }
+          }
+
+          // Fall back to existingTabId if no workflow tab
+          if (tabId == null && message.existingTabId != null) {
+            try {
+              await browser.tabs.get(message.existingTabId);
+              tabId = message.existingTabId;
+              log(
+                `Reusing existing tab ${tabId} for browser agent ${message.browserAgentId}`
+              );
+            } catch {
+              log(`Existing tab ${message.existingTabId} not found`);
+            }
+          }
+
+          // Create new tab if needed
+          if (tabId == null) {
+            log(`Creating new tab for browser agent ${message.browserAgentId}`);
+            const { id } = await browser.tabs.create({
+              url: "https://google.com",
+            });
+            tabId = id!;
+          }
+
+          addBrowserAgentTabId(message.browserAgentId, tabId);
+
+          // Track by workflow if applicable (so subsequent browser tasks reuse this tab)
+          if (message.workflowId) {
+            setWorkflowTabId(message.workflowId, tabId);
+          }
+
+          await sendWebMessage(
+            ["tabs", tabId],
+            {
+              __isWebMessage: true,
+              __webMessageType: "AgentActionWebMessage",
+              action: "startAgent",
+            } satisfies AgentActionWebMessage,
+            false
+          );
+          await attachDebugger(tabId);
           break;
         }
         case "REQUEST_BROWSER_AGENT_ACTION": {
@@ -197,6 +244,8 @@ export function useAgentServer(handlerByType: {
       addBrowserAgentTabId,
       addBrowserAgentToolId,
       tabIdByBrowserAgent,
+      tabIdByWorkflow,
+      setWorkflowTabId,
       dispatchVoiceTranscript,
       dispatchVoiceTTSChunk,
       dispatchVoiceTTSComplete,

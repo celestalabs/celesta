@@ -157,6 +157,8 @@ export type ServerWSWorkflowMessage =
       contextId: ContextId;
       browserAgentId: BrowserAgentId;
       toolCallId: ToolCallId;
+      existingTabId?: number; // If provided, reuse this tab instead of creating new
+      workflowId?: WorkflowId; // If part of a workflow, used to track tab across subtasks
       timestamp: number;
     };
 

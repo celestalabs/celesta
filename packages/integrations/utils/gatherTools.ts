@@ -2,7 +2,9 @@ import {
   type FullToolSet,
   type IntegrationName,
   isIntegrationName,
+  isWorkflowId,
   logger,
+  type WorkflowId,
 } from "@celesta/common";
 import { wrappedToolExecutor, type MessageContext } from "@celesta/session";
 import { createTool, type ToolExecutionContext } from "@mastra/core/tools";
@@ -46,12 +48,18 @@ export async function gatherTools(): Promise<
           )(async ({ context }, toolCallId) => {
             log("Executing tool:", toolName, "context:", context);
 
+            // For workflow contexts, pass the workflowId so browser agents can reuse tabs
+            const workflowId = isWorkflowId(messageContext.contextId)
+              ? (messageContext.contextId as WorkflowId)
+              : undefined;
+
             return ExecuteIntegrationHandler({
               body: {
                 context: {
                   clientId: messageContext.clientId,
                   contextId: messageContext.contextId,
                   toolCallId,
+                  workflowId,
                 },
                 integrationName,
                 actionName: action.name,

@@ -3,6 +3,7 @@ import {
   isPieceName,
   isIntegrationName,
   type ToolMode,
+  type WorkflowId,
 } from "@celesta/common";
 import z, { ZodObject, ZodOptional } from "zod";
 import { pieceByName } from "../pieces/pieceData.ts";
@@ -15,6 +16,7 @@ export type ClientContext = {
   clientId: ClientId;
   contextId: ContextId;
   toolCallId: ToolCallId;
+  workflowId?: WorkflowId; // Present when executing within a workflow
 };
 
 export type IntegrationMetadata = {

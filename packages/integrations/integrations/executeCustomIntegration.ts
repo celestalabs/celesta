@@ -98,7 +98,10 @@ export async function executeCustomIntegration(
           context.clientId,
           context.contextId,
           context.toolCallId,
-          (props as any).goalDescription
+          (props as any).goalDescription,
+          {
+            workflowId: context.workflowId,
+          }
         );
       }
 

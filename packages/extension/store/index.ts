@@ -53,6 +53,10 @@ type Store = {
     browserAgentId: BrowserAgentId
   ) => void;
 
+  // Track tab by workflow so browser agents within the same workflow reuse the same tab
+  tabIdByWorkflow: Partial<Record<WorkflowId, number>>;
+  setWorkflowTabId: (workflowId: WorkflowId, tabId: number) => void;
+
   // Voice events - consumed by AssistantView
   voiceTranscript: { transcript: string; isFinal: boolean } | null;
   voiceTTSChunk: string | null;
@@ -189,6 +193,16 @@ export const useStore = create<Store>()((set) => ({
       browserAgentByToolId: {
         ...state.browserAgentByToolId,
         [toolCallId]: browserAgentId,
+      },
+    })),
+
+  tabIdByWorkflow: {},
+  setWorkflowTabId: (workflowId, tabId) =>
+    set((state) => ({
+      ...state,
+      tabIdByWorkflow: {
+        ...state.tabIdByWorkflow,
+        [workflowId]: tabId,
       },
     })),
 
