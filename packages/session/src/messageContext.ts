@@ -149,6 +149,63 @@ class InternalMessageContext<T extends BaseAgent> {
   }
 
   /**
+   * Requests to hand off a complex task to the workflow system.
+   * For high confidence, auto-starts without user confirmation.
+   * For low/medium confidence, asks user first.
+   * Returns true if workflow started, false if declined.
+   */
+  async requestWorkflowHandoff(params: {
+    content: string;
+    suggestedPrompt: string;
+    confidence: "low" | "medium" | "high";
+    reasoning: string;
+  }): Promise<boolean> {
+    // High confidence: auto-start without asking
+    if (params.confidence === "high") {
+      sessionManager.createWorkflowFromChat(
+        this.clientId,
+        params.suggestedPrompt
+      );
+      return true;
+    }
+
+    // Low/medium confidence: ask user first
+    const requestId = generateId("REQUEST");
+    return new Promise((resolve, reject) => {
+      sessionManager
+        .expectResponse(this.clientId, requestId)
+        .then((message) => {
+          if (message.type === "PROVIDE_SHOULD_START_WORKFLOW") {
+            if (message.yes) {
+              // Trigger workflow creation
+              sessionManager.createWorkflowFromChat(
+                this.clientId,
+                params.suggestedPrompt
+              );
+            }
+            resolve(message.yes);
+          } else {
+            throw "message invalid";
+          }
+        })
+        .catch(reject);
+
+      sessionManager.sendMessage(
+        this.clientId,
+        ts({
+          type: "REQUEST_SHOULD_START_WORKFLOW",
+          contextId: this.contextId,
+          requestId,
+          content: params.content,
+          suggestedPrompt: params.suggestedPrompt,
+          confidence: params.confidence,
+          reasoning: params.reasoning,
+        })
+      );
+    });
+  }
+
+  /**
    * General message receipt awaiting method.
    */
   async generalExpectResponse(requestId: RequestId) {

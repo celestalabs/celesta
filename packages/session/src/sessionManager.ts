@@ -13,6 +13,8 @@ import {
   type IntegrationName,
   logger,
   BaseAgent,
+  generateId,
+  ts,
 } from "@celesta/common";
 import { WebSocket } from "ws";
 import {
@@ -47,8 +49,58 @@ class SessionManager {
   > = new Map();
 
   // Tracks active message contexts per client
-  messageContexts: Map<ClientId, Map<ContextId, MessageContext>> =
-    new Map();
+  messageContexts: Map<ClientId, Map<ContextId, MessageContext>> = new Map();
+
+  // Callback to create workflow agent - set by server to avoid circular deps
+  private workflowAgentCreator:
+    | ((messageContext: MessageContext, prompt: string) => Promise<BaseAgent>)
+    | null = null;
+
+  /**
+   * Register a callback for creating workflow agents.
+   * Called by server.ts to inject the CoordinationAgent creator.
+   */
+  registerWorkflowAgentCreator(
+    creator: (
+      messageContext: MessageContext,
+      prompt: string
+    ) => Promise<BaseAgent>
+  ) {
+    this.workflowAgentCreator = creator;
+  }
+
+  /**
+   * Creates a workflow from chat context.
+   * Used when ChatAgent hands off a complex task to the workflow system.
+   */
+  async createWorkflowFromChat(clientId: ClientId, prompt: string) {
+    if (!this.workflowAgentCreator) {
+      log("Workflow agent creator not registered");
+      return;
+    }
+
+    const contextId = generateId("WORKFLOW");
+    const workflowAgentCreator = this.workflowAgentCreator;
+
+    await this.createContext({
+      clientId,
+      contextId,
+      createHandlerAgent: async (messageContext) => {
+        return workflowAgentCreator(messageContext, prompt);
+      },
+    });
+
+    // Notify frontend that workflow has started
+    this.sendMessage(
+      clientId,
+      ts({
+        type: "WORKFLOW_STATUS_CHANGED",
+        workflowId: contextId,
+        prompt,
+        status: "running",
+      })
+    );
+  }
 
   /**
    * Creates a new message context for the specified client.

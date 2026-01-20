@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 import { createServer } from "http";
-import { ChatAgent, toolStore } from "@celesta/agents";
+import { ChatAgent, CoordinationAgent, toolStore } from "@celesta/agents";
 import { browserManager } from "@celesta/browser";
 import { generateId, logger } from "@celesta/common";
 import {
@@ -56,6 +56,11 @@ httpServer.on("request", integrationsServer);
 // connect WebSocket server
 const agentServer = new WebSocketServer({
   server: httpServer,
+});
+
+// Register workflow agent creator so sessionManager can create workflows from chat
+sessionManager.registerWorkflowAgentCreator(async (messageContext, prompt) => {
+  return new CoordinationAgent({ messageContext, prompt });
 });
 
 agentServer.on("connection", async (ws, request) => {
