@@ -1,3 +1,7 @@
+import { logger } from "@celesta/common";
+
+const log = logger("webMessages");
+
 type WebMessage<T extends string, C extends object = {}> = C & {
   __isWebMessage: true;
   __webMessageType: T;
@@ -51,10 +55,7 @@ export const sendWebMessage = <T extends string, C extends object>(
           return;
         }
 
-        console.log(
-          `[RECEIVED RESPONSE TO ${responseWebMessageId}]:`,
-          maybeWebMessage
-        );
+        log(`[RECEIVED RESPONSE TO ${responseWebMessageId}]:`, maybeWebMessage);
 
         browser.runtime.onMessage.removeListener(responseWebMessageHandler);
         TIMED_OUT_INTERVAL != null && clearTimeout(TIMED_OUT_INTERVAL);
@@ -62,7 +63,7 @@ export const sendWebMessage = <T extends string, C extends object>(
       };
 
       TIMED_OUT_INTERVAL = setTimeout(() => {
-        console.log(`[RESPONSE TO ${responseWebMessageId}] TIMED OUT.`);
+        log(`[RESPONSE TO ${responseWebMessageId}] TIMED OUT.`);
 
         browser.runtime.onMessage.removeListener(responseWebMessageHandler);
         reject("Request timed out.");
@@ -71,7 +72,7 @@ export const sendWebMessage = <T extends string, C extends object>(
       browser.runtime.onMessage.addListener(responseWebMessageHandler);
     }
 
-    console.log(`[SENDING WebMessage ${responseWebMessageId}]`, webMessage);
+    log(`[SENDING WebMessage ${responseWebMessageId}]`, webMessage);
 
     if (target === "runtime") {
       browser.runtime.sendMessage([webMessage, responseWebMessageId]);

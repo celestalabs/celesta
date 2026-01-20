@@ -1,12 +1,6 @@
-import { type FrontendWSMessage, ts } from "@celesta/common";
+import { type FrontendWSMessage, logger, ts } from "@celesta/common";
 import { Mic, MicOff, Square, User } from "lucide-react";
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  useMemo,
-} from "react";
+import React from "react";
 import { MessageCard } from "../components/MessageCard";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -19,6 +13,9 @@ import {
 } from "../hooks/useTranscriber";
 import { useTTSPlayer } from "../hooks/useTTS";
 import { useUIMessages } from "../hooks/useUIMessages";
+import { useStore } from "~/store";
+
+const log = logger("AssistantView");
 
 type Props = {
   sendMessage: (message: FrontendWSMessage) => void;
@@ -97,7 +94,7 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
     if (finalTranscript && !interimTranscript) {
       if (!silenceTimerRef.current) {
         silenceTimerRef.current = setTimeout(() => {
-          console.log("[VAD] Silence detected, auto-stopping");
+          log("[VAD] Silence detected, auto-stopping");
           handleVoiceComplete();
         }, SILENCE_THRESHOLD_MS);
       }
@@ -115,47 +112,62 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
   // Track if we should auto-restart listening after TTS finishes
   const shouldAutoRestartRef = useRef(false);
 
-  // Expose handlers for voice messages from useAgentServer
-  // These will be called when the server sends voice-related messages
-  useEffect(() => {
-    // Store handlers in window for useAgentServer to access
-    (window as any).__celestaVoiceHandlers = {
-      onTranscript: handleTranscript,
-      onTTSChunk: (audioData: string) => {
-        console.log(
-          `[TTS] Received chunk (${audioData.length} chars), voiceMessagePending=${voiceMessagePending}`
-        );
-        // Always add chunks - voiceMessagePending tracks if we expect TTS
-        addAudioChunk(audioData);
-      },
-      onTTSComplete: () => {
-        console.log(
-          `[TTS] Received TTS_COMPLETE, ttsStoppedManually=${ttsStoppedManuallyRef.current}`
-        );
-        // Enable auto-restart when TTS queue is done (unless manually stopped)
-        if (!ttsStoppedManuallyRef.current) {
-          shouldAutoRestartRef.current = true;
-          console.log("[TTS] Auto-restart enabled for continuous conversation");
-        }
-        // Clear voiceMessagePending since TTS is complete
-        setVoiceMessagePending(false);
-        finishTTS();
-      },
-      onError: handleVoiceError,
-    };
+  // Subscribe to voice events from store (dispatched by useAgentServer)
+  const voiceTranscript = useStore((state) => state.voiceTranscript);
+  const voiceTTSChunk = useStore((state) => state.voiceTTSChunk);
+  const voiceTTSComplete = useStore((state) => state.voiceTTSComplete);
+  const voiceError = useStore((state) => state.voiceError);
+  const clearVoiceEvents = useStore((state) => state.clearVoiceEvents);
 
+  // Handle voice transcript events
+  useEffect(() => {
+    if (voiceTranscript) {
+      handleTranscript(voiceTranscript.transcript, voiceTranscript.isFinal);
+    }
+  }, [voiceTranscript, handleTranscript]);
+
+  // Handle TTS chunk events
+  useEffect(() => {
+    if (voiceTTSChunk) {
+      log(
+        `[TTS] Received chunk (${voiceTTSChunk.length} chars), voiceMessagePending=${voiceMessagePending}`
+      );
+      addAudioChunk(voiceTTSChunk);
+    }
+  }, [voiceTTSChunk, addAudioChunk, voiceMessagePending]);
+
+  // Handle TTS complete events
+  useEffect(() => {
+    if (voiceTTSComplete) {
+      log(
+        `[TTS] Received TTS_COMPLETE, ttsStoppedManually=${ttsStoppedManuallyRef.current}`
+      );
+      // Enable auto-restart when TTS queue is done (unless manually stopped)
+      if (!ttsStoppedManuallyRef.current) {
+        shouldAutoRestartRef.current = true;
+        log("[TTS] Auto-restart enabled for continuous conversation");
+      }
+      // Clear voiceMessagePending since TTS is complete
+      setVoiceMessagePending(false);
+      finishTTS();
+      clearVoiceEvents();
+    }
+  }, [voiceTTSComplete, finishTTS, clearVoiceEvents]);
+
+  // Handle voice error events
+  useEffect(() => {
+    if (voiceError) {
+      handleVoiceError(voiceError);
+      clearVoiceEvents();
+    }
+  }, [voiceError, handleVoiceError, clearVoiceEvents]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      delete (window as any).__celestaVoiceHandlers;
       clearSilenceTimer();
     };
-  }, [
-    handleTranscript,
-    handleVoiceError,
-    addAudioChunk,
-    finishTTS,
-    voiceMessagePending,
-    clearSilenceTimer,
-  ]);
+  }, [clearSilenceTimer]);
 
   // Auto-restart listening when TTS playback actually finishes
   // This is more reliable than using the TTS_COMPLETE message timing
@@ -163,21 +175,19 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
   useEffect(() => {
     // Detect transition from speaking to not speaking
     if (prevIsSpeakingRef.current && !isSpeaking) {
-      console.log(
+      log(
         `[Voice] isSpeaking changed to false, shouldAutoRestart=${shouldAutoRestartRef.current}`
       );
 
       if (shouldAutoRestartRef.current) {
         shouldAutoRestartRef.current = false;
-        console.log(
-          "[Voice] Auto-restarting microphone for continuous conversation"
-        );
+        log("[Voice] Auto-restarting microphone for continuous conversation");
 
         // Small delay before restarting to feel more natural
         setTimeout(async () => {
           // Double-check we're not already speaking (race condition guard)
           if (isSpeaking) {
-            console.log("[Voice] Aborted auto-restart: TTS started again");
+            log("[Voice] Aborted auto-restart: TTS started again");
             return;
           }
 
@@ -289,7 +299,9 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
 
     // If this is a new message, reset our tracking
     if (ttsMessageIndexRef.current !== lastMessageIndex) {
-      console.log(`[TTS] New message detected at index ${lastMessageIndex}, resetting TTS tracking`);
+      log(
+        `[TTS] New message detected at index ${lastMessageIndex}, resetting TTS tracking`
+      );
       lastTTSSentLengthRef.current = 0;
       sentRemainingContentRef.current = false;
       ttsMessageIndexRef.current = lastMessageIndex;
@@ -315,7 +327,7 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
     if (lastSentenceEnd > 0) {
       const textToSpeak = newContent.slice(0, lastSentenceEnd).trim();
       if (textToSpeak.length > 0) {
-        console.log(
+        log(
           `[TTS] Streaming TTS for sentence (${textToSpeak.length} chars): "${textToSpeak.slice(0, 50)}..."`
         );
         sendMessage(
@@ -335,7 +347,7 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
   // When streaming completes, send any remaining content
   useEffect(() => {
     if (!voiceMessagePending) return;
-    
+
     // Don't send remaining content twice
     if (sentRemainingContentRef.current) return;
 
@@ -347,7 +359,7 @@ export const AssistantView = React.memo(({ sendMessage }: Props) => {
           .slice(lastTTSSentLengthRef.current)
           .trim();
         if (remainingContent.length > 0) {
-          console.log(
+          log(
             `[TTS] Sending remaining content (${remainingContent.length} chars): "${remainingContent.slice(0, 50)}..."`
           );
           sendMessage(

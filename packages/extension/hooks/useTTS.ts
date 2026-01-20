@@ -3,7 +3,9 @@
  * Audio is generated on backend via Deepgram and streamed to frontend
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { logger } from "@celesta/common";
+
+const log = logger("useTTS");
 
 /**
  * Audio player that queues and plays base64 audio chunks
@@ -16,7 +18,10 @@ export class AudioPlayer {
   private onComplete?: () => void;
   private stopRequested = false;
 
-  constructor(options?: { onChunkStart?: () => void; onComplete?: () => void }) {
+  constructor(options?: {
+    onChunkStart?: () => void;
+    onComplete?: () => void;
+  }) {
     this.onChunkStart = options?.onChunkStart;
     this.onComplete = options?.onComplete;
   }
@@ -88,7 +93,7 @@ export class AudioPlayer {
 
       this.playNext();
     } catch (error) {
-      console.error("[AudioPlayer] Error playing chunk:", error);
+      log("[AudioPlayer] Error playing chunk:", error);
       this.playNext();
     }
   }
@@ -183,7 +188,7 @@ export function useTTSPlayer() {
       onPlaybackCompleteRef.current = onPlaybackComplete;
     }
     playerRef.current?.finish();
-    
+
     // If no audio is playing (empty queue), trigger callback immediately
     if (!playerRef.current?.playing) {
       onPlaybackComplete?.();

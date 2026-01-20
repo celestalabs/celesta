@@ -5,10 +5,13 @@
 
 import {
   generateId,
+  logger,
   ts,
   type FrontendWSMessage,
   type VoiceSessionId,
 } from "@celesta/common";
+
+const log = logger("useTranscriber");
 
 export type TranscriberState = "idle" | "listening" | "error";
 
@@ -78,7 +81,7 @@ export function useTranscriber(
   const startTranscribing = useCallback(async () => {
     if (state === "listening") return;
 
-    console.log("[Transcriber] Starting...");
+    log("[Transcriber] Starting...");
     setInterimTranscript("");
     setFinalTranscript("");
     setError(null);
@@ -124,16 +127,16 @@ export function useTranscriber(
 
       recorder.start(250); // Send data every 250ms
       setState("listening");
-      console.log("[Transcriber] MediaRecorder started");
+      log("[Transcriber] MediaRecorder started");
     } catch (err) {
-      console.error("[Transcriber] Error starting:", err);
+      log("[Transcriber] Error starting:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
       setState("error");
     }
   }, [state, sendMessage]);
 
   const stopTranscribing = useCallback((): string => {
-    console.log("[Transcriber] Stopping...");
+    log("[Transcriber] Stopping...");
 
     // Notify backend to stop
     if (sessionId) {

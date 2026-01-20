@@ -1,5 +1,5 @@
-import { type IntegrationName } from "@celesta/common";
-import React, { useCallback, useEffect, useState } from "react";
+import { type IntegrationName, logger } from "@celesta/common";
+import React from "react";
 import { IntegrationCard } from "../components/IntegrationCard";
 import { OnboardingProgress } from "../components/OnboardingProgress";
 import { OnboardingStep } from "../components/OnboardingStep";
@@ -12,6 +12,8 @@ import {
   completeOnboarding,
   updateOnboardingProgress,
 } from "../utils/supabaseDatabase";
+
+const log = logger("OnboardingView");
 
 const TOTAL_STEPS = 4;
 
@@ -110,7 +112,7 @@ export const OnboardingView = React.memo(() => {
       try {
         await handleOAuthFlow(integration);
       } catch (error) {
-        console.error(`Failed to authenticate ${integration}:`, error);
+        log(`Failed to authenticate ${integration}:`, error);
       }
     }
 

@@ -52,6 +52,17 @@ type Store = {
     toolCallId: ToolCallId,
     browserAgentId: BrowserAgentId
   ) => void;
+
+  // Voice events - consumed by AssistantView
+  voiceTranscript: { transcript: string; isFinal: boolean } | null;
+  voiceTTSChunk: string | null;
+  voiceTTSComplete: boolean;
+  voiceError: string | null;
+  dispatchVoiceTranscript: (transcript: string, isFinal: boolean) => void;
+  dispatchVoiceTTSChunk: (audioData: string) => void;
+  dispatchVoiceTTSComplete: () => void;
+  dispatchVoiceError: (error: string) => void;
+  clearVoiceEvents: () => void;
 };
 
 export const useStore = create<Store>()((set) => ({
@@ -180,4 +191,22 @@ export const useStore = create<Store>()((set) => ({
         [toolCallId]: browserAgentId,
       },
     })),
+
+  // Voice events
+  voiceTranscript: null,
+  voiceTTSChunk: null,
+  voiceTTSComplete: false,
+  voiceError: null,
+  dispatchVoiceTranscript: (transcript, isFinal) =>
+    set({ voiceTranscript: { transcript, isFinal } }),
+  dispatchVoiceTTSChunk: (audioData) => set({ voiceTTSChunk: audioData }),
+  dispatchVoiceTTSComplete: () => set({ voiceTTSComplete: true }),
+  dispatchVoiceError: (error) => set({ voiceError: error }),
+  clearVoiceEvents: () =>
+    set({
+      voiceTranscript: null,
+      voiceTTSChunk: null,
+      voiceTTSComplete: false,
+      voiceError: null,
+    }),
 }));

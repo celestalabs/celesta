@@ -1,11 +1,17 @@
-import { type IntegrationName, isIntegrationName } from "@celesta/common";
+import {
+  type IntegrationName,
+  isIntegrationName,
+  logger,
+} from "@celesta/common";
 import { apiClient } from "../utils/apiClient";
+
+const log = logger("useOAuth");
 
 export function useOAuth() {
   const handleOAuthFlow = useCallback(
     async (integrationName: string): Promise<string | null> => {
       if (!isIntegrationName(integrationName)) {
-        console.error("Invalid integration name:", integrationName);
+        log("Invalid integration name:", integrationName);
         return null;
       }
 
@@ -25,7 +31,7 @@ export function useOAuth() {
         });
 
         if (!responseUrlRes.success) {
-          console.error("Failed to get OAuth URL:", responseUrlRes.error);
+          log("Failed to get OAuth URL:", responseUrlRes.error);
           return null;
         }
 
@@ -35,7 +41,7 @@ export function useOAuth() {
         });
 
         if (responseUrl == null) {
-          console.error("OAuth flow was canceled or failed");
+          log("OAuth flow was canceled or failed");
           return null;
         }
 
@@ -65,7 +71,7 @@ export function useOAuth() {
 
         return response.accessToken;
       } catch (error) {
-        console.error("OAuth flow error:", error);
+        log("OAuth flow error:", error);
         return null;
       }
     },

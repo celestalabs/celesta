@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
-import { OnboardingView } from "~/views/OnboardingView";
-import { AuthView } from "~/views/AuthView";
 import { supabase } from "~/utils/supabase";
 import { getUserOnboardingStatus } from "~/utils/supabaseDatabase";
+import { AuthView } from "~/views/AuthView";
+import { OnboardingView } from "~/views/OnboardingView";
 import "~/styles/globals.css";
 
 const App = React.memo(() => {
@@ -44,7 +44,10 @@ const App = React.memo(() => {
   }, []);
 
   // Loading state
-  if (isAuthenticated === null || (isAuthenticated && onboardingComplete === null)) {
+  if (
+    isAuthenticated === null ||
+    (isAuthenticated && onboardingComplete === null)
+  ) {
     return (
       <div className="flex h-screen items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
@@ -58,7 +61,7 @@ const App = React.memo(() => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-6xl font-bold">meow</h1>
-          <p className="text-muted-foreground">You're all set!</p>
+          <p className="text-muted-foreground">You&apos;re all set!</p>
         </div>
       </div>
     );

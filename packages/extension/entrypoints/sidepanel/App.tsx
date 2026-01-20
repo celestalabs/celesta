@@ -1,5 +1,5 @@
 import { isBrowserAgentId, isChatId, ts } from "@celesta/common";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import { toast, Toaster } from "sonner";
 import { Button } from "~/components/ui/button";
@@ -7,8 +7,8 @@ import { ButtonGroup } from "~/components/ui/button-group";
 import { useAgentServer } from "~/hooks/useAgentServer";
 import { useOAuth } from "~/hooks/useOAuth";
 import { useStore } from "~/store";
-import { browserAgentActions } from "~/utils/browserAgentActions";
-import { browserContextActions } from "~/utils/browserContextActions";
+import { executeBrowserAgentAction } from "~/utils/browserAgentActions";
+import { executeBrowserContextAction } from "~/utils/browserContextActions";
 import { supabase } from "~/utils/supabase";
 import { AssistantView } from "~/views/AssistantView";
 import { AuthView } from "~/views/AuthView";
@@ -163,7 +163,7 @@ const App = React.memo(() => {
         ts({
           type: "PROVIDE_BROWSER_CONTEXT_ACTION",
           requestId,
-          response: await browserContextActions[action.type](action as any),
+          response: await executeBrowserContextAction(action),
         })
       );
     },
@@ -182,9 +182,9 @@ const App = React.memo(() => {
         );
       }
 
-      const response = await browserAgentActions[action.type](
+      const response = await executeBrowserAgentAction(
         tabIdByBrowserAgent[contextId]!,
-        action as any
+        action
       );
 
       send(
@@ -198,6 +198,12 @@ const App = React.memo(() => {
     },
 
     BROWSER_AGENT_INITIALIZED: () => {},
+
+    // Voice handlers - dispatched to store by useAgentServer, consumed by AssistantView
+    VOICE_TRANSCRIPT: () => {},
+    VOICE_TTS_CHUNK: () => {},
+    VOICE_TTS_COMPLETE: () => {},
+    VOICE_ERROR: () => {},
   });
 
   // Show loading while checking auth and onboarding

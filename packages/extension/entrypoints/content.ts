@@ -1,9 +1,12 @@
+import { logger } from "@celesta/common";
 import getXPath from "get-xpath";
 import {
   type ResponseWebMessage,
   isAgentActionWebMessage,
   isWebMessageResponseIdTuple,
 } from "~/utils/webMessages.js";
+
+const log = logger("content");
 
 function handleStartAgentUI() {
   document.head.appendChild(
@@ -94,29 +97,26 @@ export default defineContentScript({
   matches: ["*://*/*"],
   runAt: "document_start",
   main() {
-    console.log("Hello from agent content script");
+    log("Hello from agent content script");
 
     // document.addEventListener("DOMContentLoaded", handleStartAgentUI);
 
     browser.runtime.onMessage.addListener(async (messageResponseIdTuple) => {
-      console.log("Received message", messageResponseIdTuple);
+      log("Received message", messageResponseIdTuple);
 
       // Not a message payload
       if (!isWebMessageResponseIdTuple(messageResponseIdTuple)) return;
-      console.log("Received valid web message", messageResponseIdTuple);
+      log("Received valid web message", messageResponseIdTuple);
       const [message, responseWebMessageId] = messageResponseIdTuple;
 
       // Not the right message
       if (!isAgentActionWebMessage(message)) return;
 
-      console.log(
-        "Received valid agent action web message",
-        messageResponseIdTuple
-      );
+      log("Received valid agent action web message", messageResponseIdTuple);
 
       switch (message.action) {
         case "getPageContent": {
-          console.log("Processing getPageContent action");
+          log("Processing getPageContent action");
           const rawHtml = document.documentElement.outerHTML.trim();
           const filteredHtml = rawHtml
             .replace(/<!--[\s\S]*?-->/g, "") // remove comments
@@ -149,7 +149,7 @@ export default defineContentScript({
           } satisfies ResponseWebMessage);
         }
         case "scrollDocument": {
-          console.log("Processing scrollDocument action");
+          log("Processing scrollDocument action");
           window.scrollBy(message.deltaX, message.deltaY);
           break;
         }
@@ -160,7 +160,7 @@ export default defineContentScript({
 
           agentStarted = true;
 
-          console.log("Processing startAgent action");
+          log("Processing startAgent action");
 
           handleStartAgentUI();
           break;

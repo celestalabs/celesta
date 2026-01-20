@@ -169,7 +169,7 @@ async function normalizeCoordinates(
   };
 }
 
-export const browserAgentActions = {
+const browserAgentActions = {
   async GOTO_URL(tabId, { url }) {
     try {
       await sendCommand(tabId, "Page.navigate", { url });
@@ -575,6 +575,13 @@ export const browserAgentActions = {
     props: Omit<Extract<BrowserAgentAction, { type: K }>, "type">
   ) => Promise<object>;
 };
+
+export function executeBrowserAgentAction<K extends BrowserAgentAction["type"]>(
+  tabId: number,
+  action: Extract<BrowserAgentAction, { type: K }>
+): Promise<object> {
+  return browserAgentActions[action.type](tabId, action as any);
+}
 
 registerGlobalForDevMode("debuggerUtils", {
   attachDebugger,

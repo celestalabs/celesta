@@ -1,6 +1,9 @@
 // Example: Using Supabase Auth in the Extension
 
+import { logger } from "@celesta/common";
 import { supabase } from "../utils/supabase";
+
+const log = logger("supabaseAuth");
 
 // Sign up a new user
 export async function signUp(email: string, password: string) {
@@ -10,11 +13,11 @@ export async function signUp(email: string, password: string) {
   });
 
   if (error) {
-    console.error("Sign up error:", error.message);
+    log("Sign up error:", error.message);
     return { error };
   }
 
-  console.log("User signed up:", data.user);
+  log("User signed up:", data.user);
   return { data };
 }
 
@@ -26,11 +29,11 @@ export async function signIn(email: string, password: string) {
   });
 
   if (error) {
-    console.error("Sign in error:", error.message);
+    log("Sign in error:", error.message);
     return { error };
   }
 
-  console.log("User signed in:", data.user);
+  log("User signed in:", data.user);
   return { data };
 }
 
@@ -39,11 +42,11 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
 
   if (error) {
-    console.error("Sign out error:", error.message);
+    log("Sign out error:", error.message);
     return { error };
   }
 
-  console.log("User signed out");
+  log("User signed out");
   return { error: null };
 }
 

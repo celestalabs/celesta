@@ -3,11 +3,7 @@ import { type AgentActionWebMessage, sendWebMessage } from "./webMessages";
 
 const log = logger("browserContextActions");
 
-export const browserContextActions: {
-  [K in BrowserContextAction["type"]]: (
-    props: Extract<BrowserContextAction, { type: K }>
-  ) => Promise<object>;
-} = {
+const browserContextActions = {
   OPEN_URL: async ({ url }) => {
     try {
       await browser.tabs.create({ url });
@@ -60,4 +56,14 @@ export const browserContextActions: {
       return { success: false, error: `${error}` };
     }
   },
+} as const satisfies {
+  [K in BrowserContextAction["type"]]: (
+    props: Omit<Extract<BrowserContextAction, { type: K }>, "type">
+  ) => Promise<object>;
 };
+
+export function executeBrowserContextAction<
+  K extends BrowserContextAction["type"],
+>(action: Extract<BrowserContextAction, { type: K }>): Promise<object> {
+  return browserContextActions[action.type](action);
+}

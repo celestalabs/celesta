@@ -49,6 +49,18 @@ export function useAgentServer(handlerByType: {
     (state) => state.addBrowserAgentToolId
   );
 
+  // Voice event dispatchers
+  const dispatchVoiceTranscript = useStore(
+    (state) => state.dispatchVoiceTranscript
+  );
+  const dispatchVoiceTTSChunk = useStore(
+    (state) => state.dispatchVoiceTTSChunk
+  );
+  const dispatchVoiceTTSComplete = useStore(
+    (state) => state.dispatchVoiceTTSComplete
+  );
+  const dispatchVoiceError = useStore((state) => state.dispatchVoiceError);
+
   const handleOpen = useCallback(() => {
     log("WebSocket connection opened");
   }, []);
@@ -136,33 +148,21 @@ export function useAgentServer(handlerByType: {
           );
           break;
         }
-        // Voice message handlers - route to AssistantView via window handlers
+        // Voice message handlers - dispatch to store for AssistantView to consume
         case "VOICE_TRANSCRIPT": {
-          const handlers = (window as any).__celestaVoiceHandlers;
-          if (handlers?.onTranscript) {
-            handlers.onTranscript(message.transcript, message.isFinal);
-          }
+          dispatchVoiceTranscript(message.transcript, message.isFinal);
           break;
         }
         case "VOICE_TTS_CHUNK": {
-          const handlers = (window as any).__celestaVoiceHandlers;
-          if (handlers?.onTTSChunk) {
-            handlers.onTTSChunk(message.audioData);
-          }
+          dispatchVoiceTTSChunk(message.audioData);
           break;
         }
         case "VOICE_TTS_COMPLETE": {
-          const handlers = (window as any).__celestaVoiceHandlers;
-          if (handlers?.onTTSComplete) {
-            handlers.onTTSComplete();
-          }
+          dispatchVoiceTTSComplete();
           break;
         }
         case "VOICE_ERROR": {
-          const handlers = (window as any).__celestaVoiceHandlers;
-          if (handlers?.onError) {
-            handlers.onError(message.error);
-          }
+          dispatchVoiceError(message.error);
           break;
         }
       }
@@ -197,6 +197,10 @@ export function useAgentServer(handlerByType: {
       addBrowserAgentTabId,
       addBrowserAgentToolId,
       tabIdByBrowserAgent,
+      dispatchVoiceTranscript,
+      dispatchVoiceTTSChunk,
+      dispatchVoiceTTSComplete,
+      dispatchVoiceError,
     ]
   );
 
